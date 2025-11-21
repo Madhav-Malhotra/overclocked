@@ -103,9 +103,9 @@ Programmable logic includes lookup tables (LUTs) and flip-flops (FFs).
 Memory resources include block random access memories (block RAMs or BRAMs) and distributed RAMs (DRAMs).
 Note that when you see DRAMs in the FPGA tool, it refers to the distributed RAMs and not dynamic random-access memories.
 The two types of memory resources in an FPGA, distributed RAMs and BRAMs, have different characteristics.
-Distributed RAMs are implemented using LUTs and FFs while BRAMs are hardened memory parts.
+**Distributed RAMs are implemented using LUTs and FFs while BRAMs are hardened memory parts.**
 At a high-level, distributed RAMs are faster, but consume programmable logic, while BRAMs are slower and have larger capacity.
-Additionally, BRAMs always have a 1-cycle read latency, unlike distributed RAMs, which support same cycle read.
+Additionally, **BRAMs always have a 1-cycle read latency, unlike distributed RAMs, which support same cycle read**.
 
 One important aspect of mapping a design to an FPGA is the choice of memory resources when implementing arrays.
 The array in the register file module is a good example of when you should use BRAMs.
@@ -126,7 +126,7 @@ As such, adding the `ram_style` attribute should not affect simulation.
 You can refer to [this page](https://docs.xilinx.com/r/en-US/ug901-vivado-synthesis/Single-Port-Block-RAM-with-Resettable-Data-Output-Verilog) to see a collection of code that Vivado accepts for generating BRAMs.
 
 For PD6, we will get Vivado to infer BRAMs for the `imemory`, `dmemory`, and `register_file`.
-We provide you with special `imemory` and `dmemory`, but you will need to re-work the `register_file` module.
+We provide you with special `imemory` and `dmemory`, but you will need to **re-work the `register_file` module**.
 
 #### Instruction and Data Memory
 
@@ -134,7 +134,7 @@ The `imemory` and `dmemory` are two of our candidates for mapping onto BRAMs.
 To facilitate testing and provide better mapping onto the FPGA, we provide updated `imemory` and `dmemory` modules.
 You can find their implementation in `design/code/imemory.v` and `design/code/dmemory.v`.
 These modules share the same interfaces as the ones in prior PDs, but with three major differences:
-1. The modules have a 1-cycle read latency, as opposed to combinational read in previous PDs.
+1. The **modules have a 1-cycle read latency**, as opposed to combinational read in previous PDs.
 This 1-cycle read latency is necessary to support proper inference to BRAMs and unaligned memory accesses.
 2. The modules contain internal logic for dynamically loading memory content.
 3. The imemory module contains an `enable` input.
@@ -150,8 +150,8 @@ Make sure your register file, especially the stack pointer, functions correctly 
 
 The register file should continue to be functionally correct but should be implemented in BRAMs.
 This means that you need to introduce a one-cycle delay to reads from your register file.
-You can examine whether your register file successfully maps to BRAMs or not through an estimated resource utilization
-report.
+You can **examine whether your register file successfully maps to BRAMs or not through an estimated resource utilization
+report.**
 To generate the report, in `build/scripts`, run `make estimate-resource`.
 The generated resource utilization report lies in `build/output/util_est.txt` and `build/output/util_est_hier.txt`.
 The `util_est.txt` provides you with the percentage of resources you are using on the board while `util_est_hier.txt` provides a breakdown of used resources per module in your design.
@@ -255,7 +255,7 @@ Make sure you do not see lines like `!!!!!!! Timing failed !!!!!!!` in the log.
 
 ### Ensuring Correctness of Bitstream via Simulation
 
-The script uses a relatively aggressive flow for optimization after synthesis, hence it is important that you ensure your design works correctly after synthesis.
+The script uses a relatively aggressive flow for optimization after synthesis, hence it is important that you **ensure your design works correctly after synthesis**.
 You can simulate your design after synthesis or after implementation in `build/scripts/`.
 These types of simulation run the synthesized and implemented design instead of the design that you write in Verilog.
 It will provide information on how your code maps to the hardware and whether the optimizations break your code (hopefully not).
@@ -278,8 +278,8 @@ Similar to prior PDs, the testbench by default outputs the probe signals at writ
 You should see `[W]` trace output as in PD4 and PD5.
 Note that we do not output the probes for other stages in the pipeline.
 This is because every added probe may degrade the performance of your core.
-However, you are free to access those probes if needed.
-See `build/design/top.v` for examples of how you can access those probes with syntax like ``dut.core.`W_PC``.
+However, you are **free to access those probes if needed.
+See `build/design/top.v` for examples of how you can access those probes with syntax like** ``dut.core.`W_PC``.
 
 #### Post-Synthesis
 
@@ -444,8 +444,8 @@ Consult [this Xilinx document](https://docs.xilinx.com/v/u/2018.3-English/ug912-
 
 You may be in a situation where your simulation does not match what is running on the hardware.
 You may want to view signals live on board by inserting probes, which is also possible.
-To save time, it is highly recommended that you ensure the post-synthesis and post-implementation designs simulate as expected, and there is no timing error, before
-adding any debug probes.
+To save time, it is **highly recommended that you ensure the post-synthesis and post-implementation designs simulate as expected, and there is no timing error, before
+adding any debug probes**.
 
 We show you an example of how you may add a debug probe for PC in fetch stage (`F_PC`).
 

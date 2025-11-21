@@ -6,6 +6,7 @@ module register_file #(
 )
 (
     input clock,
+    input reg_enable,
     input write_enable,
     input [ADDRW-1:0] addr_rs1,
     input [ADDRW-1:0] addr_rs2,
@@ -16,7 +17,9 @@ module register_file #(
 );
 
 // Signal declarations
-reg [DATAW-1:0] regs [0:NUM_REGS-1];
+(* ram_style = "block" *) reg [DATAW-1:0] regs [0:NUM_REGS-1];
+
+// MDV - TD
 integer i;
 initial begin
     for (i = 0; i < NUM_REGS; i = i + 1) begin
@@ -34,17 +37,10 @@ always @(posedge clock) begin
     // Write to any register except x0
     if (write_enable && addr_rd != 0) begin
         regs[addr_rd] <= data_rd;
+    end else begin 
+        data_rs1 <= (reg_enable) ? regs[addr_rs1] : 0;
+        data_rs2 <= (reg_enable) ? regs[addr_rs2] : 0;
     end
-end
-
-// Combinational reads
-always @(*) begin
-    // if writing to same register as read, treat as read-after-write
-    // ensure not overwriting x0
-    // data_rs1 = (write_enable && addr_rs1 == addr_rd && addr_rs1 != 0) ? data_rd : regs[addr_rs1];
-    // data_rs2 = (write_enable && addr_rs2 == addr_rd && addr_rs2 != 0) ? data_rd : regs[addr_rs2];
-    data_rs1 = regs[addr_rs1];
-    data_rs2 = regs[addr_rs2];
 end
 
 endmodule

@@ -161,8 +161,6 @@ module pd #(
 
   // Decode-Execute stage
   reg [DATAW-1:0] pc_dx_r;
-  reg [DATAW-1:0] data_rs1_dx_r;
-  reg [DATAW-1:0] data_rs2_dx_r;
   reg [6:0] opcode_dx_r;            // Store decoded instr, not OG instr
   reg [2:0] funct3_dx_r;
   reg [DATAW-1:0] imm_dx_r;
@@ -173,8 +171,6 @@ module pd #(
   always @(posedge clock) begin
     if (reset) begin
       pc_dx_r <= 0;
-      data_rs1_dx_r <= 0;
-      data_rs2_dx_r <= 0;
       opcode_dx_r <= 0;
       funct3_dx_r <= 0;
       imm_dx_r <= 0;
@@ -185,8 +181,6 @@ module pd #(
     else if (stall || br_taken) begin
       pc_dx_r <= pc_fd_r;               // Connect to prior FD pipeline reg
       opcode_dx_r <= NOP_OPCODE;    // Insert NOP into pipeline for first instruction after branch
-      data_rs1_dx_r <= 0;
-      data_rs2_dx_r <= 0;
       funct3_dx_r <= 0;
       imm_dx_r <= 0;
       addr_rs1_dx_r <= 0;
@@ -195,8 +189,6 @@ module pd #(
     end
     else begin
       pc_dx_r <= pc_fd_r;               // Connect to prior FD pipeline reg
-      data_rs1_dx_r <= data_rs1_w;      // Connect to regfile outputs
-      data_rs2_dx_r <= data_rs2_w;
       opcode_dx_r <= opcode_w;          // Connect to decoder outputs
       funct3_dx_r <= funct3_w;
       imm_dx_r <= imm_w;
@@ -230,7 +222,7 @@ module pd #(
       pc_xm_r <= pc_dx_r;             // Pipeline PC, rs2 data from last stage
       imm_xm_r <= imm_dx_r; 
       funct3_xm_r <= funct3_dx_r;
-      data_rs2_xm_r <= data_rs2_dx_r; 
+      data_rs2_xm_r <= data_rs2_w; 
       alu_xm_r <= alu_out_w;          // Pipeline ALU output
       opcode_xm_r <= opcode_dx_r;     // Pipeline decoded instruction from last stage
       addr_rs2_xm_r <= addr_rs2_dx_r;
@@ -290,9 +282,11 @@ module pd #(
     .is_i_type_w(is_i_type)     // output
   );
 
+  wire rf_en = !(stall || br_taken || reset);
   register_file rf1(
     .clock(clock),          // input
     .write_enable(reg_wen), // input
+    .reg_enable(rf_en),     // input
     .addr_rs1(addr_rs1_w),  // input
     .addr_rs2(addr_rs2_w),  // input
     .addr_rd(addr_rd_mw_r), // input
@@ -338,11 +332,11 @@ module pd #(
 
   wire [DATAW-1:0] idata1_in =  (branch_comp_data1_sel == WX_BYPASS) ? data_rd_mw_r :
                                 (branch_comp_data1_sel == MX_BYPASS) ? alu_xm_r :
-                                                                     data_rs1_dx_r;
+                                                                     data_rs1_w;
 
   wire [DATAW-1:0] idata2_in =  (branch_comp_data2_sel == WX_BYPASS) ? data_rd_mw_r :
                                 (branch_comp_data2_sel == MX_BYPASS) ? alu_xm_r :
-                                                                     data_rs2_dx_r;
+                                                                     data_rs2_w;
 
   branch_comp bc1(
     .idata1(idata1_in),
@@ -353,14 +347,14 @@ module pd #(
   );
 
   // A sel definitions (determines ALU input 1)
-  assign alu_in1_w = (a_sel == REG) ? data_rs1_dx_r :
+  assign alu_in1_w = (a_sel == REG) ? data_rs1_w :
                      (a_sel == PC) ? pc_dx_r :
                      (a_sel == WX_BYPASS) ? data_rd_mw_r :
                                             alu_xm_r;
 
   // B sel definitions (determines ALU input 2)
   localparam IMM  = 2'b01;
-  assign alu_in2_w = (b_sel == REG) ? data_rs2_dx_r :
+  assign alu_in2_w = (b_sel == REG) ? data_rs2_w :
                      (b_sel == IMM) ? imm_dx_r :
                      (b_sel == WX_BYPASS) ? data_rd_mw_r :
                                             alu_xm_r;

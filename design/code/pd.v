@@ -65,6 +65,39 @@ module pd #(
   // PC + 4
   wire [DATAW-1:0] pc4_f_w = pc_r + 4;
 
+
+  // ====================
+  // PIPELINE REGSITERS
+  // ====================
+  // Fetch Decode
+  reg [DATAW-1:0] pc_fd_r;
+  reg [DATAW-1:0] instr_fd_r;
+  reg [DATAW-1:0] pc_dx_r;
+
+  // Decode Execute
+  reg [6:0] opcode_dx_r;
+  reg [2:0] funct3_dx_r;
+  reg [DATAW-1:0] imm_dx_r;
+  reg [ADDRW-1:0] addr_rs1_dx_r;
+  reg [ADDRW-1:0] addr_rs2_dx_r;
+  reg [ADDRW-1:0] addr_rd_dx_r;
+  
+  // Execute Memory
+  reg [DATAW-1:0] pc_xm_r;   
+  reg [DATAW-1:0] imm_xm_r;
+  reg [2:0] funct3_xm_r;
+  reg [DATAW-1:0] alu_xm_r;
+  reg [DATAW-1:0] data_rs2_xm_r;        // P.S. Class slides don't need rs1_xm
+  reg [6:0] opcode_xm_r;                // Need for stalling logic
+  reg [ADDRW-1:0] addr_rs2_xm_r;        // Need for forwarding logic
+  reg [ADDRW-1:0] addr_rd_xm_r;         // Need to determine WB location
+
+  // Memory Writeback
+  reg [DATAW-1:0] pc_mw_r;            // Need for signals.h test
+  reg [DATAW-1:0] data_rd_mw_r;       // Need to determine WB content
+  reg [6:0] opcode_mw_r;              // Need for stalling logic
+  reg [ADDRW-1:0] addr_rd_mw_r;       // Need to determine WB location
+
   // ====================
   // STALL LOGIC
   // ====================
@@ -74,7 +107,6 @@ module pd #(
   localparam STORE_OPCODE = 7'b0100011;
   localparam BRANCH_OPCODE = 7'b1100011;
   localparam ECALL_OPCODE = 7'b1110011;
-
 
 
   // this logic happens during the decode stage so the _w signals represent the FD instruction that is currently being decoded
@@ -114,6 +146,7 @@ module pd #(
 
   // Combine stalls
   wire stall = load_stall || wd_stall || load_store_stall || store_rs2_stall;
+  wire imem_enable = !stall;
 
   // ===================
   // CONTROL/FSMs
@@ -134,12 +167,10 @@ module pd #(
   end
 
   // ===================
-  // PIPELINE REGISTERS
+  // PIPELINE LOGIC
   // ===================
 
   // Fetch-Decode stage
-  reg [DATAW-1:0] pc_fd_r;
-  reg [DATAW-1:0] instr_fd_r;
   always @(posedge clock) begin
     if (reset) begin
       pc_fd_r <= 0;
@@ -147,7 +178,6 @@ module pd #(
     end
     else if (stall) begin
       pc_fd_r <= pc_fd_r;          // Hold FD pipeline registers during stall
-      instr_fd_r <= instr_fd_r;
     end
     else if (br_taken) begin
       instr_fd_r <= NOP_INSTR;    // Insert NOP into pipeline for second instruction after branch
@@ -160,14 +190,6 @@ module pd #(
   end
 
   // Decode-Execute stage
-  reg [DATAW-1:0] pc_dx_r;
-  reg [6:0] opcode_dx_r;            // Store decoded instr, not OG instr
-  reg [2:0] funct3_dx_r;
-  reg [DATAW-1:0] imm_dx_r;
-  reg [ADDRW-1:0] addr_rs1_dx_r;
-  reg [ADDRW-1:0] addr_rs2_dx_r;
-  reg [ADDRW-1:0] addr_rd_dx_r;
-  
   always @(posedge clock) begin
     if (reset) begin
       pc_dx_r <= 0;
@@ -199,14 +221,6 @@ module pd #(
   end
 
   // Execute-Memory stage
-  reg [DATAW-1:0] pc_xm_r;   
-  reg [DATAW-1:0] imm_xm_r;
-  reg [2:0] funct3_xm_r;
-  reg [DATAW-1:0] alu_xm_r;
-  reg [DATAW-1:0] data_rs2_xm_r;        // P.S. Class slides don't need rs1_xm
-  reg [6:0] opcode_xm_r;                // Need for stalling logic
-  reg [ADDRW-1:0] addr_rs2_xm_r;        // Need for forwarding logic
-  reg [ADDRW-1:0] addr_rd_xm_r;         // Need to determine WB location
   always @(posedge clock) begin
     if (reset) begin
       pc_xm_r <= 0;
@@ -235,10 +249,6 @@ module pd #(
   assign pc4_xm_w = pc_xm_r + 4;
 
   // Memory-Writeback stage
-  reg [DATAW-1:0] pc_mw_r;            // Need for signals.h test
-  reg [DATAW-1:0] data_rd_mw_r;       // Need to determine WB content
-  reg [6:0] opcode_mw_r;              // Need for stalling logic
-  reg [ADDRW-1:0] addr_rd_mw_r;       // Need to determine WB location
   always @(posedge clock) begin
     if (reset) begin
       pc_mw_r <= 0;
@@ -258,14 +268,13 @@ module pd #(
   // ===================
   // INSTANTIATE MODULES
   // ===================
-  wire imem_enable = 1;
   imemory imem1(
-    .clock(clock),          // input
-    .address(pc_r),         // input
-    .data_in(imem_in_r),    // input
-    .read_write(imem_rw_w), // input (hardcoded to 0)
-    .enable(imem_enable),    // input (harcoded to 1)
-    .data_out(instr_w)      // output
+    .clock(clock),           // input
+    .address(pc_r),          // input
+    .data_in(imem_in_r),     // input
+    .read_write(imem_rw_w),  // input (hardcoded to 0)
+    .enable(imem_enable),    // input 
+    .data_out(instr_w)       // output
   );
 
   decoder dec1(
@@ -284,16 +293,26 @@ module pd #(
   );
 
   wire rf_en = !(stall || br_taken || reset);
+
+  wire t_reg_wen;
+  wire t_rf_en;
+  wire [ADDRW-1:0] t_addr_rs1_w;
+  wire [ADDRW-1:0] t_addr_rs2_w;
+  wire [ADDRW-1:0] t_addr_rd_mw_r;
+  wire [DATAW-1:0] t_data_rd_mw_r;
+  wire [DATAW-1:0] t_data_rs1_w;
+  wire [DATAW-1:0] t_data_rs2_w;
+
   register_file rf1(
     .clock(clock),          // input
-    .write_enable(reg_wen), // input
-    .reg_enable(rf_en),     // input
-    .addr_rs1(addr_rs1_w),  // input
-    .addr_rs2(addr_rs2_w),  // input
-    .addr_rd(addr_rd_mw_r), // input
-    .data_rd(data_rd_mw_r), // input
-    .data_rs1(data_rs1_w),  // output
-    .data_rs2(data_rs2_w)   // output
+    .write_enable(t_reg_wen), // input
+    .reg_enable(t_rf_en),     // input
+    .addr_rs1(t_addr_rs1_w),  // input
+    .addr_rs2(t_addr_rs2_w),  // input
+    .addr_rd(t_addr_rd_mw_r), // input
+    .data_rd(t_data_rd_mw_r), // input
+    .data_rs1(t_data_rs1_w),  // output
+    .data_rs2(t_data_rs2_w)   // output
   );
 
   control_signals cs1(

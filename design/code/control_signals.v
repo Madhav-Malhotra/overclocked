@@ -98,6 +98,19 @@ localparam MX_BYPASS = 2'b11;
 // B sel definitions (ALU input 2)
 localparam IMM  = 2'b01;
 
+// XM stage pipeline registers
+reg is_store_xm_r;
+reg is_load_xm_r;
+reg is_jal_xm_r;
+reg is_jalr_xm_r;
+reg is_branch_xm_r;
+reg is_ecall_xm_r;
+
+// MW stage pipeline registers
+reg is_store_mw_r;
+reg is_branch_mw_r;
+reg is_ecall_mw_r;
+
 // Ensure that the instruction in the Memory or Writeback stage writes to a register for bypass logic
 wire insn_xm_writes_reg = !(is_store_xm_r || is_branch_xm_r || is_ecall_xm_r) && (addr_rd_xm != 0);
 wire insn_mw_writes_reg = !(is_store_mw_r || is_branch_mw_r || is_ecall_mw_r) && (addr_rd_mw != 0);
@@ -139,18 +152,7 @@ assign alu_sel =    (is_lui_x) ? NOP :
                         NOP) // invalid funct3 for ALU
                     : NOP;  // invalid opcode
 
-
-
-
-
-
-// Execute-Memory Pipeline registers
-reg is_store_xm_r;
-reg is_load_xm_r;
-reg is_jal_xm_r;
-reg is_jalr_xm_r;
-reg is_branch_xm_r;
-reg is_ecall_xm_r;
+// Execute-Memory Pipeline
 always @(posedge clock) begin
     if (reset) begin
         is_store_xm_r <= 1'b0;
@@ -169,7 +171,6 @@ always @(posedge clock) begin
     end
 end
 
-
 // ==============================
 // MEMORY STAGE CONTROL SIGNALS
 // ==============================
@@ -183,9 +184,6 @@ assign wb_sel = (is_load_xm_r) ? WB_MEM :
 
 
 // Memory-Writeback Pipeline registers
-reg is_store_mw_r;
-reg is_branch_mw_r;
-reg is_ecall_mw_r;
 always @(posedge clock) begin
     if (reset) begin
         is_store_mw_r <= 1'b0;

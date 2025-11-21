@@ -28,19 +28,14 @@ initial begin
     regs[2] = BASE_ADDR + `MEM_DEPTH; // stack pointer
 end
 
-// For debugging PD4 only
-wire [DATAW-1:0] r10 = regs[10];
-wire [DATAW-1:0] r3 = regs[3];
-
 // Sequential writes
 always @(posedge clock) begin
     // Write to any register except x0
     if (write_enable && addr_rd != 0) begin
         regs[addr_rd] <= data_rd;
-    end else begin 
-        data_rs1 <= (reg_enable) ? regs[addr_rs1] : 0;
-        data_rs2 <= (reg_enable) ? regs[addr_rs2] : 0;
     end
+    data_rs1 <= (reg_enable) ? regs[addr_rs1] : 0;
+    data_rs2 <= (reg_enable) ? regs[addr_rs2] : 0;
 end
 
 endmodule

@@ -264,7 +264,7 @@ module pd #(
     .address(pc_r),         // input
     .data_in(imem_in_r),    // input
     .read_write(imem_rw_w), // input (hardcoded to 0)
-    .enable(imem_enable)    // input (harcoded to 1)
+    .enable(imem_enable),    // input (harcoded to 1)
     .data_out(instr_w)      // output
   );
 
@@ -383,9 +383,9 @@ module pd #(
   dmemory dmem1(
     .clock(clock),                    // input
     .read_write(data_mem_rw),         // input
-    .access_size(access_size)         // input
+    .access_size(access_size),         // input
     .address(alu_xm_r),               // input
-    .data_in(dmem_da ta_in),      // input
+    .data_in(dmem_data_in),      // input
     .data_out(data_mem_w)        // output
   );
 

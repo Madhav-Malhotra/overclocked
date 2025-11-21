@@ -266,12 +266,13 @@ module pd #(
   // ===================
   // INSTANTIATE MODULES
   // ===================
-
+  wire imem_enable = 1;
   imemory imem1(
     .clock(clock),          // input
     .address(pc_r),         // input
     .data_in(imem_in_r),    // input
     .read_write(imem_rw_w), // input (hardcoded to 0)
+    .enable(imem_enable)    // input (harcoded to 1)
     .data_out(instr_w)      // output
   );
 
@@ -386,12 +387,11 @@ module pd #(
   wire [DATAW-1:0] dmem_data_in = (wm_forward) ? data_rd_mw_r : data_rs2_xm_r;
 
   dmemory dmem1(
-    .clock(clock),               // input
-    .address(alu_xm_r),          // input
-    .data_in(dmem_data_in),      // input
-    .mem_rw(data_mem_rw),        // input
-    .access_size(access_size),   // input
-    .is_unsigned(funct3_xm_r[2]),// input
+    .clock(clock),                    // input
+    .read_write(data_mem_rw),         // input
+    .access_size(access_size)         // input
+    .address(alu_xm_r),               // input
+    .data_in(dmem_da ta_in),      // input
     .data_out(data_mem_w)        // output
   );
 

@@ -6,7 +6,6 @@ module register_file #(
 )
 (
     input clock,
-    input reg_enable,
     input write_enable,
     input [ADDRW-1:0] addr_rs1,
     input [ADDRW-1:0] addr_rs2,
@@ -19,23 +18,22 @@ module register_file #(
 // Signal declarations
 (* ram_style = "block" *) reg [DATAW-1:0] regs [0:NUM_REGS-1];
 
-// MDV - TD
 integer i;
 initial begin
     for (i = 0; i < NUM_REGS; i = i + 1) begin
-        regs[i] = 32'h00000000;
+        regs[i] = 32'h0;
     end
     regs[2] = BASE_ADDR + `MEM_DEPTH; // stack pointer
 end
 
 // Sequential writes
 always @(posedge clock) begin
-    // Write to any register except x0
-    if (write_enable && addr_rd != 0) begin
+    // Write to any register (except x0 - moved check to control signals)
+    if (write_enable) begin
         regs[addr_rd] <= data_rd;
     end
-    data_rs1 <= (reg_enable) ? regs[addr_rs1] : 0;
-    data_rs2 <= (reg_enable) ? regs[addr_rs2] : 0;
+    data_rs1 <= regs[addr_rs1];
+    data_rs2 <= regs[addr_rs2];
 end
 
 endmodule

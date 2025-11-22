@@ -201,7 +201,7 @@ end
 // =================================
 wire is_ecall_wb = (opcode_mw == 7'b1110011);
 wire is_nop = (opcode_mw == 7'b0);
-assign reg_wen = !(is_store_mw_r || is_branch_mw_r || is_ecall_wb || is_nop || reset);
+assign reg_wen = !(is_store_mw_r || is_branch_mw_r || is_ecall_wb || is_nop || reset || addr_rd_mw == 0);
 
 
 endmodule

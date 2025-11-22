@@ -31,7 +31,7 @@
 `define M_PC                pc_xm_r
 `define M_ADDRESS           alu_xm_r
 `define M_RW                data_mem_rw
-`define M_SIZE_ENCODED      access_size
+`define M_SIZE_ENCODED      mem_write_access_size
 `define M_DATA              dmem_data_in
 
 `define W_PC                pc_mw_r

@@ -209,7 +209,7 @@ module pd #(
       addr_rs2_dx_r <= 0;
       addr_rd_dx_r <= 0;
     end
-    else if (br_taken) begin
+    else if (stall || br_taken) begin
       // Insert NOP only on branch taken
       pc_dx_r <= pc_fd_r;
       opcode_dx_r <= NOP_OPCODE;
@@ -218,16 +218,6 @@ module pd #(
       addr_rs1_dx_r <= 0;
       addr_rs2_dx_r <= 0;
       addr_rd_dx_r <= 0;
-    end
-    else if (stall) begin
-      // Hold current values during stall - don't clear them!
-      pc_dx_r <= pc_dx_r;
-      opcode_dx_r <= opcode_dx_r;
-      funct3_dx_r <= funct3_dx_r;
-      imm_dx_r <= imm_dx_r;
-      addr_rs1_dx_r <= addr_rs1_dx_r;
-      addr_rs2_dx_r <= addr_rs2_dx_r;
-      addr_rd_dx_r <= addr_rd_dx_r;
     end
     else begin
       // Normal pipeline progression
@@ -269,6 +259,7 @@ module pd #(
   wire [DATAW-1:0] pc4_xm_w = pc_xm_r + 4;
   reg [DATAW-1:0] pc4_mw_r;
   reg [DATAW-1:0] alu_mw_r;
+  reg [2:0] funct3_mw_r;
 
   // Memory-Writeback stage
   always @(posedge clock) begin
@@ -278,6 +269,7 @@ module pd #(
       addr_rd_mw_r <= 0;
       pc_mw_r <= 0;
       alu_mw_r <= 0;
+      funct3_mw_r <= 0;
     end 
     else begin
       pc_mw_r <= pc_xm_r;
@@ -285,6 +277,7 @@ module pd #(
       addr_rd_mw_r <= addr_rd_xm_r;
       pc4_mw_r <= pc4_xm_w;
       alu_mw_r <= alu_xm_r;
+      funct3_mw_r <= funct3_xm_r;
     end
   end
 
@@ -326,8 +319,8 @@ module pd #(
     .data_rs1(data_rs1_w),  // output
     .data_rs2(data_rs2_w)   // output
   );
-  // wire [DATAW-1:0] data_rs1_stall_w = !(stall || reset) ? data_rs1_w : 0;
-  // wire [DATAW-1:0] data_rs2_stall_w = !(stall || reset) ? data_rs2_w : 0;
+  wire [DATAW-1:0] data_rs1_stall_w = !(stall || reset) ? data_rs1_w : 0;
+  wire [DATAW-1:0] data_rs2_stall_w = !(stall || reset) ? data_rs2_w : 0;
 
   control_signals cs1(
     .clock(clock),
@@ -366,11 +359,11 @@ module pd #(
 
   wire [DATAW-1:0] idata1_in =  (branch_comp_data1_sel == WX_BYPASS) ? data_rd_w :
                                 (branch_comp_data1_sel == MX_BYPASS) ? alu_xm_r :
-                                                                     data_rs1_w;
+                                                                     data_rs1_stall_w;
 
   wire [DATAW-1:0] idata2_in =  (branch_comp_data2_sel == WX_BYPASS) ? data_rd_w :
                                 (branch_comp_data2_sel == MX_BYPASS) ? alu_xm_r :
-                                                                     data_rs2_w;
+                                                                     data_rs2_stall_w;
 
   branch_comp bc1(
     .idata1(idata1_in),
@@ -381,14 +374,14 @@ module pd #(
   );
 
   // A sel definitions (determines ALU input 1)
-  assign alu_in1_w = (a_sel == REG) ? data_rs1_w :
+  assign alu_in1_w = (a_sel == REG) ? data_rs1_stall_w :
                      (a_sel == PC) ? pc_dx_r :
                      (a_sel == WX_BYPASS) ? data_rd_w :
                                             alu_xm_r;
 
   // B sel definitions (determines ALU input 2)
   localparam IMM  = 2'b01;
-  assign alu_in2_w = (b_sel == REG) ? data_rs2_w :
+  assign alu_in2_w = (b_sel == REG) ? data_rs2_stall_w :
                      (b_sel == IMM) ? imm_dx_r :
                      (b_sel == WX_BYPASS) ? data_rd_w :
                                             alu_xm_r;
@@ -400,7 +393,7 @@ module pd #(
     .odata(alu_out_w)
   );
 
-  wire [1:0] access_size = funct3_xm_r[1:0];     // For testbench
+  wire [1:0] mem_write_access_size = funct3_xm_r[1:0];     // For testbench
 
   // WM bypass logic
   wire is_store_xm = (opcode_xm_r == STORE_OPCODE);  // Store instruction in XM stage
@@ -416,19 +409,28 @@ module pd #(
   dmemory dmem1(
     .clock(clock),               // input
     .read_write(data_mem_rw),    // input
-    .access_size(access_size),   // input
+    .access_size(mem_write_access_size),   // input
     .address(alu_xm_r),          // input
     .data_in(dmem_data_in),      // input
     .data_out(data_mem_w)        // output
   );
 
+  // Mem read access size logic
+  wire [1:0] mem_read_access_size = funct3_mw_r[1:0];  // For testbench
+
+  wire [DATAW-1:0] data_mem_w_corrected = 
+    (mem_read_access_size == 2'b00) ? {{24{data_mem_w[7]}}, data_mem_w[7:0]} :  // LB
+    (mem_read_access_size == 2'b01) ? {{16{data_mem_w[15]}}, data_mem_w[15:0]} : // LH
+    (mem_read_access_size == 2'b10) ? data_mem_w :                                 // LW
+                                      {24'b0, data_mem_w[7:0]};                  // LBU
+
   // According to lecture slides, this should be in the memory stage
   writeback wb1(
-    .alu(alu_mw_r),      // input
-    .mem(data_mem_w),    // input
-    .pc4(pc4_mw_r),      // input
-    .wb_sel(wb_sel),     // input
-    .wb_data(data_rd_w)  // output
+    .alu(alu_mw_r),                 // input
+    .mem(data_mem_w_corrected),     // input
+    .pc4(pc4_mw_r),                 // input
+    .wb_sel(wb_sel),                // input
+    .wb_data(data_rd_w)             // output
   );
 
 endmodule

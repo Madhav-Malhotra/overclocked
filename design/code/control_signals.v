@@ -110,6 +110,9 @@ reg is_ecall_xm_r;
 reg is_store_mw_r;
 reg is_branch_mw_r;
 reg is_ecall_mw_r;
+reg is_load_mw_r;
+reg is_jal_mw_r;
+reg is_jalr_mw_r;
 
 // Ensure that the instruction in the Memory or Writeback stage writes to a register for bypass logic
 wire insn_xm_writes_reg = !(is_store_xm_r || is_branch_xm_r || is_ecall_xm_r) && (addr_rd_xm != 0);
@@ -177,10 +180,6 @@ end
 
 assign mem_rw = is_store_xm_r && !reset;
 // MDV - check proper pipelined variant
-assign wb_sel = (is_load_xm_r) ? WB_MEM :
-                (is_jal_xm_r || is_jalr_xm_r) ? WB_PC4 :
-                // (is_store || is_branch) ? WB_ALU :   // Left here for clarity, synthesizer will optimize it away
-                WB_ALU;
 
 
 // Memory-Writeback Pipeline registers
@@ -189,10 +188,16 @@ always @(posedge clock) begin
         is_store_mw_r <= 1'b0;
         is_branch_mw_r <= 1'b0;
         is_ecall_mw_r <= 1'b0;
+        is_load_mw_r <= 1'b0;
+        is_jal_mw_r <= 1'b0;
+        is_jalr_mw_r <= 1'b0;
     end else begin
         is_store_mw_r <= is_store_xm_r;
         is_branch_mw_r <= is_branch_xm_r;
         is_ecall_mw_r <= is_ecall_xm_r;
+        is_load_mw_r <= is_load_xm_r;
+        is_jal_mw_r <= is_jal_xm_r;
+        is_jalr_mw_r <= is_jalr_xm_r;
     end
 end
 
@@ -203,5 +208,9 @@ wire is_ecall_wb = (opcode_mw == 7'b1110011);
 wire is_nop = (opcode_mw == 7'b0);
 assign reg_wen = !(is_store_mw_r || is_branch_mw_r || is_ecall_wb || is_nop || reset || addr_rd_mw == 0);
 
+assign wb_sel = (is_load_mw_r) ? WB_MEM :
+                (is_jal_mw_r || is_jalr_mw_r) ? WB_PC4 :
+                // (is_store || is_branch) ? WB_ALU :   // Left here for clarity, synthesizer will optimize it away
+                WB_ALU;
 
 endmodule

@@ -15,7 +15,7 @@ module pd #(
 
   // Fetch unit
   reg [DATAW-1:0] pc_r;
-  reg [DATAW-1:0] instr_w;        // output line into pipeline register
+  wire [DATAW-1:0] instr_w;       // output line into pipeline register
   reg [DATAW-1:0] imem_in_r;      // unused input to imem
   wire imem_rw_w = 0;             // always 0 (read-only)
 
@@ -47,20 +47,20 @@ module pd #(
   wire br_taken;                  // Not needed for CPU. Just for test file
 
   // Register file unit
-  reg [DATAW-1:0] data_rs1_w;     // wire - register file output
-  reg [DATAW-1:0] data_rs2_w;     // wire - register file output
+  wire [DATAW-1:0] data_rs1_w;     // wire - register file output
+  wire [DATAW-1:0] data_rs2_w;     // wire - register file output
 
   // ALU inputs
   wire [DATAW-1:0] alu_in1_w;
   wire [DATAW-1:0] alu_in2_w;
-  reg [DATAW-1:0] alu_out_w;
+  wire [DATAW-1:0] alu_out_w;
 
   // Data memory unit
-  reg [DATAW-1:0] data_mem_w;
+  wire [DATAW-1:0] data_mem_w;
   wire data_mem_rw;
 
   // Writeback unit
-  reg [DATAW-1:0] data_rd_w;
+  wire [DATAW-1:0] data_rd_w;
 
   // PC + 4
   wire [DATAW-1:0] pc4_f_w = pc_r + 4;
@@ -294,25 +294,16 @@ module pd #(
 
   wire rf_en = !(stall || br_taken || reset);
 
-  wire t_reg_wen;
-  wire t_rf_en;
-  wire [ADDRW-1:0] t_addr_rs1_w;
-  wire [ADDRW-1:0] t_addr_rs2_w;
-  wire [ADDRW-1:0] t_addr_rd_mw_r;
-  wire [DATAW-1:0] t_data_rd_mw_r;
-  wire [DATAW-1:0] t_data_rs1_w;
-  wire [DATAW-1:0] t_data_rs2_w;
-
   register_file rf1(
     .clock(clock),          // input
-    .write_enable(t_reg_wen), // input
-    .reg_enable(t_rf_en),     // input
-    .addr_rs1(t_addr_rs1_w),  // input
-    .addr_rs2(t_addr_rs2_w),  // input
-    .addr_rd(t_addr_rd_mw_r), // input
-    .data_rd(t_data_rd_mw_r), // input
-    .data_rs1(t_data_rs1_w),  // output
-    .data_rs2(t_data_rs2_w)   // output
+    .write_enable(reg_wen), // input
+    .reg_enable(rf_en),     // input
+    .addr_rs1(addr_rs1_w),  // input
+    .addr_rs2(addr_rs2_w),  // input
+    .addr_rd(addr_rd_mw_r), // input
+    .data_rd(data_rd_mw_r), // input
+    .data_rs1(data_rs1_w),  // output
+    .data_rs2(data_rs2_w)   // output
   );
 
   control_signals cs1(

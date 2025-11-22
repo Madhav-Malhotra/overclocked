@@ -18,7 +18,7 @@
 
 `define R_WRITE_ENABLE      reg_wen
 `define R_WRITE_DESTINATION addr_rd_mw_r
-`define R_WRITE_DATA        data_rd_mw_r
+`define R_WRITE_DATA        data_rd_w
 `define R_READ_RS1          addr_rs1_w
 `define R_READ_RS2          addr_rs2_w
 `define R_READ_RS1_DATA     data_rs1_w
@@ -37,7 +37,7 @@
 `define W_PC                pc_mw_r
 `define W_ENABLE            reg_wen
 `define W_DESTINATION       addr_rd_mw_r
-`define W_DATA              data_rd_mw_r
+`define W_DATA              data_rd_w
 
 `define IMEMORY             imem1
 `define DMEMORY             dmem1

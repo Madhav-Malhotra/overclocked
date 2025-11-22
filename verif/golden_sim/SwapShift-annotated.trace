@@ -1,0 +1,600 @@
+[F] pc_addr:01000000 content:fe010113
+[D] pc_addr:00000000 opcode:00 rd:00 rs1:00 rs2:00 funct3:0 funct7:00 imm:00000000 shamt:00
+[R] addr_rs1:00 addr_rs2:00 data_rs1:00000000 data_rs2:00000000
+[E] pc_addr:00000000 alu_result:00000000 branch_taken:0
+[M] pc_addr:00000000 mem_addr:00000000 read_write:0 access_size:0 mem_data_in:00000000
+[W] pc_addr:00000000 write_enable:0 write_rd:00 data_rd:00000000
+[F] pc_addr:01000004 content:fe010113
+[D] pc_addr:01000000 opcode:I rd:02 rs1:02 rs2:00 funct3:0 funct7:7f imm:ffffffe0 shamt:00
+[R] addr_rs1:02 addr_rs2:00 data_rs1:00000000 data_rs2:00000000
+[E] pc_addr:00000000 alu_result:00000000 branch_taken:0
+[M] pc_addr:00000000 mem_addr:00000000 read_write:0 access_size:0 mem_data_in:00000000
+[W] pc_addr:00000000 write_enable:0 write_rd:00 data_rd:00000000
+[F] pc_addr:01000008 content:00112e23
+[D] pc_addr:01000004 opcode:S rd:00 rs1:02 rs2:01 funct3:2 funct7:00 imm:0000001c shamt:01
+[R] addr_rs1:02 addr_rs2:01 data_rs1:01100000 data_rs2:00000000
+[E] pc_addr:01000000 alu_result:010fffe0 branch_taken:0
+[M] pc_addr:00000000 mem_addr:00000000 read_write:0 access_size:0 mem_data_in:00000000
+[W] pc_addr:00000000 write_enable:0 write_rd:00 data_rd:00000000
+[F] pc_addr:0100000c content:00500793
+[D] pc_addr:01000008 opcode:I rd:0f rs1:00 rs2:00 funct3:0 funct7:00 imm:00000005 shamt:05
+[R] addr_rs1:00 addr_rs2:00 data_rs1:01100000 data_rs2:00000000
+[E] pc_addr:01000004 alu_result:010ffffc branch_taken:0
+[M] pc_addr:01000000 mem_addr:010fffe0 read_write:0 access_size:0 mem_data_in:00000000
+[W] pc_addr:00000000 write_enable:0 write_rd:00 data_rd:00000000
+[F] pc_addr:01000010 content:00f12223
+[D] pc_addr:0100000c opcode:S rd:00 rs1:02 rs2:0f funct3:2 funct7:00 imm:00000004 shamt:0f
+[R] addr_rs1:02 addr_rs2:0f data_rs1:00000000 data_rs2:00000000
+[E] pc_addr:01000008 alu_result:00000005 branch_taken:0
+[M] pc_addr:01000004 mem_addr:010ffffc read_write:1 access_size:2 mem_data_in:00000000
+[W] pc_addr:01000000 write_enable:1 write_rd:02 data_rd:010fffe0
+[F] pc_addr:01000010 content:00f12223
+[D] pc_addr:0100000c opcode:S rd:00 rs1:02 rs2:0f funct3:2 funct7:00 imm:00000004 shamt:0f
+[R] addr_rs1:02 addr_rs2:0f data_rs1:01100000 data_rs2:00000000
+[E] pc_addr:0100000c alu_result:01100000 branch_taken:0
+[M] pc_addr:01000008 mem_addr:00000005 read_write:0 access_size:0 mem_data_in:00000000
+[W] pc_addr:01000004 write_enable:0 write_rd:00 data_rd:010ffffc
+[F] pc_addr:01000014 content:00900793
+[D] pc_addr:01000010 opcode:I rd:0f rs1:00 rs2:00 funct3:0 funct7:00 imm:00000009 shamt:09
+[R] addr_rs1:00 addr_rs2:00 data_rs1:010fffe0 data_rs2:00000000
+[E] pc_addr:0100000c alu_result:010fffe4 branch_taken:0
+[M] pc_addr:0100000c mem_addr:01100000 read_write:0 access_size:0 mem_data_in:00000000
+[W] pc_addr:01000008 write_enable:1 write_rd:0f data_rd:00000005
+[F] pc_addr:01000018 content:00f12023
+[D] pc_addr:01000014 opcode:S rd:00 rs1:02 rs2:0f funct3:2 funct7:00 imm:00000000 shamt:0f
+[R] addr_rs1:02 addr_rs2:0f data_rs1:00000000 data_rs2:00000000
+[E] pc_addr:01000010 alu_result:00000009 branch_taken:0
+[M] pc_addr:0100000c mem_addr:010fffe4 read_write:1 access_size:2 mem_data_in:00000005
+[W] pc_addr:0100000c write_enable:1 write_rd:00 data_rd:01100000
+[F] pc_addr:0100001c content:00012783
+[D] pc_addr:01000018 opcode:L rd:0f rs1:02 rs2:00 funct3:2 funct7:00 imm:00000000 shamt:00
+[R] addr_rs1:02 addr_rs2:00 data_rs1:010fffe0 data_rs2:00000005
+[E] pc_addr:01000014 alu_result:010fffe0 branch_taken:0
+[M] pc_addr:01000010 mem_addr:00000009 read_write:0 access_size:0 mem_data_in:00000000
+[W] pc_addr:0100000c write_enable:0 write_rd:00 data_rd:010fffe4
+[F] pc_addr:01000020 content:00279793
+[D] pc_addr:0100001c opcode:I rd:0f rs1:0f rs2:00 funct3:1 funct7:00 imm:00000002 shamt:02
+[R] addr_rs1:0f addr_rs2:00 data_rs1:010fffe0 data_rs2:00000000
+[E] pc_addr:01000018 alu_result:010fffe0 branch_taken:0
+[M] pc_addr:01000014 mem_addr:010fffe0 read_write:1 access_size:2 mem_data_in:00000009
+[W] pc_addr:01000010 write_enable:1 write_rd:0f data_rd:00000009
+[F] pc_addr:01000020 content:00279793
+[D] pc_addr:0100001c opcode:I rd:0f rs1:0f rs2:00 funct3:1 funct7:00 imm:00000002 shamt:02
+[R] addr_rs1:0f addr_rs2:00 data_rs1:00000005 data_rs2:00000000
+[E] pc_addr:0100001c alu_result:00000005 branch_taken:0
+[M] pc_addr:01000018 mem_addr:010fffe0 read_write:0 access_size:2 mem_data_in:00000000
+[W] pc_addr:01000014 write_enable:0 write_rd:00 data_rd:010fffe0
+[F] pc_addr:01000024 content:00f12023
+[D] pc_addr:01000020 opcode:S rd:00 rs1:02 rs2:0f funct3:2 funct7:00 imm:00000000 shamt:0f
+[R] addr_rs1:02 addr_rs2:0f data_rs1:00000009 data_rs2:00000000
+[E] pc_addr:0100001c alu_result:00000024 branch_taken:0
+[M] pc_addr:0100001c mem_addr:00000005 read_write:0 access_size:0 mem_data_in:00000000
+[W] pc_addr:01000018 write_enable:1 write_rd:0f data_rd:00000009
+[F] pc_addr:01000028 content:00412783
+[D] pc_addr:01000024 opcode:L rd:0f rs1:02 rs2:00 funct3:2 funct7:00 imm:00000004 shamt:04
+[R] addr_rs1:02 addr_rs2:00 data_rs1:010fffe0 data_rs2:00000009
+[E] pc_addr:01000020 alu_result:010fffe0 branch_taken:0
+[M] pc_addr:0100001c mem_addr:00000024 read_write:0 access_size:1 mem_data_in:00000000
+[W] pc_addr:0100001c write_enable:1 write_rd:00 data_rd:00000005
+[F] pc_addr:0100002c content:4017d793
+[D] pc_addr:01000028 opcode:I rd:0f rs1:0f rs2:00 funct3:5 funct7:20 imm:00000001 shamt:01
+[R] addr_rs1:0f addr_rs2:00 data_rs1:010fffe0 data_rs2:00000000
+[E] pc_addr:01000024 alu_result:010fffe4 branch_taken:0
+[M] pc_addr:01000020 mem_addr:010fffe0 read_write:1 access_size:2 mem_data_in:00000024
+[W] pc_addr:0100001c write_enable:1 write_rd:0f data_rd:00000024
+[F] pc_addr:0100002c content:4017d793
+[D] pc_addr:01000028 opcode:I rd:0f rs1:0f rs2:00 funct3:5 funct7:20 imm:00000001 shamt:01
+[R] addr_rs1:0f addr_rs2:00 data_rs1:00000009 data_rs2:00000000
+[E] pc_addr:01000028 alu_result:00000009 branch_taken:0
+[M] pc_addr:01000024 mem_addr:010fffe4 read_write:0 access_size:2 mem_data_in:00000000
+[W] pc_addr:01000020 write_enable:0 write_rd:00 data_rd:010fffe0
+[F] pc_addr:01000030 content:00f12223
+[D] pc_addr:0100002c opcode:S rd:00 rs1:02 rs2:0f funct3:2 funct7:00 imm:00000004 shamt:0f
+[R] addr_rs1:02 addr_rs2:0f data_rs1:00000024 data_rs2:00000000
+[E] pc_addr:01000028 alu_result:00000002 branch_taken:1
+[M] pc_addr:01000028 mem_addr:00000009 read_write:0 access_size:0 mem_data_in:00000000
+[W] pc_addr:01000024 write_enable:1 write_rd:0f data_rd:00000005
+[F] pc_addr:01000034 content:00410793
+[D] pc_addr:01000030 opcode:I rd:0f rs1:02 rs2:00 funct3:0 funct7:00 imm:00000004 shamt:04
+[R] addr_rs1:02 addr_rs2:00 data_rs1:010fffe0 data_rs2:00000024
+[E] pc_addr:0100002c alu_result:010fffe4 branch_taken:0
+[M] pc_addr:01000028 mem_addr:00000002 read_write:0 access_size:1 mem_data_in:00000000
+[W] pc_addr:01000028 write_enable:1 write_rd:00 data_rd:00000009
+[F] pc_addr:01000038 content:00f12623
+[D] pc_addr:01000034 opcode:S rd:00 rs1:02 rs2:0f funct3:2 funct7:00 imm:0000000c shamt:0f
+[R] addr_rs1:02 addr_rs2:0f data_rs1:010fffe0 data_rs2:00000000
+[E] pc_addr:01000030 alu_result:010fffe4 branch_taken:0
+[M] pc_addr:0100002c mem_addr:010fffe4 read_write:1 access_size:2 mem_data_in:00000002
+[W] pc_addr:01000028 write_enable:1 write_rd:0f data_rd:00000002
+[F] pc_addr:0100003c content:00010793
+[D] pc_addr:01000038 opcode:I rd:0f rs1:02 rs2:00 funct3:0 funct7:00 imm:00000000 shamt:00
+[R] addr_rs1:02 addr_rs2:00 data_rs1:010fffe0 data_rs2:00000005
+[E] pc_addr:01000034 alu_result:010fffec branch_taken:0
+[M] pc_addr:01000030 mem_addr:010fffe4 read_write:0 access_size:0 mem_data_in:00000000
+[W] pc_addr:0100002c write_enable:0 write_rd:00 data_rd:010fffe4
+[F] pc_addr:01000040 content:00f12423
+[D] pc_addr:0100003c opcode:S rd:00 rs1:02 rs2:0f funct3:2 funct7:00 imm:00000008 shamt:0f
+[R] addr_rs1:02 addr_rs2:0f data_rs1:010fffe0 data_rs2:00000000
+[E] pc_addr:01000038 alu_result:010fffe0 branch_taken:0
+[M] pc_addr:01000034 mem_addr:010fffec read_write:1 access_size:2 mem_data_in:010fffe4
+[W] pc_addr:01000030 write_enable:1 write_rd:0f data_rd:010fffe4
+[F] pc_addr:01000044 content:00812583
+[D] pc_addr:01000040 opcode:L rd:0b rs1:02 rs2:00 funct3:2 funct7:00 imm:00000008 shamt:08
+[R] addr_rs1:02 addr_rs2:00 data_rs1:010fffe0 data_rs2:00000002
+[E] pc_addr:0100003c alu_result:010fffe8 branch_taken:0
+[M] pc_addr:01000038 mem_addr:010fffe0 read_write:0 access_size:0 mem_data_in:00000000
+[W] pc_addr:01000034 write_enable:0 write_rd:00 data_rd:010fffec
+[F] pc_addr:01000048 content:00c12503
+[D] pc_addr:01000044 opcode:L rd:0a rs1:02 rs2:00 funct3:2 funct7:00 imm:0000000c shamt:0c
+[R] addr_rs1:02 addr_rs2:00 data_rs1:010fffe0 data_rs2:00000000
+[E] pc_addr:01000040 alu_result:010fffe8 branch_taken:0
+[M] pc_addr:0100003c mem_addr:010fffe8 read_write:1 access_size:2 mem_data_in:010fffe0
+[W] pc_addr:01000038 write_enable:1 write_rd:0f data_rd:010fffe0
+[F] pc_addr:0100004c content:044000ef
+[D] pc_addr:01000048 opcode:JAL rd:01 rs1:00 rs2:00 funct3:0 funct7:02 imm:00000044 shamt:04
+[R] addr_rs1:00 addr_rs2:00 data_rs1:010fffe0 data_rs2:00000000
+[E] pc_addr:01000044 alu_result:010fffec branch_taken:0
+[M] pc_addr:01000040 mem_addr:010fffe8 read_write:0 access_size:2 mem_data_in:00000000
+[W] pc_addr:0100003c write_enable:0 write_rd:00 data_rd:010fffe8
+[F] pc_addr:01000050 content:00c12783
+[D] pc_addr:0100004c opcode:L rd:0f rs1:02 rs2:00 funct3:2 funct7:00 imm:0000000c shamt:0c
+[R] addr_rs1:02 addr_rs2:00 data_rs1:00000000 data_rs2:00000000
+[E] pc_addr:01000048 alu_result:0100008c branch_taken:0
+[M] pc_addr:01000044 mem_addr:010fffec read_write:0 access_size:2 mem_data_in:00000000
+[W] pc_addr:01000040 write_enable:1 write_rd:0b data_rd:010fffe0
+[F] pc_addr:0100008c content:0007a783
+[D] pc_addr:00000000 opcode:I rd:00 rs1:00 rs2:00 funct3:0 funct7:00 imm:00000000 shamt:00
+[R] addr_rs1:00 addr_rs2:00 data_rs1:010fffe0 data_rs2:00000000
+[E] pc_addr:0100004c alu_result:010fffe0 branch_taken:0
+[M] pc_addr:01000048 mem_addr:0100008c read_write:0 access_size:0 mem_data_in:00000000
+[W] pc_addr:01000044 write_enable:1 write_rd:0a data_rd:010fffe4
+[F] pc_addr:01000090 content:fe010113
+[D] pc_addr:0100008c opcode:I rd:02 rs1:02 rs2:00 funct3:0 funct7:7f imm:ffffffe0 shamt:00
+[R] addr_rs1:02 addr_rs2:00 data_rs1:00000000 data_rs2:00000000
+[E] pc_addr:00000000 alu_result:00000000 branch_taken:0
+[M] pc_addr:0100004c mem_addr:010fffe0 read_write:0 access_size:0 mem_data_in:00000000
+[W] pc_addr:01000048 write_enable:1 write_rd:01 data_rd:0100004c
+[F] pc_addr:01000094 content:00a12623
+[D] pc_addr:01000090 opcode:S rd:00 rs1:02 rs2:0a funct3:2 funct7:00 imm:0000000c shamt:0a
+[R] addr_rs1:02 addr_rs2:0a data_rs1:010fffe0 data_rs2:00000000
+[E] pc_addr:0100008c alu_result:010fffc0 branch_taken:0
+[M] pc_addr:00000000 mem_addr:00000000 read_write:0 access_size:0 mem_data_in:00000000
+[W] pc_addr:0100004c write_enable:1 write_rd:00 data_rd:010fffe0
+[F] pc_addr:01000098 content:00b12423
+[D] pc_addr:01000094 opcode:S rd:00 rs1:02 rs2:0b funct3:2 funct7:00 imm:00000008 shamt:0b
+[R] addr_rs1:02 addr_rs2:0b data_rs1:010fffe0 data_rs2:010fffe4
+[E] pc_addr:01000090 alu_result:010fffcc branch_taken:0
+[M] pc_addr:0100008c mem_addr:010fffc0 read_write:0 access_size:0 mem_data_in:00000000
+[W] pc_addr:00000000 write_enable:1 write_rd:00 data_rd:00000000
+[F] pc_addr:0100009c content:00c12783
+[D] pc_addr:01000098 opcode:L rd:0f rs1:02 rs2:00 funct3:2 funct7:00 imm:0000000c shamt:0c
+[R] addr_rs1:02 addr_rs2:00 data_rs1:010fffe0 data_rs2:010fffe0
+[E] pc_addr:01000094 alu_result:010fffc8 branch_taken:0
+[M] pc_addr:01000090 mem_addr:010fffcc read_write:1 access_size:2 mem_data_in:010fffe4
+[W] pc_addr:0100008c write_enable:1 write_rd:02 data_rd:010fffc0
+[F] pc_addr:0100009c content:00c12783
+[D] pc_addr:01000098 opcode:L rd:0f rs1:02 rs2:00 funct3:2 funct7:00 imm:0000000c shamt:0c
+[R] addr_rs1:02 addr_rs2:00 data_rs1:010fffe0 data_rs2:00000000
+[E] pc_addr:01000098 alu_result:010fffe0 branch_taken:0
+[M] pc_addr:01000094 mem_addr:010fffc8 read_write:1 access_size:2 mem_data_in:010fffe0
+[W] pc_addr:01000090 write_enable:0 write_rd:00 data_rd:010fffcc
+[F] pc_addr:010000a0 content:0007a783
+[D] pc_addr:0100009c opcode:L rd:0f rs1:0f rs2:00 funct3:2 funct7:00 imm:00000000 shamt:00
+[R] addr_rs1:0f addr_rs2:00 data_rs1:010fffc0 data_rs2:00000000
+[E] pc_addr:01000098 alu_result:010fffcc branch_taken:0
+[M] pc_addr:01000098 mem_addr:010fffe0 read_write:0 access_size:0 mem_data_in:00000000
+[W] pc_addr:01000094 write_enable:0 write_rd:00 data_rd:010fffc8
+[F] pc_addr:010000a0 content:0007a783
+[D] pc_addr:0100009c opcode:L rd:0f rs1:0f rs2:00 funct3:2 funct7:00 imm:00000000 shamt:00
+[R] addr_rs1:0f addr_rs2:00 data_rs1:010fffe0 data_rs2:00000000
+[E] pc_addr:0100009c alu_result:010fffe0 branch_taken:0
+[M] pc_addr:01000098 mem_addr:010fffcc read_write:0 access_size:2 mem_data_in:00000000
+[W] pc_addr:01000098 write_enable:1 write_rd:00 data_rd:010fffe0
+[F] pc_addr:010000a4 content:00f12e23
+[D] pc_addr:010000a0 opcode:S rd:00 rs1:02 rs2:0f funct3:2 funct7:00 imm:0000001c shamt:0f
+[R] addr_rs1:02 addr_rs2:0f data_rs1:010fffe0 data_rs2:00000000
+[E] pc_addr:0100009c alu_result:010fffe4 branch_taken:0
+[M] pc_addr:0100009c mem_addr:010fffe0 read_write:0 access_size:0 mem_data_in:00000000
+[W] pc_addr:01000098 write_enable:1 write_rd:0f data_rd:010fffe4
+[F] pc_addr:010000a8 content:00812783
+[D] pc_addr:010000a4 opcode:L rd:0f rs1:02 rs2:00 funct3:2 funct7:00 imm:00000008 shamt:08
+[R] addr_rs1:02 addr_rs2:00 data_rs1:010fffc0 data_rs2:010fffe0
+[E] pc_addr:010000a0 alu_result:010fffdc branch_taken:0
+[M] pc_addr:0100009c mem_addr:010fffe4 read_write:0 access_size:2 mem_data_in:00000000
+[W] pc_addr:0100009c write_enable:1 write_rd:00 data_rd:010fffe0
+[F] pc_addr:010000ac content:0007a703
+[D] pc_addr:010000a8 opcode:L rd:0e rs1:0f rs2:00 funct3:2 funct7:00 imm:00000000 shamt:00
+[R] addr_rs1:0f addr_rs2:00 data_rs1:010fffc0 data_rs2:00000000
+[E] pc_addr:010000a4 alu_result:010fffc8 branch_taken:0
+[M] pc_addr:010000a0 mem_addr:010fffdc read_write:1 access_size:2 mem_data_in:00000002
+[W] pc_addr:0100009c write_enable:1 write_rd:0f data_rd:00000002
+[F] pc_addr:010000ac content:0007a703
+[D] pc_addr:010000a8 opcode:L rd:0e rs1:0f rs2:00 funct3:2 funct7:00 imm:00000000 shamt:00
+[R] addr_rs1:0f addr_rs2:00 data_rs1:010fffe4 data_rs2:00000000
+[E] pc_addr:010000a8 alu_result:010fffe4 branch_taken:0
+[M] pc_addr:010000a4 mem_addr:010fffc8 read_write:0 access_size:2 mem_data_in:00000000
+[W] pc_addr:010000a0 write_enable:0 write_rd:00 data_rd:010fffdc
+[F] pc_addr:010000b0 content:00c12783
+[D] pc_addr:010000ac opcode:L rd:0f rs1:02 rs2:00 funct3:2 funct7:00 imm:0000000c shamt:0c
+[R] addr_rs1:02 addr_rs2:00 data_rs1:00000002 data_rs2:00000000
+[E] pc_addr:010000a8 alu_result:010fffe0 branch_taken:0
+[M] pc_addr:010000a8 mem_addr:010fffe4 read_write:0 access_size:0 mem_data_in:00000000
+[W] pc_addr:010000a4 write_enable:1 write_rd:0f data_rd:010fffe0
+[F] pc_addr:010000b4 content:00e7a023
+[D] pc_addr:010000b0 opcode:S rd:00 rs1:0f rs2:0e funct3:2 funct7:00 imm:00000000 shamt:0e
+[R] addr_rs1:0f addr_rs2:0e data_rs1:010fffc0 data_rs2:00000000
+[E] pc_addr:010000ac alu_result:010fffcc branch_taken:0
+[M] pc_addr:010000a8 mem_addr:010fffe0 read_write:0 access_size:2 mem_data_in:00000000
+[W] pc_addr:010000a8 write_enable:1 write_rd:00 data_rd:010fffe4
+[F] pc_addr:010000b4 content:00e7a023
+[D] pc_addr:010000b0 opcode:S rd:00 rs1:0f rs2:0e funct3:2 funct7:00 imm:00000000 shamt:0e
+[R] addr_rs1:0f addr_rs2:0e data_rs1:010fffe0 data_rs2:00000000
+[E] pc_addr:010000b0 alu_result:010fffe0 branch_taken:0
+[M] pc_addr:010000ac mem_addr:010fffcc read_write:0 access_size:2 mem_data_in:00000000
+[W] pc_addr:010000a8 write_enable:1 write_rd:0e data_rd:00000024
+[F] pc_addr:010000b4 content:00e7a023
+[D] pc_addr:010000b0 opcode:S rd:00 rs1:0f rs2:0e funct3:2 funct7:00 imm:00000000 shamt:0e
+[R] addr_rs1:0f addr_rs2:0e data_rs1:010fffe0 data_rs2:00000000
+[E] pc_addr:010000b0 alu_result:010fffe0 branch_taken:0
+[M] pc_addr:010000b0 mem_addr:010fffe0 read_write:0 access_size:0 mem_data_in:00000000
+[W] pc_addr:010000ac write_enable:1 write_rd:0f data_rd:010fffe4
+[F] pc_addr:010000b4 content:00e7a023
+[D] pc_addr:010000b0 opcode:S rd:00 rs1:0f rs2:0e funct3:2 funct7:00 imm:00000000 shamt:0e
+[R] addr_rs1:0f addr_rs2:0e data_rs1:010fffe0 data_rs2:00000024
+[E] pc_addr:010000b0 alu_result:010fffe0 branch_taken:0
+[M] pc_addr:010000b0 mem_addr:010fffe0 read_write:0 access_size:0 mem_data_in:00000000
+[W] pc_addr:010000b0 write_enable:1 write_rd:00 data_rd:010fffe0
+[F] pc_addr:010000b8 content:00812783
+[D] pc_addr:010000b4 opcode:L rd:0f rs1:02 rs2:00 funct3:2 funct7:00 imm:00000008 shamt:08
+[R] addr_rs1:02 addr_rs2:00 data_rs1:010fffe4 data_rs2:00000024
+[E] pc_addr:010000b0 alu_result:010fffe4 branch_taken:0
+[M] pc_addr:010000b0 mem_addr:010fffe0 read_write:0 access_size:0 mem_data_in:00000024
+[W] pc_addr:010000b0 write_enable:1 write_rd:00 data_rd:010fffe0
+[F] pc_addr:010000bc content:01c12703
+[D] pc_addr:010000b8 opcode:L rd:0e rs1:02 rs2:00 funct3:2 funct7:00 imm:0000001c shamt:1c
+[R] addr_rs1:02 addr_rs2:00 data_rs1:010fffc0 data_rs2:00000000
+[E] pc_addr:010000b4 alu_result:010fffc8 branch_taken:0
+[M] pc_addr:010000b0 mem_addr:010fffe4 read_write:1 access_size:2 mem_data_in:00000024
+[W] pc_addr:010000b0 write_enable:1 write_rd:00 data_rd:010fffe0
+[F] pc_addr:010000c0 content:00e7a023
+[D] pc_addr:010000bc opcode:S rd:00 rs1:0f rs2:0e funct3:2 funct7:00 imm:00000000 shamt:0e
+[R] addr_rs1:0f addr_rs2:0e data_rs1:010fffc0 data_rs2:00000000
+[E] pc_addr:010000b8 alu_result:010fffdc branch_taken:0
+[M] pc_addr:010000b4 mem_addr:010fffc8 read_write:0 access_size:2 mem_data_in:00000000
+[W] pc_addr:010000b0 write_enable:0 write_rd:00 data_rd:010fffe4
+[F] pc_addr:010000c4 content:00000013
+[D] pc_addr:010000c0 opcode:I rd:00 rs1:00 rs2:00 funct3:0 funct7:00 imm:00000000 shamt:00
+[R] addr_rs1:00 addr_rs2:00 data_rs1:010fffe4 data_rs2:00000024
+[E] pc_addr:010000bc alu_result:010fffe0 branch_taken:0
+[M] pc_addr:010000b8 mem_addr:010fffdc read_write:0 access_size:2 mem_data_in:00000000
+[W] pc_addr:010000b4 write_enable:1 write_rd:0f data_rd:010fffe0
+[F] pc_addr:010000c8 content:02010113
+[D] pc_addr:010000c4 opcode:I rd:02 rs1:02 rs2:00 funct3:0 funct7:01 imm:00000020 shamt:00
+[R] addr_rs1:02 addr_rs2:00 data_rs1:00000000 data_rs2:00000000
+[E] pc_addr:010000c0 alu_result:00000000 branch_taken:0
+[M] pc_addr:010000bc mem_addr:010fffe0 read_write:1 access_size:2 mem_data_in:00000002
+[W] pc_addr:010000b8 write_enable:1 write_rd:0e data_rd:00000002
+[F] pc_addr:010000cc content:00008067
+[D] pc_addr:010000c8 opcode:JALR rd:00 rs1:01 rs2:00 funct3:0 funct7:00 imm:00000000 shamt:00
+[R] addr_rs1:01 addr_rs2:00 data_rs1:010fffc0 data_rs2:00000000
+[E] pc_addr:010000c4 alu_result:010fffe0 branch_taken:0
+[M] pc_addr:010000c0 mem_addr:00000000 read_write:0 access_size:0 mem_data_in:00000000
+[W] pc_addr:010000bc write_enable:0 write_rd:00 data_rd:010fffe0
+[F] pc_addr:010000d0 content:fe010113
+[D] pc_addr:010000cc opcode:I rd:02 rs1:02 rs2:00 funct3:0 funct7:7f imm:ffffffe0 shamt:00
+[R] addr_rs1:02 addr_rs2:00 data_rs1:0100004c data_rs2:00000000
+[E] pc_addr:010000c8 alu_result:0100004c branch_taken:0
+[M] pc_addr:010000c4 mem_addr:010fffe0 read_write:0 access_size:0 mem_data_in:00000000
+[W] pc_addr:010000c0 write_enable:1 write_rd:00 data_rd:00000000
+[F] pc_addr:0100004c content:00112e23
+[D] pc_addr:00000000 opcode:I rd:00 rs1:00 rs2:00 funct3:0 funct7:00 imm:00000000 shamt:00
+[R] addr_rs1:00 addr_rs2:00 data_rs1:010fffc0 data_rs2:00000000
+[E] pc_addr:010000cc alu_result:010fffc0 branch_taken:0
+[M] pc_addr:010000c8 mem_addr:0100004c read_write:0 access_size:0 mem_data_in:00000000
+[W] pc_addr:010000c4 write_enable:1 write_rd:02 data_rd:010fffe0
+[F] pc_addr:01000050 content:00c12783
+[D] pc_addr:0100004c opcode:L rd:0f rs1:02 rs2:00 funct3:2 funct7:00 imm:0000000c shamt:0c
+[R] addr_rs1:02 addr_rs2:00 data_rs1:00000000 data_rs2:00000000
+[E] pc_addr:00000000 alu_result:00000000 branch_taken:0
+[M] pc_addr:010000cc mem_addr:010fffc0 read_write:0 access_size:0 mem_data_in:00000000
+[W] pc_addr:010000c8 write_enable:1 write_rd:00 data_rd:010000cc
+[F] pc_addr:01000054 content:0007a783
+[D] pc_addr:01000050 opcode:L rd:0f rs1:0f rs2:00 funct3:2 funct7:00 imm:00000000 shamt:00
+[R] addr_rs1:0f addr_rs2:00 data_rs1:010fffe0 data_rs2:00000000
+[E] pc_addr:0100004c alu_result:010fffec branch_taken:0
+[M] pc_addr:00000000 mem_addr:00000000 read_write:0 access_size:0 mem_data_in:00000000
+[W] pc_addr:010000cc write_enable:1 write_rd:00 data_rd:010fffc0
+[F] pc_addr:01000054 content:0007a783
+[D] pc_addr:01000050 opcode:L rd:0f rs1:0f rs2:00 funct3:2 funct7:00 imm:00000000 shamt:00
+[R] addr_rs1:0f addr_rs2:00 data_rs1:010fffe0 data_rs2:00000000
+[E] pc_addr:01000050 alu_result:010fffe0 branch_taken:0
+[M] pc_addr:0100004c mem_addr:010fffec read_write:0 access_size:2 mem_data_in:00000000
+[W] pc_addr:00000000 write_enable:1 write_rd:00 data_rd:00000000
+[F] pc_addr:01000058 content:00f12223
+[D] pc_addr:01000054 opcode:S rd:00 rs1:02 rs2:0f funct3:2 funct7:00 imm:00000004 shamt:0f
+[R] addr_rs1:02 addr_rs2:0f data_rs1:010fffe0 data_rs2:00000000
+[E] pc_addr:01000050 alu_result:010fffe4 branch_taken:0
+[M] pc_addr:01000050 mem_addr:010fffe0 read_write:0 access_size:0 mem_data_in:00000000
+[W] pc_addr:0100004c write_enable:1 write_rd:0f data_rd:010fffe4
+[F] pc_addr:0100005c content:00812783
+[D] pc_addr:01000058 opcode:L rd:0f rs1:02 rs2:00 funct3:2 funct7:00 imm:00000008 shamt:08
+[R] addr_rs1:02 addr_rs2:00 data_rs1:010fffe0 data_rs2:010fffe0
+[E] pc_addr:01000054 alu_result:010fffe4 branch_taken:0
+[M] pc_addr:01000050 mem_addr:010fffe4 read_write:0 access_size:2 mem_data_in:00000000
+[W] pc_addr:01000050 write_enable:1 write_rd:00 data_rd:010fffe0
+[F] pc_addr:01000060 content:0007a783
+[D] pc_addr:0100005c opcode:L rd:0f rs1:0f rs2:00 funct3:2 funct7:00 imm:00000000 shamt:00
+[R] addr_rs1:0f addr_rs2:00 data_rs1:010fffe0 data_rs2:00000000
+[E] pc_addr:01000058 alu_result:010fffe8 branch_taken:0
+[M] pc_addr:01000054 mem_addr:010fffe4 read_write:1 access_size:2 mem_data_in:00000024
+[W] pc_addr:01000050 write_enable:1 write_rd:0f data_rd:00000024
+[F] pc_addr:01000060 content:0007a783
+[D] pc_addr:0100005c opcode:L rd:0f rs1:0f rs2:00 funct3:2 funct7:00 imm:00000000 shamt:00
+[R] addr_rs1:0f addr_rs2:00 data_rs1:010fffe4 data_rs2:00000000
+[E] pc_addr:0100005c alu_result:010fffe4 branch_taken:0
+[M] pc_addr:01000058 mem_addr:010fffe8 read_write:0 access_size:2 mem_data_in:00000000
+[W] pc_addr:01000054 write_enable:0 write_rd:00 data_rd:010fffe4
+[F] pc_addr:01000064 content:00f12023
+[D] pc_addr:01000060 opcode:S rd:00 rs1:02 rs2:0f funct3:2 funct7:00 imm:00000000 shamt:0f
+[R] addr_rs1:02 addr_rs2:0f data_rs1:00000024 data_rs2:00000000
+[E] pc_addr:0100005c alu_result:010fffe0 branch_taken:0
+[M] pc_addr:0100005c mem_addr:010fffe4 read_write:0 access_size:0 mem_data_in:00000000
+[W] pc_addr:01000058 write_enable:1 write_rd:0f data_rd:010fffe0
+[F] pc_addr:01000068 content:00412703
+[D] pc_addr:01000064 opcode:L rd:0e rs1:02 rs2:00 funct3:2 funct7:00 imm:00000004 shamt:04
+[R] addr_rs1:02 addr_rs2:00 data_rs1:010fffe0 data_rs2:00000024
+[E] pc_addr:01000060 alu_result:010fffe0 branch_taken:0
+[M] pc_addr:0100005c mem_addr:010fffe0 read_write:0 access_size:2 mem_data_in:00000000
+[W] pc_addr:0100005c write_enable:1 write_rd:00 data_rd:010fffe4
+[F] pc_addr:0100006c content:00012783
+[D] pc_addr:01000068 opcode:L rd:0f rs1:02 rs2:00 funct3:2 funct7:00 imm:00000000 shamt:00
+[R] addr_rs1:02 addr_rs2:00 data_rs1:010fffe0 data_rs2:00000000
+[E] pc_addr:01000064 alu_result:010fffe4 branch_taken:0
+[M] pc_addr:01000060 mem_addr:010fffe0 read_write:1 access_size:2 mem_data_in:00000002
+[W] pc_addr:0100005c write_enable:1 write_rd:0f data_rd:00000002
+[F] pc_addr:01000070 content:00f707b3
+[D] pc_addr:0100006c opcode:R rd:0f rs1:0e rs2:0f funct3:0 funct7:00 imm:00000000 shamt:0f
+[R] addr_rs1:0e addr_rs2:0f data_rs1:010fffe0 data_rs2:00000000
+[E] pc_addr:01000068 alu_result:010fffe0 branch_taken:0
+[M] pc_addr:01000064 mem_addr:010fffe4 read_write:0 access_size:2 mem_data_in:00000000
+[W] pc_addr:01000060 write_enable:0 write_rd:00 data_rd:010fffe0
+[F] pc_addr:01000070 content:00f707b3
+[D] pc_addr:0100006c opcode:R rd:0f rs1:0e rs2:0f funct3:0 funct7:00 imm:00000000 shamt:0f
+[R] addr_rs1:0e addr_rs2:0f data_rs1:00000002 data_rs2:00000002
+[E] pc_addr:0100006c alu_result:00000002 branch_taken:0
+[M] pc_addr:01000068 mem_addr:010fffe0 read_write:0 access_size:2 mem_data_in:00000000
+[W] pc_addr:01000064 write_enable:1 write_rd:0e data_rd:00000024
+[F] pc_addr:01000070 content:00f707b3
+[D] pc_addr:0100006c opcode:R rd:0f rs1:0e rs2:0f funct3:0 funct7:00 imm:00000000 shamt:0f
+[R] addr_rs1:0e addr_rs2:0f data_rs1:00000002 data_rs2:00000002
+[E] pc_addr:0100006c alu_result:00000002 branch_taken:0
+[M] pc_addr:0100006c mem_addr:00000002 read_write:0 access_size:0 mem_data_in:00000002
+[W] pc_addr:01000068 write_enable:1 write_rd:0f data_rd:00000002
+[F] pc_addr:01000070 content:00f707b3
+[D] pc_addr:0100006c opcode:R rd:0f rs1:0e rs2:0f funct3:0 funct7:00 imm:00000000 shamt:0f
+[R] addr_rs1:0e addr_rs2:0f data_rs1:00000024 data_rs2:00000002
+[E] pc_addr:0100006c alu_result:00000024 branch_taken:0
+[M] pc_addr:0100006c mem_addr:00000002 read_write:0 access_size:0 mem_data_in:00000002
+[W] pc_addr:0100006c write_enable:1 write_rd:00 data_rd:00000002
+[F] pc_addr:01000074 content:00078513
+[D] pc_addr:01000070 opcode:I rd:0a rs1:0f rs2:00 funct3:0 funct7:00 imm:00000000 shamt:00
+[R] addr_rs1:0f addr_rs2:00 data_rs1:00000024 data_rs2:00000002
+[E] pc_addr:0100006c alu_result:00000026 branch_taken:0
+[M] pc_addr:0100006c mem_addr:00000024 read_write:0 access_size:0 mem_data_in:00000002
+[W] pc_addr:0100006c write_enable:1 write_rd:00 data_rd:00000002
+[F] pc_addr:01000078 content:058000ef
+[D] pc_addr:01000074 opcode:JAL rd:01 rs1:00 rs2:00 funct3:0 funct7:02 imm:00000058 shamt:18
+[R] addr_rs1:00 addr_rs2:00 data_rs1:00000002 data_rs2:00000000
+[E] pc_addr:01000070 alu_result:00000026 branch_taken:0
+[M] pc_addr:0100006c mem_addr:00000026 read_write:0 access_size:0 mem_data_in:00000002
+[W] pc_addr:0100006c write_enable:1 write_rd:00 data_rd:00000024
+[F] pc_addr:0100007c content:00050793
+[D] pc_addr:01000078 opcode:I rd:0f rs1:0a rs2:00 funct3:0 funct7:00 imm:00000000 shamt:00
+[R] addr_rs1:0a addr_rs2:00 data_rs1:00000000 data_rs2:00000000
+[E] pc_addr:01000074 alu_result:010000cc branch_taken:0
+[M] pc_addr:01000070 mem_addr:00000026 read_write:0 access_size:0 mem_data_in:00000000
+[W] pc_addr:0100006c write_enable:1 write_rd:0f data_rd:00000026
+[F] pc_addr:010000cc content:00078513
+[D] pc_addr:00000000 opcode:I rd:00 rs1:00 rs2:00 funct3:0 funct7:00 imm:00000000 shamt:00
+[R] addr_rs1:00 addr_rs2:00 data_rs1:010fffe4 data_rs2:00000000
+[E] pc_addr:01000078 alu_result:010fffe4 branch_taken:0
+[M] pc_addr:01000074 mem_addr:010000cc read_write:0 access_size:0 mem_data_in:00000000
+[W] pc_addr:01000070 write_enable:1 write_rd:0a data_rd:00000026
+[F] pc_addr:010000d0 content:fe010113
+[D] pc_addr:010000cc opcode:I rd:02 rs1:02 rs2:00 funct3:0 funct7:7f imm:ffffffe0 shamt:00
+[R] addr_rs1:02 addr_rs2:00 data_rs1:00000000 data_rs2:00000000
+[E] pc_addr:00000000 alu_result:00000000 branch_taken:0
+[M] pc_addr:01000078 mem_addr:010fffe4 read_write:0 access_size:0 mem_data_in:00000000
+[W] pc_addr:01000074 write_enable:1 write_rd:01 data_rd:01000078
+[F] pc_addr:010000d4 content:00112e23
+[D] pc_addr:010000d0 opcode:S rd:00 rs1:02 rs2:01 funct3:2 funct7:00 imm:0000001c shamt:01
+[R] addr_rs1:02 addr_rs2:01 data_rs1:010fffe0 data_rs2:00000000
+[E] pc_addr:010000cc alu_result:010fffc0 branch_taken:0
+[M] pc_addr:00000000 mem_addr:00000000 read_write:0 access_size:0 mem_data_in:00000000
+[W] pc_addr:01000078 write_enable:1 write_rd:00 data_rd:010fffe4
+[F] pc_addr:010000d8 content:00a12623
+[D] pc_addr:010000d4 opcode:S rd:00 rs1:02 rs2:0a funct3:2 funct7:00 imm:0000000c shamt:0a
+[R] addr_rs1:02 addr_rs2:0a data_rs1:010fffe0 data_rs2:01000078
+[E] pc_addr:010000d0 alu_result:010fffdc branch_taken:0
+[M] pc_addr:010000cc mem_addr:010fffc0 read_write:0 access_size:0 mem_data_in:00000000
+[W] pc_addr:00000000 write_enable:1 write_rd:00 data_rd:00000000
+[F] pc_addr:010000dc content:00c12703
+[D] pc_addr:010000d8 opcode:L rd:0e rs1:02 rs2:00 funct3:2 funct7:00 imm:0000000c shamt:0c
+[R] addr_rs1:02 addr_rs2:00 data_rs1:010fffe0 data_rs2:00000026
+[E] pc_addr:010000d4 alu_result:010fffcc branch_taken:0
+[M] pc_addr:010000d0 mem_addr:010fffdc read_write:1 access_size:2 mem_data_in:01000078
+[W] pc_addr:010000cc write_enable:1 write_rd:02 data_rd:010fffc0
+[F] pc_addr:010000dc content:00c12703
+[D] pc_addr:010000d8 opcode:L rd:0e rs1:02 rs2:00 funct3:2 funct7:00 imm:0000000c shamt:0c
+[R] addr_rs1:02 addr_rs2:00 data_rs1:010fffe0 data_rs2:00000000
+[E] pc_addr:010000d8 alu_result:010fffe0 branch_taken:0
+[M] pc_addr:010000d4 mem_addr:010fffcc read_write:1 access_size:2 mem_data_in:00000026
+[W] pc_addr:010000d0 write_enable:0 write_rd:00 data_rd:010fffdc
+[F] pc_addr:010000e0 content:02600793
+[D] pc_addr:010000dc opcode:I rd:0f rs1:00 rs2:00 funct3:0 funct7:01 imm:00000026 shamt:06
+[R] addr_rs1:00 addr_rs2:00 data_rs1:010fffc0 data_rs2:00000000
+[E] pc_addr:010000d8 alu_result:010fffcc branch_taken:0
+[M] pc_addr:010000d8 mem_addr:010fffe0 read_write:0 access_size:0 mem_data_in:00000000
+[W] pc_addr:010000d4 write_enable:0 write_rd:00 data_rd:010fffcc
+[F] pc_addr:010000e4 content:00f71863
+[D] pc_addr:010000e0 opcode:B rd:00 rs1:0e rs2:0f funct3:1 funct7:00 imm:00000010 shamt:0f
+[R] addr_rs1:0e addr_rs2:0f data_rs1:00000000 data_rs2:00000000
+[E] pc_addr:010000dc alu_result:00000026 branch_taken:0
+[M] pc_addr:010000d8 mem_addr:010fffcc read_write:0 access_size:2 mem_data_in:00000000
+[W] pc_addr:010000d8 write_enable:1 write_rd:00 data_rd:010fffe0
+[F] pc_addr:010000e8 content:024000ef
+[D] pc_addr:010000e4 opcode:JAL rd:01 rs1:00 rs2:00 funct3:0 funct7:01 imm:00000024 shamt:04
+[R] addr_rs1:00 addr_rs2:00 data_rs1:00000024 data_rs2:00000026
+[E] pc_addr:010000e0 alu_result:010000f0 branch_taken:0
+[M] pc_addr:010000dc mem_addr:00000026 read_write:0 access_size:0 mem_data_in:00000000
+[W] pc_addr:010000d8 write_enable:1 write_rd:0e data_rd:00000026
+[F] pc_addr:010000ec content:00050793
+[D] pc_addr:010000e8 opcode:I rd:0f rs1:0a rs2:00 funct3:0 funct7:00 imm:00000000 shamt:00
+[R] addr_rs1:0a addr_rs2:00 data_rs1:00000000 data_rs2:00000000
+[E] pc_addr:010000e4 alu_result:01000108 branch_taken:0
+[M] pc_addr:010000e0 mem_addr:010000f0 read_write:0 access_size:1 mem_data_in:00000026
+[W] pc_addr:010000dc write_enable:1 write_rd:0f data_rd:00000026
+[F] pc_addr:01000108 content:00c0006f
+[D] pc_addr:00000000 opcode:I rd:00 rs1:00 rs2:00 funct3:0 funct7:00 imm:00000000 shamt:00
+[R] addr_rs1:00 addr_rs2:00 data_rs1:00000026 data_rs2:00000000
+[E] pc_addr:010000e8 alu_result:00000026 branch_taken:0
+[M] pc_addr:010000e4 mem_addr:01000108 read_write:0 access_size:0 mem_data_in:00000000
+[W] pc_addr:010000e0 write_enable:0 write_rd:00 data_rd:010000f0
+[F] pc_addr:0100010c content:00100793
+[D] pc_addr:01000108 opcode:I rd:0f rs1:00 rs2:00 funct3:0 funct7:00 imm:00000001 shamt:01
+[R] addr_rs1:00 addr_rs2:00 data_rs1:00000000 data_rs2:00000000
+[E] pc_addr:00000000 alu_result:00000000 branch_taken:0
+[M] pc_addr:010000e8 mem_addr:00000026 read_write:0 access_size:0 mem_data_in:00000000
+[W] pc_addr:010000e4 write_enable:1 write_rd:01 data_rd:010000e8
+[F] pc_addr:01000110 content:00078513
+[D] pc_addr:0100010c opcode:I rd:0a rs1:0f rs2:00 funct3:0 funct7:00 imm:00000000 shamt:00
+[R] addr_rs1:0f addr_rs2:00 data_rs1:00000000 data_rs2:00000000
+[E] pc_addr:01000108 alu_result:00000001 branch_taken:0
+[M] pc_addr:00000000 mem_addr:00000000 read_write:0 access_size:0 mem_data_in:00000000
+[W] pc_addr:010000e8 write_enable:1 write_rd:00 data_rd:00000026
+[F] pc_addr:01000114 content:00008067
+[D] pc_addr:01000110 opcode:JALR rd:00 rs1:01 rs2:00 funct3:0 funct7:00 imm:00000000 shamt:00
+[R] addr_rs1:01 addr_rs2:00 data_rs1:00000026 data_rs2:00000000
+[E] pc_addr:0100010c alu_result:00000001 branch_taken:0
+[M] pc_addr:01000108 mem_addr:00000001 read_write:0 access_size:0 mem_data_in:00000000
+[W] pc_addr:00000000 write_enable:1 write_rd:00 data_rd:00000000
+[F] pc_addr:01000118 content:00000793
+[D] pc_addr:01000114 opcode:I rd:0f rs1:00 rs2:00 funct3:0 funct7:00 imm:00000000 shamt:00
+[R] addr_rs1:00 addr_rs2:00 data_rs1:010000e8 data_rs2:00000000
+[E] pc_addr:01000110 alu_result:010000e8 branch_taken:0
+[M] pc_addr:0100010c mem_addr:00000001 read_write:0 access_size:0 mem_data_in:00000000
+[W] pc_addr:01000108 write_enable:1 write_rd:0f data_rd:00000001
+[F] pc_addr:010000e8 content:00078513
+[D] pc_addr:00000000 opcode:I rd:00 rs1:00 rs2:00 funct3:0 funct7:00 imm:00000000 shamt:00
+[R] addr_rs1:00 addr_rs2:00 data_rs1:00000000 data_rs2:00000000
+[E] pc_addr:01000114 alu_result:00000000 branch_taken:0
+[M] pc_addr:01000110 mem_addr:010000e8 read_write:0 access_size:0 mem_data_in:00000000
+[W] pc_addr:0100010c write_enable:1 write_rd:0a data_rd:00000001
+[F] pc_addr:010000ec content:00050793
+[D] pc_addr:010000e8 opcode:I rd:0f rs1:0a rs2:00 funct3:0 funct7:00 imm:00000000 shamt:00
+[R] addr_rs1:0a addr_rs2:00 data_rs1:00000000 data_rs2:00000000
+[E] pc_addr:00000000 alu_result:00000000 branch_taken:0
+[M] pc_addr:01000114 mem_addr:00000000 read_write:0 access_size:0 mem_data_in:00000000
+[W] pc_addr:01000110 write_enable:1 write_rd:00 data_rd:01000114
+[F] pc_addr:010000f0 content:00c0006f
+[D] pc_addr:010000ec opcode:JAL rd:00 rs1:00 rs2:00 funct3:0 funct7:00 imm:0000000c shamt:0c
+[R] addr_rs1:00 addr_rs2:00 data_rs1:00000001 data_rs2:00000000
+[E] pc_addr:010000e8 alu_result:00000001 branch_taken:0
+[M] pc_addr:00000000 mem_addr:00000000 read_write:0 access_size:0 mem_data_in:00000000
+[W] pc_addr:01000114 write_enable:1 write_rd:00 data_rd:00000000
+[F] pc_addr:010000f4 content:024000ef
+[D] pc_addr:010000f0 opcode:JAL rd:01 rs1:00 rs2:00 funct3:0 funct7:01 imm:00000024 shamt:04
+[R] addr_rs1:00 addr_rs2:00 data_rs1:00000000 data_rs2:00000000
+[E] pc_addr:010000ec alu_result:010000f8 branch_taken:0
+[M] pc_addr:010000e8 mem_addr:00000001 read_write:0 access_size:0 mem_data_in:00000000
+[W] pc_addr:00000000 write_enable:1 write_rd:00 data_rd:00000000
+[F] pc_addr:010000f8 content:00050793
+[D] pc_addr:00000000 opcode:I rd:00 rs1:00 rs2:00 funct3:0 funct7:00 imm:00000000 shamt:00
+[R] addr_rs1:00 addr_rs2:00 data_rs1:00000000 data_rs2:00000000
+[E] pc_addr:010000f0 alu_result:00000000 branch_taken:0
+[M] pc_addr:010000ec mem_addr:010000f8 read_write:0 access_size:0 mem_data_in:00000000
+[W] pc_addr:010000e8 write_enable:1 write_rd:0f data_rd:00000001
+[F] pc_addr:010000fc content:00078513
+[D] pc_addr:010000f8 opcode:I rd:0a rs1:0f rs2:00 funct3:0 funct7:00 imm:00000000 shamt:00
+[R] addr_rs1:0f addr_rs2:00 data_rs1:00000000 data_rs2:00000000
+[E] pc_addr:00000000 alu_result:00000000 branch_taken:0
+[M] pc_addr:010000f0 mem_addr:00000000 read_write:0 access_size:0 mem_data_in:00000000
+[W] pc_addr:010000ec write_enable:1 write_rd:00 data_rd:010000f0
+[F] pc_addr:01000100 content:01c12083
+[D] pc_addr:010000fc opcode:L rd:01 rs1:02 rs2:00 funct3:2 funct7:00 imm:0000001c shamt:1c
+[R] addr_rs1:02 addr_rs2:00 data_rs1:00000001 data_rs2:00000000
+[E] pc_addr:010000f8 alu_result:00000001 branch_taken:0
+[M] pc_addr:00000000 mem_addr:00000000 read_write:0 access_size:0 mem_data_in:00000000
+[W] pc_addr:010000f0 write_enable:1 write_rd:00 data_rd:00000000
+[F] pc_addr:01000104 content:02010113
+[D] pc_addr:01000100 opcode:I rd:02 rs1:02 rs2:00 funct3:0 funct7:01 imm:00000020 shamt:00
+[R] addr_rs1:02 addr_rs2:00 data_rs1:010fffc0 data_rs2:00000000
+[E] pc_addr:010000fc alu_result:010fffdc branch_taken:0
+[M] pc_addr:010000f8 mem_addr:00000001 read_write:0 access_size:0 mem_data_in:00000000
+[W] pc_addr:00000000 write_enable:1 write_rd:00 data_rd:00000000
+[F] pc_addr:01000108 content:00008067
+[D] pc_addr:01000104 opcode:JALR rd:00 rs1:01 rs2:00 funct3:0 funct7:00 imm:00000000 shamt:00
+[R] addr_rs1:01 addr_rs2:00 data_rs1:010fffc0 data_rs2:00000000
+[E] pc_addr:01000100 alu_result:010fffe0 branch_taken:0
+[M] pc_addr:010000fc mem_addr:010fffdc read_write:0 access_size:2 mem_data_in:00000000
+[W] pc_addr:010000f8 write_enable:1 write_rd:0a data_rd:00000001
+[F] pc_addr:0100010c content:00100793
+[D] pc_addr:01000108 opcode:I rd:0f rs1:00 rs2:00 funct3:0 funct7:00 imm:00000001 shamt:01
+[R] addr_rs1:00 addr_rs2:00 data_rs1:010000e8 data_rs2:00000000
+[E] pc_addr:01000104 alu_result:01000078 branch_taken:0
+[M] pc_addr:01000100 mem_addr:010fffe0 read_write:0 access_size:0 mem_data_in:00000000
+[W] pc_addr:010000fc write_enable:1 write_rd:01 data_rd:01000078
+[F] pc_addr:01000078 content:00078513
+[D] pc_addr:00000000 opcode:I rd:00 rs1:00 rs2:00 funct3:0 funct7:00 imm:00000000 shamt:00
+[R] addr_rs1:00 addr_rs2:00 data_rs1:00000000 data_rs2:00000000
+[E] pc_addr:01000108 alu_result:00000000 branch_taken:0
+[M] pc_addr:01000104 mem_addr:01000078 read_write:0 access_size:0 mem_data_in:00000000
+[W] pc_addr:01000100 write_enable:1 write_rd:02 data_rd:010fffe0
+[F] pc_addr:0100007c content:00050793
+[D] pc_addr:01000078 opcode:I rd:0f rs1:0a rs2:00 funct3:0 funct7:00 imm:00000000 shamt:00
+[R] addr_rs1:0a addr_rs2:00 data_rs1:00000000 data_rs2:00000000
+[E] pc_addr:00000000 alu_result:00000000 branch_taken:0
+[M] pc_addr:01000108 mem_addr:00000000 read_write:0 access_size:0 mem_data_in:00000000
+[W] pc_addr:01000104 write_enable:1 write_rd:00 data_rd:01000108
+[F] pc_addr:01000080 content:00078513
+[D] pc_addr:0100007c opcode:I rd:0a rs1:0f rs2:00 funct3:0 funct7:00 imm:00000000 shamt:00
+[R] addr_rs1:0f addr_rs2:00 data_rs1:00000001 data_rs2:00000000
+[E] pc_addr:01000078 alu_result:00000001 branch_taken:0
+[M] pc_addr:00000000 mem_addr:00000000 read_write:0 access_size:0 mem_data_in:00000000
+[W] pc_addr:01000108 write_enable:1 write_rd:00 data_rd:00000000
+[F] pc_addr:01000084 content:01c12083
+[D] pc_addr:01000080 opcode:L rd:01 rs1:02 rs2:00 funct3:2 funct7:00 imm:0000001c shamt:1c
+[R] addr_rs1:02 addr_rs2:00 data_rs1:00000001 data_rs2:00000000
+[E] pc_addr:0100007c alu_result:00000001 branch_taken:0
+[M] pc_addr:01000078 mem_addr:00000001 read_write:0 access_size:0 mem_data_in:00000000
+[W] pc_addr:00000000 write_enable:1 write_rd:00 data_rd:00000000
+[F] pc_addr:01000088 content:02010113
+[D] pc_addr:01000084 opcode:I rd:02 rs1:02 rs2:00 funct3:0 funct7:01 imm:00000020 shamt:00
+[R] addr_rs1:02 addr_rs2:00 data_rs1:010fffe0 data_rs2:00000000
+[E] pc_addr:01000080 alu_result:010ffffc branch_taken:0
+[M] pc_addr:0100007c mem_addr:00000001 read_write:0 access_size:0 mem_data_in:00000000
+[W] pc_addr:01000078 write_enable:1 write_rd:0f data_rd:00000001
+[F] pc_addr:0100008c content:00008067
+[D] pc_addr:01000088 opcode:JALR rd:00 rs1:01 rs2:00 funct3:0 funct7:00 imm:00000000 shamt:00
+[R] addr_rs1:01 addr_rs2:00 data_rs1:010fffe0 data_rs2:00000000
+[E] pc_addr:01000084 alu_result:01100000 branch_taken:0
+[M] pc_addr:01000080 mem_addr:010ffffc read_write:0 access_size:2 mem_data_in:00000000
+[W] pc_addr:0100007c write_enable:1 write_rd:0a data_rd:00000001
+[F] pc_addr:01000090 content:fe010113
+[D] pc_addr:0100008c opcode:I rd:02 rs1:02 rs2:00 funct3:0 funct7:7f imm:ffffffe0 shamt:00
+[R] addr_rs1:02 addr_rs2:00 data_rs1:01000078 data_rs2:00000000
+[E] pc_addr:01000088 alu_result:00000000 branch_taken:0
+[M] pc_addr:01000084 mem_addr:01100000 read_write:0 access_size:0 mem_data_in:00000000
+[W] pc_addr:01000080 write_enable:1 write_rd:01 data_rd:00000000
+[F] pc_addr:00000000 content:00a12623
+[D] pc_addr:00000000 opcode:I rd:00 rs1:00 rs2:00 funct3:0 funct7:00 imm:00000000 shamt:00
+[R] addr_rs1:00 addr_rs2:00 data_rs1:010fffe0 data_rs2:00000000
+[E] pc_addr:0100008c alu_result:010fffe0 branch_taken:0
+[M] pc_addr:01000088 mem_addr:00000000 read_write:0 access_size:0 mem_data_in:00000000
+[W] pc_addr:01000084 write_enable:1 write_rd:02 data_rd:01100000
+[F] pc_addr:00000004 content:fe010113
+[D] pc_addr:00000000 opcode:I rd:02 rs1:02 rs2:00 funct3:0 funct7:7f imm:ffffffe0 shamt:00
+[R] addr_rs1:02 addr_rs2:00 data_rs1:00000000 data_rs2:00000000
+[E] pc_addr:00000000 alu_result:00000000 branch_taken:0
+[M] pc_addr:0100008c mem_addr:010fffe0 read_write:0 access_size:0 mem_data_in:00000000
+[W] pc_addr:01000088 write_enable:1 write_rd:00 data_rd:0100008c

@@ -1,0 +1,1 @@
+-relax -debug "typical" "tb" -L "uvm" -L "xilinx_vip" -L "unisims_ver" -L "unimacro_ver" -L "secureip" --snapshot "tb" "glbl" 

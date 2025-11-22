@@ -107,7 +107,7 @@
       "axi_dma_0": {
         "vlnv": "xilinx.com:ip:axi_dma:7.1",
         "xci_name": "overlay_axi_dma_0_0",
-        "xci_path": "ip/overlay_axi_dma_0_0/overlay_axi_dma_0_0.xci",
+        "xci_path": "ip/overlay_axi_dma_0_0_1/overlay_axi_dma_0_0.xci",
         "inst_hier_path": "axi_dma_0",
         "parameters": {
           "c_include_mm2s_dre": {
@@ -176,7 +176,7 @@
       "axi_gpio_0": {
         "vlnv": "xilinx.com:ip:axi_gpio:2.0",
         "xci_name": "overlay_axi_gpio_0_0",
-        "xci_path": "ip/overlay_axi_gpio_0_0/overlay_axi_gpio_0_0.xci",
+        "xci_path": "ip/overlay_axi_gpio_0_0_1/overlay_axi_gpio_0_0.xci",
         "inst_hier_path": "axi_gpio_0",
         "parameters": {
           "C_ALL_INPUTS": {
@@ -204,7 +204,7 @@
       },
       "axi_mem_intercon": {
         "vlnv": "xilinx.com:ip:axi_interconnect:2.1",
-        "xci_path": "ip/overlay_axi_mem_intercon_0/overlay_axi_mem_intercon_0.xci",
+        "xci_path": "ip/overlay_axi_mem_intercon_0_1/overlay_axi_mem_intercon_0.xci",
         "inst_hier_path": "axi_mem_intercon",
         "xci_name": "overlay_axi_mem_intercon_0",
         "parameters": {
@@ -299,7 +299,7 @@
           "xbar": {
             "vlnv": "xilinx.com:ip:axi_crossbar:2.1",
             "xci_name": "overlay_xbar_0",
-            "xci_path": "ip/overlay_xbar_0/overlay_xbar_0.xci",
+            "xci_path": "ip/overlay_xbar_0_1/overlay_xbar_0.xci",
             "inst_hier_path": "axi_mem_intercon/xbar",
             "parameters": {
               "NUM_MI": {
@@ -492,7 +492,7 @@
               "auto_pc": {
                 "vlnv": "xilinx.com:ip:axi_protocol_converter:2.1",
                 "xci_name": "overlay_auto_pc_0",
-                "xci_path": "ip/overlay_auto_pc_0/overlay_auto_pc_0.xci",
+                "xci_path": "ip/overlay_auto_pc_0_1/overlay_auto_pc_0.xci",
                 "inst_hier_path": "axi_mem_intercon/m00_couplers/auto_pc",
                 "parameters": {
                   "MI_PROTOCOL": {
@@ -641,13 +641,13 @@
       "axis_data_fifo_0": {
         "vlnv": "xilinx.com:ip:axis_data_fifo:2.0",
         "xci_name": "overlay_axis_data_fifo_0_0",
-        "xci_path": "ip/overlay_axis_data_fifo_0_0/overlay_axis_data_fifo_0_0.xci",
+        "xci_path": "ip/overlay_axis_data_fifo_0_0_1/overlay_axis_data_fifo_0_0.xci",
         "inst_hier_path": "axis_data_fifo_0"
       },
       "axis_dwidth_converter_0": {
         "vlnv": "xilinx.com:ip:axis_dwidth_converter:1.1",
         "xci_name": "overlay_axis_dwidth_converter_0_0",
-        "xci_path": "ip/overlay_axis_dwidth_converter_0_0/overlay_axis_dwidth_converter_0_0.xci",
+        "xci_path": "ip/overlay_axis_dwidth_converter_0_0_1/overlay_axis_dwidth_converter_0_0.xci",
         "inst_hier_path": "axis_dwidth_converter_0",
         "parameters": {
           "HAS_TLAST": {
@@ -661,7 +661,7 @@
       "processing_system7_0": {
         "vlnv": "xilinx.com:ip:processing_system7:5.5",
         "xci_name": "overlay_processing_system7_0_0",
-        "xci_path": "ip/overlay_processing_system7_0_0/overlay_processing_system7_0_0.xci",
+        "xci_path": "ip/overlay_processing_system7_0_0_1/overlay_processing_system7_0_0.xci",
         "inst_hier_path": "processing_system7_0",
         "parameters": {
           "PCW_ACT_APU_PERIPHERAL_FREQMHZ": {
@@ -2381,7 +2381,7 @@
       },
       "ps7_0_axi_periph": {
         "vlnv": "xilinx.com:ip:axi_interconnect:2.1",
-        "xci_path": "ip/overlay_ps7_0_axi_periph_0/overlay_ps7_0_axi_periph_0.xci",
+        "xci_path": "ip/overlay_ps7_0_axi_periph_0_1/overlay_ps7_0_axi_periph_0.xci",
         "inst_hier_path": "ps7_0_axi_periph",
         "xci_name": "overlay_ps7_0_axi_periph_0",
         "parameters": {
@@ -2473,7 +2473,7 @@
           "xbar": {
             "vlnv": "xilinx.com:ip:axi_crossbar:2.1",
             "xci_name": "overlay_xbar_1",
-            "xci_path": "ip/overlay_xbar_1/overlay_xbar_1.xci",
+            "xci_path": "ip/overlay_xbar_1_1/overlay_xbar_1.xci",
             "inst_hier_path": "ps7_0_axi_periph/xbar",
             "parameters": {
               "NUM_MI": {
@@ -2548,7 +2548,7 @@
               "auto_pc": {
                 "vlnv": "xilinx.com:ip:axi_protocol_converter:2.1",
                 "xci_name": "overlay_auto_pc_1",
-                "xci_path": "ip/overlay_auto_pc_1/overlay_auto_pc_1.xci",
+                "xci_path": "ip/overlay_auto_pc_1_1/overlay_auto_pc_1.xci",
                 "inst_hier_path": "ps7_0_axi_periph/s00_couplers/auto_pc",
                 "parameters": {
                   "MI_PROTOCOL": {
@@ -2809,13 +2809,13 @@
       "rst_ps7_0_50M": {
         "vlnv": "xilinx.com:ip:proc_sys_reset:5.0",
         "xci_name": "overlay_rst_ps7_0_50M_0",
-        "xci_path": "ip/overlay_rst_ps7_0_50M_0/overlay_rst_ps7_0_50M_0.xci",
+        "xci_path": "ip/overlay_rst_ps7_0_50M_0_1/overlay_rst_ps7_0_50M_0.xci",
         "inst_hier_path": "rst_ps7_0_50M"
       },
       "top_design": {
         "vlnv": "xilinx.com:module_ref:top:1.0",
         "xci_name": "overlay_top_design_0",
-        "xci_path": "ip/overlay_top_design_0/overlay_top_design_0.xci",
+        "xci_path": "ip/overlay_top_design_0_1/overlay_top_design_0.xci",
         "inst_hier_path": "top_design",
         "reference_info": {
           "ref_type": "hdl",

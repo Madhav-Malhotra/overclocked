@@ -302,8 +302,8 @@ module pd #(
     .data_rs1(data_rs1_w),  // output
     .data_rs2(data_rs2_w)   // output
   );
-  wire data_rs1_stall_w = !(stall || br_taken || reset) ? data_rs1_w : 0;
-  wire data_rs2_stall_w = !(stall || br_taken || reset) ? data_rs2_w : 0;
+  wire [DATAW-1:0] data_rs1_stall_w = !(stall || reset) ? data_rs1_w : 0;
+  wire [DATAW-1:0] data_rs2_stall_w = !(stall || reset) ? data_rs2_w : 0;
 
   control_signals cs1(
     .clock(clock),

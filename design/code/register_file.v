@@ -11,8 +11,8 @@ module register_file #(
     input [ADDRW-1:0] addr_rs2,
     input [ADDRW-1:0] addr_rd,
     input [DATAW-1:0] data_rd,
-    output reg [DATAW-1:0] data_rs1,
-    output reg [DATAW-1:0] data_rs2
+    output  [DATAW-1:0] data_rs1,
+    output  [DATAW-1:0] data_rs2
 );
 
 // Signal declarations
@@ -26,14 +26,20 @@ initial begin
     regs[2] = BASE_ADDR + `MEM_DEPTH; // stack pointer
 end
 
+reg [DATAW-1:0] data_rs1_r;
+reg [DATAW-1:0] data_rs2_r;
+
 // Sequential writes
 always @(posedge clock) begin
     // Write to any register (except x0 - moved check to control signals)
     if (write_enable) begin
         regs[addr_rd] <= data_rd;
     end
-    data_rs1 <= regs[addr_rs1];
-    data_rs2 <= regs[addr_rs2];
+    data_rs1_r <= regs[addr_rs1];
+    data_rs2_r <= regs[addr_rs2];
 end
+
+assign data_rs1 = data_rs1_r;
+assign data_rs2 = data_rs2_r;
 
 endmodule

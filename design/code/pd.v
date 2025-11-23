@@ -181,7 +181,7 @@ module pd #(
     end
     else if (stall) begin
       pc_fd_r <= pc_fd_r;          // Hold FD pipeline registers during stall
-      prev_instr <= prev_instr;
+      prev_instr <= (!stall_fd) ? instr_w : prev_instr;
       stall_fd <= 1;
     end
     else if (br_taken) begin
@@ -319,12 +319,15 @@ module pd #(
     .data_rs1(data_rs1_w),  // output
     .data_rs2(data_rs2_w)   // output
   );
-  wire [DATAW-1:0] data_rs1_stall_w = !(stall || reset) ? data_rs1_w : 0;
-  wire [DATAW-1:0] data_rs2_stall_w = !(stall || reset) ? data_rs2_w : 0;
+  // wire [DATAW-1:0] data_rs1_stall_w = !(stall_fd || reset) ? data_rs1_w : 0;
+  // wire [DATAW-1:0] data_rs2_stall_w = !(stall_fd || reset) ? data_rs2_w : 0;
+  wire [DATAW-1:0] data_rs1_stall_w = data_rs1_w;
+  wire [DATAW-1:0] data_rs2_stall_w =  data_rs2_w;
 
   control_signals cs1(
     .clock(clock),
     .reset(reset),
+    .stall(stall),
     .opcode_dx(opcode_dx_r),      // input
     .opcode_xm(opcode_xm_r),      // input
     .opcode_mw(opcode_mw_r),      // input
@@ -359,11 +362,11 @@ module pd #(
 
   wire [DATAW-1:0] idata1_in =  (branch_comp_data1_sel == WX_BYPASS) ? data_rd_w :
                                 (branch_comp_data1_sel == MX_BYPASS) ? alu_xm_r :
-                                                                     data_rs1_stall_w;
+                                                                     data_rs1_w;
 
   wire [DATAW-1:0] idata2_in =  (branch_comp_data2_sel == WX_BYPASS) ? data_rd_w :
                                 (branch_comp_data2_sel == MX_BYPASS) ? alu_xm_r :
-                                                                     data_rs2_stall_w;
+                                                                     data_rs2_w;
 
   branch_comp bc1(
     .idata1(idata1_in),
@@ -374,14 +377,14 @@ module pd #(
   );
 
   // A sel definitions (determines ALU input 1)
-  assign alu_in1_w = (a_sel == REG) ? data_rs1_stall_w :
+  assign alu_in1_w = (a_sel == REG) ? data_rs1_w :
                      (a_sel == PC) ? pc_dx_r :
                      (a_sel == WX_BYPASS) ? data_rd_w :
                                             alu_xm_r;
 
   // B sel definitions (determines ALU input 2)
   localparam IMM  = 2'b01;
-  assign alu_in2_w = (b_sel == REG) ? data_rs2_stall_w :
+  assign alu_in2_w = (b_sel == REG) ? data_rs2_w :
                      (b_sel == IMM) ? imm_dx_r :
                      (b_sel == WX_BYPASS) ? data_rd_w :
                                             alu_xm_r;

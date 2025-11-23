@@ -5,7 +5,6 @@ module control_signals #(
 (
     input clock,
     input reset,
-    input stall,
     input [6:0] opcode_dx,
     input [6:0] opcode_xm,
     input [6:0] opcode_mw,
@@ -57,10 +56,6 @@ always @(posedge clock) begin
     if (reset) begin
         funct3_dx_r <= 3'd0;
         funct7_dx_r <= 7'd0;
-    end 
-    else if (stall) begin
-        funct3_dx_r <= funct3_dx_r;
-        funct7_dx_r <= funct7_dx_r;
     end
     else begin
         funct3_dx_r <= funct3;
@@ -171,14 +166,6 @@ always @(posedge clock) begin
         is_branch_xm_r <= 1'b0;
         is_ecall_xm_r <= 1'b0;
     end
-    else if (stall) begin
-        is_store_xm_r <= is_store_xm_r;
-        is_load_xm_r <= is_load_xm_r;
-        is_jal_xm_r <= is_jal_xm_r;
-        is_jalr_xm_r <= is_jalr_xm_r;
-        is_branch_xm_r <= is_branch_xm_r;
-        is_ecall_xm_r <= is_ecall_xm_r;
-    end
     else begin
         is_store_xm_r <= is_store_x;
         is_load_xm_r <= is_load_x;
@@ -206,14 +193,6 @@ always @(posedge clock) begin
         is_load_mw_r <= 1'b0;
         is_jal_mw_r <= 1'b0;
         is_jalr_mw_r <= 1'b0;
-    end 
-    else if (stall) begin
-        is_store_mw_r <= is_store_mw_r;
-        is_branch_mw_r <= is_branch_mw_r;
-        is_ecall_mw_r <= is_ecall_mw_r;
-        is_load_mw_r <= is_load_mw_r;
-        is_jal_mw_r <= is_jal_mw_r;
-        is_jalr_mw_r <= is_jalr_mw_r;
     end
     else begin
         is_store_mw_r <= is_store_xm_r;

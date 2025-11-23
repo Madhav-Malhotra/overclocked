@@ -327,7 +327,6 @@ module pd #(
   control_signals cs1(
     .clock(clock),
     .reset(reset),
-    .stall(stall),
     .opcode_dx(opcode_dx_r),      // input
     .opcode_xm(opcode_xm_r),      // input
     .opcode_mw(opcode_mw_r),      // input

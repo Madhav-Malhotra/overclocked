@@ -420,16 +420,24 @@ module pd #(
   // Mem read access size logic
   wire [1:0] mem_read_access_size = funct3_mw_r[1:0];  // For testbench
 
-  wire [DATAW-1:0] data_mem_w_corrected = 
-    (mem_read_access_size == 2'b00) ? {{24{data_mem_w[7]}}, data_mem_w[7:0]} :  // LB
-    (mem_read_access_size == 2'b01) ? {{16{data_mem_w[15]}}, data_mem_w[15:0]} : // LH
-    (mem_read_access_size == 2'b10) ? data_mem_w :                                 // LW
-                                      {24'b0, data_mem_w[7:0]};                  // LBU
+  localparam BYTE_OP = 2'b00;
+  localparam HALF_OP = 2'b01;
+  localparam WORD_OP = 2'b10;
+  wire is_unsigned = funct3_mw_r[2];
+
+  wire [DATAW-1:0] data_mem_w_sized = 
+    (mem_read_access_size == BYTE_OP) ? 
+      (is_unsigned) ? {24'b0, data_mem_w[7:0]} :                             // LBU
+      {{24{data_mem_w[7]}}, data_mem_w[7:0]} :                               // LB
+    (mem_read_access_size == HALF_OP) ? 
+      (is_unsigned) ? {16'b0, data_mem_w[15:0]} :                            // LHU
+      {{16{data_mem_w[15]}}, data_mem_w[15:0]} :                             // LH
+    (mem_read_access_size == WORD_OP) ? data_mem_w : data_mem_w;             // LW
 
   // According to lecture slides, this should be in the memory stage
   writeback wb1(
     .alu(alu_mw_r),                 // input
-    .mem(data_mem_w_corrected),     // input
+    .mem(data_mem_w_sized),         // input
     .pc4(pc4_mw_r),                 // input
     .wb_sel(wb_sel),                // input
     .wb_data(data_rd_w)             // output

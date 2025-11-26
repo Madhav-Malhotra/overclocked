@@ -33,9 +33,9 @@ PASS: rv32ui-p-bne.trace
 PASS: rv32ui-p-jal.trace
 PASS: rv32ui-p-jalr.trace
 PASS: rv32ui-p-lb.trace
-FAIL: rv32ui-p-lbu.trace
+PASS: rv32ui-p-lbu.trace
 PASS: rv32ui-p-lh.trace
-FAIL: rv32ui-p-lhu.trace
+PASS: rv32ui-p-lhu.trace
 PASS: rv32ui-p-lui.trace
 PASS: rv32ui-p-lw.trace
 PASS: rv32ui-p-or.trace
@@ -60,6 +60,6 @@ PASS: rv32ui-p-xori.trace
 ==========================================
 SUMMARY
 ==========================================
-Passed: 35
-Failed: 13
+Passed: 37
+Failed: 11
 ==========================================

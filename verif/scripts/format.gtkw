@@ -1,0 +1,107 @@
+[*]
+[*] GTKWave Analyzer v3.3.116 (w)1999-2023 BSI
+[*] Thu Nov 13 15:58:59 2025
+[*]
+[dumpfile] "/home/mdvmlhtr/ece320/e3mehta-pd5/verif/sim/verilator/test_pd/rv32ui-p-add.vcd"
+[dumpfile_mtime] "Thu Nov 13 15:50:56 2025"
+[dumpfile_size] 1803351
+[savefile] "/home/mdvmlhtr/ece320/e3mehta-pd5/verif/scripts/format.gtkw"
+[timestart] 8
+[size] 1920 1093
+[pos] -1 -1
+*-1.000000 13 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] TOP.
+[treeopen] TOP.top.
+[treeopen] TOP.top.dut.
+[treeopen] TOP.top.dut.core.
+[sst_width] 297
+[signals_width] 158
+[sst_expanded] 1
+[sst_vpaned_height] 328
+@28
+TOP.top.dut.reset
+@29
+TOP.top.dut.clock
+@200
+-
+@22
+[color] 1
+TOP.top.dut.core.pc_r[31:0]
+TOP.top.dut.core.pc_fd_r[31:0]
+@200
+-
+-Decoder
+@22
+[color] 2
+TOP.top.dut.core.dec1.opcode[6:0]
+@28
+[color] 2
+TOP.top.dut.core.dec1.funct3[2:0]
+@22
+[color] 2
+TOP.top.dut.core.dec1.funct7[6:0]
+[color] 2
+TOP.top.dut.core.dec1.imm[31:0]
+[color] 2
+TOP.top.dut.core.dec1.shamt[4:0]
+[color] 2
+TOP.top.dut.core.dec1.addr_rd[4:0]
+[color] 2
+TOP.top.dut.core.dec1.addr_rs1[4:0]
+[color] 2
+TOP.top.dut.core.dec1.addr_rs2[4:0]
+@200
+-
+-Control Signals
+@28
+[color] 3
+TOP.top.dut.core.cs1.br_taken
+[color] 3
+TOP.top.dut.core.cs1.pc_sel
+[color] 3
+TOP.top.dut.core.cs1.br_un
+@22
+[color] 3
+TOP.top.dut.core.cs1.alu_sel[3:0]
+@28
+[color] 3
+TOP.top.dut.core.cs1.mem_rw
+[color] 3
+TOP.top.dut.core.cs1.reg_wen
+[color] 3
+TOP.top.dut.core.cs1.wb_sel[1:0]
+@200
+-
+-BranchComp
+@22
+TOP.top.dut.core.bc1.idata1[31:0]
+TOP.top.dut.core.bc1.idata2[31:0]
+@28
+TOP.top.dut.core.bc1.br_lt
+TOP.top.dut.core.bc1.br_un
+@200
+-
+-ALU
+@22
+[color] 5
+TOP.top.dut.core.al1.idata1[31:0]
+[color] 5
+TOP.top.dut.core.al1.idata2[31:0]
+[color] 5
+TOP.top.dut.core.al1.odata[31:0]
+@200
+-
+-Dmem
+@22
+[color] 7
+TOP.top.dut.core.dmem1.address[31:0]
+[color] 7
+TOP.top.dut.core.dmem1.data_in[31:0]
+@28
+[color] 7
+TOP.top.dut.core.dmem1.access_size[1:0]
+@22
+[color] 7
+TOP.top.dut.core.dmem1.data_out[31:0]
+[pattern_trace] 1
+[pattern_trace] 0

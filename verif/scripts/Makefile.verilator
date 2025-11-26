@@ -58,8 +58,8 @@ run: compile
 
 waves:
 	- make -s run MEM_PATH=$(MEM_PATH) VCD=1
-	cd $(SIM_DIR) && gtkwave -T $(CL_ROOT)/verif/scripts/waves.tcl \
-		$(basename $(notdir $(MEM_PATH))).vcd
+	cd $(SIM_DIR) && gtkwave $(basename $(notdir $(MEM_PATH))).vcd \
+		$(CL_ROOT)/verif/scripts/format.gtkw
 
 clean:
 	rm -rf $(SIM_ROOT)

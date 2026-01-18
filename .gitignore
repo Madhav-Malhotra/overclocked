@@ -1,2 +1,3 @@
-bin_verilator
-verif/sim/
+verilog/bin_verilator
+verilog/verif/sim/
+verilog/build/output/

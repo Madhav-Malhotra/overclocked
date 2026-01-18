@@ -1,3 +1,0 @@
-[submodule "rv32-benchmarks"]
-	path = rv32-benchmarks
-	url = https://git.uwaterloo.ca/ece320-f25/rv32-benchmarks.git

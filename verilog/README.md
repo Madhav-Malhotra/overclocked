@@ -20,7 +20,7 @@ Install dependencies via your system package manager:
 sudo apt install verilator python3 make g++
 ```
 
-Tested with Verilator 5.020 (compatible with 4.210+).
+Tested with Verilator 5.020, 5.040, 5.042, 4.210.
 
 ### Build and Run
 

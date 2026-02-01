@@ -1,0 +1,61 @@
+SRCLIST = $(shell cat $(CL_ROOT)/verif/scripts/design.f)
+SRC = $(addprefix $(CL_ROOT)/design/code/, $(SRCLIST)) $(CL_ROOT)/verif/tests/clockgen.sv $(CL_ROOT)/design/design_wrapper.v
+VFLAGS = 
+TOP = top
+PROG=$(CL_ROOT)/verif/tests/data/rv32ui-p-add.x
+_CFLAGS=-DMEM_DEPTH=$(MEM_DEPTH) -DMEM_PATH=$(MEM_PATH_STR)
+
+VCD ?= 0
+
+# Setup VCD flags for verilator
+ifeq ($(VCD), 1)
+VFLAGS+= --trace
+_CFLAGS+= -DVCD -DVCD_FILE=$(VCD_FILE_STR)
+endif
+
+ifneq ($(_CFLAGS), )
+CFLAGS=$(addprefix -CFLAGS ,$(_CFLAGS))
+endif
+
+# Check that Verilator is installed (works with 4.210+, tested with 5.020)
+ifeq (,$(shell which verilator 2>/dev/null))
+  $(error ERROR: verilator not found in PATH. Install with: sudo apt install verilator)
+endif
+
+# Normal tests, not c tests
+compile: $(SRC) $(CL_ROOT)/verif/tests/tracegen.v
+	echo Verilator Compilation
+	mkdir -p $(SIM_DIR)
+	cd $(SIM_DIR) && verilator $(VFLAGS) \
+		+1800-2012ext+sv \
+		+1364-2005ext+v \
+		$(CFLAGS) \
+		--cc $(SRC) \
+		$(TEST_NAME).sv \
+		--exe $(TEST_NAME).cpp  \
+		-I$(CL_ROOT)/design \
+		-I$(CL_ROOT)/verif/tests \
+		-top-module $(TOP) \
+		--Mdir $(SIM_DIR) \
+		+define+MEM_PATH=$(MEM_PATH_STR) \
+		+define+TEST_VECTOR=$(TEST_VECTOR_STR) \
+		+define+MEM_DEPTH=$(MEM_DEPTH) \
+		+define+GEN_TRACE=$(GEN_TRACE) \
+		+define+TRACE_FILE=$(TRACE_FILE_STR)\
+		+define+LINE_COUNT=$(LINE_COUNT) \
+		+define+TIMEOUT=$(TIMEOUT) \
+		$(WARN_OUTPUT)
+	$(WARN_CHECK)
+	make -C $(SIM_DIR) -f V$(TOP).mk V$(TOP)
+
+run: compile
+	echo Verilator Run
+	cd $(SIM_DIR) && ./V$(TOP)
+
+waves:
+	- make -s run MEM_PATH=$(MEM_PATH) VCD=1
+	cd $(SIM_DIR) && gtkwave $(basename $(notdir $(MEM_PATH))).vcd \
+		$(CL_ROOT)/verif/scripts/format.gtkw
+
+clean:
+	rm -rf $(SIM_ROOT)

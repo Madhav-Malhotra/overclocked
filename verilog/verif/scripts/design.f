@@ -1,0 +1,9 @@
+alu.v
+branch_comp.v
+control_signals.v
+decoder.v
+dmemory.v
+imemory.v
+pd.v
+register_file.v
+writeback.v

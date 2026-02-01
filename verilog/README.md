@@ -26,7 +26,7 @@ Tested with Verilator 5.020 (compatible with 4.210+).
 
 ```bash
 # Navigate to verification scripts
-cd verilog/verif/scripts
+cd verif/scripts
 
 # Run default test (rv32ui-p-add)
 make all

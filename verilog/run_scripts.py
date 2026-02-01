@@ -538,10 +538,8 @@ class InstructionTester:
     def run_simulation(self, mem_path: Path) -> bool:
         """Run simulation for a given MEM file."""
         try:
-            # Source env.sh and run make in a bash subshell
-            # We need to source env.sh to set up PROJECT_ROOT, VERILATOR_ROOT, etc.
-            env_script = self.config.scripts_dir.parent.parent / "env.sh"
-            command = f'source "{env_script}" -L 2>&1 > /dev/null && make -s run MEM_PATH="{mem_path}"'
+            # Run make directly (no env.sh needed - uses system verilator)
+            command = f'make -s run MEM_PATH="{mem_path}"'
 
             # Use lock to serialize make commands (avoid race conditions with shared build artifacts)
             with self.make_lock:
@@ -866,23 +864,12 @@ def main() -> None:
         print(f"ERROR: scripts dir not found: {config.scripts_dir}", file=sys.stderr)
         sys.exit(1)
 
-    # Check env.sh exists
-    env_script = base_dir / "env.sh"
-    if not env_script.exists():
-        print(f"ERROR: env.sh not found: {env_script}", file=sys.stderr)
-        print(
-            "NOTE: Each simulation will source env.sh to set up the environment",
-            file=sys.stderr,
-        )
-        sys.exit(1)
-
     # Ensure output directory exists
     config.out_dir.mkdir(parents=True, exist_ok=True)
 
     # Find all MEM files from both directories
     mem_files = find_mem_files(mem_dirs)
     print(f"Found {len(mem_files)} test(s) to process")
-    print(f"NOTE: Each simulation will source env.sh before running make")
 
     # Create lock for serializing make commands and create tester
     make_lock = Lock()

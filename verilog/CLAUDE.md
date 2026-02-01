@@ -6,14 +6,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This is a **5-stage pipelined RISC-V (RV32I) processor** implementation in Verilog with complete verification infrastructure. The processor implements the base integer instruction set (RV32I) with hazard detection, data forwarding, and comprehensive testing against golden reference traces.
 
-## Common Commands
+## Prerequisites
 
-### Environment Setup
+Install dependencies via system package manager:
 ```bash
-# ALWAYS source env.sh before running any commands
-# This sets up PROJECT_ROOT, VERILATOR_ROOT, and Vivado paths
-source verilog/env.sh
+sudo apt install verilator python3 make g++
 ```
+
+Tested with Verilator 5.020 (works with 4.210+).
+
+## Common Commands
 
 ### Build and Run Simulation
 ```bash
@@ -184,11 +186,10 @@ The `unity/` directory is reserved for game/frontend components but is currently
 1. **Check trace files** - Traces show exact pipeline state per cycle
 2. **Use filtered diffs** - `-diff-filtered-wb-only.txt` shows only meaningful differences
 3. **Enable VCD** - `make run VCD=1 MEM_PATH=...` generates waveforms for GTKWave
-4. **Source env.sh** - Missing this causes cryptic "command not found" errors
 
 ### Common Issues
 
-- **"verilator: command not found"** - Forgot to `source verilog/env.sh`
+- **"verilator: command not found"** - Install with `sudo apt install verilator`
 - **Benchmark not found** - Use `make list_benchmarks` to see available tests
 - **Trace mismatches on don't-care fields** - Use filtered diff reports, not raw diffs
 - **Simulation timeout** - Increase with `TIMEOUT=100000`

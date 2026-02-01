@@ -20,13 +20,6 @@ TEST_VECTOR_STR       ?= \"$(TEST_VECTOR)\"
 TRACE_FILE				    ?= $(MEM_PATH_NOT_DIR:x=trace)
 VCD_FILE				      ?= $(MEM_PATH_NOT_DIR:x=vcd)
 VCD_FILE_STR			    ?= \"$(VCD_FILE)\"
-PATTERN_FILE          ?= $(MEM_PATH:x=pattern) # Replace MEM_PATH .x with .pattern by default
-PATTERN_LINE_COUNT    ?= $(shell if [ ! -f $(PATTERN_FILE) ]; then echo -1; else echo `wc -l < $(PATTERN_FILE)`; fi)
-PATTERN_FILE_STR      ?= \"$(abspath $(PATTERN_FILE))\"
-PATTERN_DUMP_FILE			?= $(MEM_PATH_NOT_DIR:x=dump)# Replace MEM_PATH .x with .pattern by default
-PATTERN_DUMP_FILE_STR ?= \"$(PATTERN_DUMP_FILE)\"
-PATTERN_DUMP					?= 0
-PATTERN_CHECK					?= 0
 GEN_TRACE             ?= 1
 TIMEOUT               ?= 50000
 TRACE_FILE_STR        ?= \"$(TRACE_FILE)\"
@@ -37,13 +30,16 @@ ifeq ($(WARN), 1)
 WARN_OUTPUT = 2>&1 | tee output.log
 WARN_CHECK  = cat $(SIM_DIR)/output.log | bash $(CL_ROOT)/verif/scripts/check_warnings.sh
 else
-WARN_OUTPUT = 
-WARN_CHECK  = 
+WARN_OUTPUT =
+WARN_CHECK  =
 endif
 
-EXTRA_PACKAGE_FILES := ./build/design/imemory.v ./build/design/dmemory.v ./build/output/util_est_hier.txt
+# Use Verilator as the simulator
+export SIMULATOR = verilator
+include Makefile.verilator
 
-include ${PROJECT_ROOT}/common/verif/tb/scripts/Makefile.common.inc
+make_sim_dir:
+	mkdir -p $(SIM_ROOT)
 
 # Benchmark paths - try to find the benchmarks directory
 BENCH_ROOT := $(shell if [ -d "$(CL_ROOT)/../../../rv32-benchmarks" ]; then \
@@ -83,21 +79,12 @@ list_benchmarks:
 	@ls -la $(BENCH_ROOT)/simple-programs/ 2>&1 | head -10 || echo "Directory not found"
 
 
-# Diff mode: sim or board
-DIFF_MODE ?= sim
+# Diff configuration - compare simulation traces against golden references
 DIFF_DIR := $(CL_ROOT)/verif/diffs
-# Set directories for traces and the correct python script for mode
-ifeq ($(DIFF_MODE),board)
-	TEST_TRACE_DIR := $(CL_ROOT)/build/scripts
-	GOLDEN_DIR := $(CL_ROOT)/verif/golden_board
-	DIFF_GEN := $(SCRIPTS_DIR)/cmp_board_trace.py
-	DIFF_SUBDIR := $(DIFF_DIR)/board
-else
-	TEST_TRACE_DIR := $(CL_ROOT)/verif/sim/$(SIMULATOR)/test_pd
-	GOLDEN_DIR := $(CL_ROOT)/verif/golden_sim
-	DIFF_GEN := $(SCRIPTS_DIR)/cmp_sim_trace.py
-	DIFF_SUBDIR := $(DIFF_DIR)/sim
-endif
+TEST_TRACE_DIR := $(CL_ROOT)/verif/sim/$(SIMULATOR)/test_pd
+GOLDEN_DIR := $(CL_ROOT)/verif/golden_sim
+DIFF_GEN := $(SCRIPTS_DIR)/cmp_sim_trace.py
+DIFF_SUBDIR := $(DIFF_DIR)/sim
 
 # Run all benchmarks
 # Run all benchmarks
@@ -127,7 +114,7 @@ $(ALL_BENCHMARKS): %:
 # Compare all trace files against golden
 .PHONY: diff_all_benchmarks
 diff_all_benchmarks:
-	@echo "Running diff comparison in $(DIFF_MODE) mode..."
+	@echo "Running diff comparison..."
 	@mkdir -p $(DIFF_SUBDIR)
 	@pass=0; fail=0; \
 	for trace in $(TEST_TRACE_DIR)/*.trace; do \
@@ -194,9 +181,7 @@ help:
 	@echo "  make list_benchmarks        - List all available benchmarks and their paths"
 	@echo ""
 	@echo "Diff/Comparison Targets:"
-	@echo "  make diff_all_benchmarks    - Compare all trace files against golden references"
-	@echo "                                Default mode: sim (simulation traces)"
-	@echo "                                Board mode: make diff_all_benchmarks DIFF_MODE=board"
+	@echo "  make diff_all_benchmarks    - Compare all simulation traces against golden references"
 	@echo ""
 	@echo "Utility Targets:"
 	@echo "  make clean                  - Clean simulation files"
@@ -208,7 +193,6 @@ help:
 	@echo "  TEST=<test_name>            - Specify test name (default: test_pd)"
 	@echo "  MEM_PATH=<path>             - Path to benchmark file (default: verif/data/rv32ui-p-add.x)"
 	@echo "  BENCH=<name>                - Benchmark name for run_bench target"
-	@echo "  DIFF_MODE=<sim|board>       - Comparison mode (default: sim)"
 	@echo "  GEN_TRACE=<0|1>             - Enable/disable trace generation (default: 1)"
 	@echo "  TIMEOUT=<cycles>            - Simulation timeout in cycles (default: 50000)"
 	@echo "  WARN=<0|1>                  - Enable/disable warning checks (default: 1)"
@@ -225,8 +209,8 @@ help:
 	@echo "  # Run all benchmarks and compare with golden files"
 	@echo "  make run_all_benchmarks"
 	@echo ""
-	@echo "  # Compare board traces with golden files (without running simulation)"
-	@echo "  make diff_all_benchmarks DIFF_MODE=board"
+	@echo "  # Compare simulation traces with golden files"
+	@echo "  make diff_all_benchmarks"
 	@echo ""
 	@echo "  # List all available benchmarks"
 	@echo "  make list_benchmarks"
@@ -237,7 +221,6 @@ help:
 	@echo "  CL_ROOT:        $(CL_ROOT)"
 	@echo "  BENCH_ROOT:     $(BENCH_ROOT)"
 	@echo "  TEST:           $(TEST)"
-	@echo "  DIFF_MODE:      $(DIFF_MODE)"
 	@echo "  Benchmarks:     $(words $(ALL_BENCHMARKS)) found"
 	@echo "=========================================="
 

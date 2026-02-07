@@ -1,3 +1,8 @@
 verilog/bin_verilator
 verilog/verif/sim/
 verilog/build/output/
+
+.DS_Store
+.vscode
+.cursor
+

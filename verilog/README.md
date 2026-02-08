@@ -82,6 +82,9 @@ verilog/
 ### Running Tests
 
 ```bash
+# Navigate to scripts directory
+cd verif/scripts
+
 # Run specific test by path
 make run MEM_PATH=/path/to/benchmark.x
 

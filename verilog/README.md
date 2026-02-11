@@ -14,13 +14,75 @@ This project implements a complete RV32I base integer instruction set processor 
 
 ### Prerequisites
 
-Install dependencies via your system package manager:
+#### Dependencies for Running Benchmarks
+
+These are required to run benchmarks on your processor and compare against Spike:
 
 ```bash
+# Install simulation tools
 sudo apt install verilator python3 make g++
+
+# Install Spike (RISC-V ISS - Instruction Set Simulator)
+sudo apt install spike
 ```
 
-Tested with Verilator 5.020, 5.040, 5.042, 4.210.
+**Alternative Spike installation from source** (if not available in package manager):
+```bash
+# Install dependencies
+sudo apt install device-tree-compiler libboost-regex-dev libboost-system-dev
+
+# Clone and build Spike
+git clone https://github.com/riscv-software-src/riscv-isa-sim.git
+cd riscv-isa-sim
+mkdir build && cd build
+../configure --prefix=/opt/riscv
+make -j$(nproc)
+sudo make install
+
+# Add to PATH
+echo 'export PATH=/opt/riscv/bin:$PATH' >> ~/.bashrc
+source ~/.bashrc
+```
+
+**Tested with:**
+- Verilator 5.020, 5.040, 5.042, 4.210
+- Spike 1.1.0+
+
+#### Dependencies for Creating Benchmarks (Optional)
+
+Only needed if you want to compile new benchmarks from C or assembly source:
+
+```bash
+# Install RISC-V GNU toolchain
+sudo apt install gcc-riscv64-unknown-elf binutils-riscv64-unknown-elf
+```
+
+**Alternative toolchain installation from source** (if not in package manager):
+```bash
+# Clone toolchain repository
+git clone --recursive https://github.com/riscv/riscv-gnu-toolchain
+cd riscv-gnu-toolchain
+
+# Configure for RV32I
+./configure --prefix=/opt/riscv --with-arch=rv32i --with-abi=ilp32
+
+# Build (takes 30-60 minutes)
+make -j$(nproc)
+
+# Add to PATH
+echo 'export PATH=/opt/riscv/bin:$PATH' >> ~/.bashrc
+source ~/.bashrc
+```
+
+**Verify installation:**
+```bash
+# Check Spike
+spike --version
+
+# Check toolchain (if installed)
+riscv64-unknown-elf-gcc --version
+riscv32-unknown-elf-gcc --version  # Alternative name on some systems
+```
 
 ### Build and Run
 
@@ -79,7 +141,7 @@ verilog/
 
 ## Common Commands
 
-### Running Tests
+### Running Tests on Your Processor
 
 ```bash
 # Navigate to scripts directory
@@ -94,6 +156,26 @@ make run_bench BENCH=SimpleAdd
 # List all available benchmarks
 make list_benchmarks
 ```
+
+### Running Tests on Spike (Reference ISS)
+
+```bash
+# Navigate to benchmarks directory
+cd rv32-benchmarks/simple-programs
+
+# Build ISS-compatible ELF files from C sources
+make -f Makefile.iss all
+
+# Run on Spike
+spike --isa=rv32i -m0x01000000:0x200000 SimpleAdd.iss.elf
+
+# For assembly tests
+cd ../individual-instructions
+make -f Makefile.new all
+spike --isa=rv32i -m0x01000000:0x200000 test-add-simple.elf
+```
+
+**See `rv32-benchmarks/README.md` for detailed instructions on creating and running benchmarks.**
 
 ### Debug and Analysis
 
@@ -172,6 +254,8 @@ Verilator generates portable C++ classes (`Vtop.h`, `Vtop__ALL.a`) that can be:
 ## Documentation
 
 - `CLAUDE.md` - Detailed implementation notes and architecture guide
+- `rv32-benchmarks/README.md` - **How to run and create benchmarks (Start here!)**
+- `rv32-benchmarks/ISS_ARCHITECTURE.md` - Deep dive into ISS setup, linker scripts, and build system
 - `verif/README.md` - Verification infrastructure documentation
 - `verif/scripts/Makefile` - Run `make help` for all targets
 

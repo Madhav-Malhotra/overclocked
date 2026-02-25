@@ -1,0 +1,48 @@
+# Makefile for building individual instruction tests
+# Source of truth: *.s files -> .elf (for Spike) + .x (for processor $readmemh)
+
+# Toolchain
+RISCV_PREFIX = riscv64-unknown-elf-
+CC = $(RISCV_PREFIX)gcc
+OBJCOPY = $(RISCV_PREFIX)objcopy
+OBJDUMP = $(RISCV_PREFIX)objdump
+
+# Flags
+ASFLAGS = -march=rv32i -mabi=ilp32
+LDFLAGS = -T../riscv32.ld -nostdlib
+
+# Find all *.s files (excludes template-test.s which has no _start)
+TEST_FILES = $(filter-out template-test.s, $(wildcard *.s))
+ELF_TARGETS = $(TEST_FILES:.s=.elf)
+X_TARGETS   = $(TEST_FILES:.s=.x)
+
+# Default target: build both .elf (Spike) and .x (processor)
+all: $(ELF_TARGETS) $(X_TARGETS)
+	@echo ""
+	@echo "Built $(words $(ELF_TARGETS)) tests (.elf + .x)"
+
+# Build ELF from assembly
+%.elf: %.s
+	@echo "  AS  $@"
+	@$(CC) $(ASFLAGS) $(LDFLAGS) -o $@ $<
+
+# Build .x from .elf: binary dump -> one little-endian word per line
+# od -An -tx4 -v produces 4 hex words per line with no address; tr splits to one per line
+%.x: %.elf
+	@echo "  X   $@"
+	@$(OBJCOPY) -O binary $< $*.bin
+	@od -An -tx4 -v $*.bin | tr -s ' \t' '\n' | grep -v '^$$' > $@ || true
+	@rm -f $*.bin
+
+# Generate disassembly for debugging
+%.dis: %.elf
+	$(OBJDUMP) -d $< > $@
+
+# Clean generated artifacts (keep .s sources)
+clean:
+	rm -f *.elf *.x *.bin *.dis
+
+# Build with disassembly
+debug: $(ELF_TARGETS) $(ELF_TARGETS:.elf=.dis)
+
+.PHONY: all clean debug

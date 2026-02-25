@@ -10,54 +10,7 @@ This project implements a complete RV32I base integer instruction set processor 
 - Comprehensive trace-based verification
 - Verilator simulation support
 
-## Quick Start
-
-### Prerequisites
-
-Install dependencies via your system package manager:
-
-```bash
-sudo apt install verilator python3 make g++
-```
-
-Tested with Verilator 5.020, 5.040, 5.042, 4.210.
-
-### Build and Run
-
-```bash
-# Navigate to verification scripts
-cd verif/scripts
-
-# Run default test (rv32ui-p-add)
-make all
-
-# Run a specific benchmark by name
-make run_bench BENCH=rv32ui-p-add
-
-# Run all available benchmarks
-make run_all_benchmarks
-
-# Compare traces against golden references
-make diff_all_benchmarks
-
-# Clean build artifacts
-make clean
-```
-
-### Example Output
-
-```
-$ make all
-Verilator Compilation
-...
-Verilator Run
-- .../clockgen.sv:40: Verilog $finish
-
-$ ls verif/sim/verilator/test_pd/
-rv32ui-p-add.trace  Vtop  Vtop__ALL.a  ...
-```
-
-## Repository Structure
+Directory structure:
 
 ```
 verilog/
@@ -77,9 +30,103 @@ verilog/
 └── README.md              # This file
 ```
 
-## Common Commands
+## Installation
 
-### Running Tests
+### Dependencies for Running Benchmarks
+
+These are required to run benchmarks on your processor and compare against Spike:
+
+```bash
+# Install simulation tools
+sudo apt install verilator python3 make g++
+
+# Install Spike (RISC-V ISS - Instruction Set Simulator)
+sudo apt install spike
+```
+
+**Alternative Spike installation from source** (if not available in package manager):
+```bash
+# Install dependencies
+sudo apt install device-tree-compiler libboost-all-dev libboost-regex-dev libboost-system-dev
+
+# Clone and build Spike
+git clone https://github.com/riscv-software-src/riscv-isa-sim.git
+cd riscv-isa-sim
+mkdir build && cd build
+../configure --prefix=/opt/riscv
+make -j$(nproc)
+sudo make install
+
+# Add to PATH (change to .zshrc if using zsh)
+echo 'export PATH=/opt/riscv/bin:$PATH' >> ~/.bashrc
+source ~/.bashrc
+```
+
+**Tested with:**
+- Verilator 5.020, 5.040, 5.042, 4.210
+- Spike 1.1.0+
+
+### Dependencies for Creating Benchmarks (Optional)
+
+Only needed if you want to compile new benchmarks from C or assembly source:
+
+```bash
+# Install RISC-V GNU toolchain
+sudo apt install gcc-riscv64-unknown-elf binutils-riscv64-unknown-elf
+```
+
+**Alternative toolchain installation from source** (if not in package manager):
+```bash
+# Clone toolchain repository
+git clone --recursive https://github.com/riscv/riscv-gnu-toolchain
+cd riscv-gnu-toolchain
+
+# Configure for RV32I
+./configure --prefix=/opt/riscv --with-arch=rv32i --with-abi=ilp32
+
+# Build (takes 30-60 minutes)
+make -j$(nproc)
+
+# Add to PATH
+echo 'export PATH=/opt/riscv/bin:$PATH' >> ~/.bashrc
+source ~/.bashrc
+```
+
+**Verify installation:**
+```bash
+# Check Spike
+spike --version
+
+# Check toolchain (if installed for benchmark creation)
+riscv64-unknown-elf-gcc --version
+riscv32-unknown-elf-gcc --version  # Alternative name on some systems
+```
+
+## Testing Guide
+
+### Testing with Spike (Recommended)
+
+Spike is an instruction set simulator (ISS). It runs instructions on software and simulates what the output should be.
+
+```bash
+# Navigate to benchmarks directory
+cd rv32-benchmarks/simple-programs
+
+# Build ISS-compatible ELF files from C sources
+make -f Makefile.iss all
+
+# Run on Spike
+spike --isa=rv32g -m0x01000000:0x200000 --log-commits SimpleAdd.iss.elf
+
+# For assembly tests
+cd ../individual-instructions
+make -f Makefile.new all
+spike --isa=rv32g -m0x01000000:0x200000 --log-commits test-add-simple.elf
+```
+
+**See `rv32-benchmarks/README.md` for detailed instructions on creating and running benchmarks.**
+
+### Testing with Diffs (Legacy)
 
 ```bash
 # Navigate to scripts directory
@@ -172,6 +219,8 @@ Verilator generates portable C++ classes (`Vtop.h`, `Vtop__ALL.a`) that can be:
 ## Documentation
 
 - `CLAUDE.md` - Detailed implementation notes and architecture guide
+- `rv32-benchmarks/README.md` - **How to run and create benchmarks (Start here!)**
+- `rv32-benchmarks/ISS_ARCHITECTURE.md` - Deep dive into ISS setup, linker scripts, and build system
 - `verif/README.md` - Verification infrastructure documentation
 - `verif/scripts/Makefile` - Run `make help` for all targets
 

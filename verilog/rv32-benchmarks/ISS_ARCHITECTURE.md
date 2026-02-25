@@ -2,10 +2,6 @@
 
 This document provides a detailed explanation of the Instruction Set Simulator (ISS) infrastructure. It covers the key files, their purpose, and how they work together to enable testing RISC-V programs on both Spike (the reference simulator) and your custom processor.
 
-**Target Audience:** Computer engineering undergraduate students who want to understand or modify the build system, linker scripts, and startup code.
-
-**Prerequisites:** Basic understanding of C programming, assembly language, and compilation process (source → assembly → object → executable).
-
 ---
 
 ## Table of Contents
@@ -747,7 +743,7 @@ _end = .;
                   │ Link with riscv32.ld
                   │ -T../riscv32.ld
                   ▼
-          ┌───────────────┐
+          ┌────────────────┐
           │ program.iss.elf│  ← Executable ELF file
           └───────┬────────┘
                   │

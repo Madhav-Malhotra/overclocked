@@ -41,13 +41,13 @@ make list_benchmarks
 ```bash
 cd verilog/verif/scripts
 
-# Compare all simulation traces against golden references
-make diff_all_benchmarks
+# Full pipeline: compile sources -> run processor sims -> generate spike traces -> compare
+make run_all_benchmarks
 
-# Compare board traces (hardware) against golden references
-make diff_all_benchmarks DIFF_MODE=board
+# Single benchmark: run + spike compare
+make run_and_verify MEM_PATH=/path/to/benchmark.x
 
-# Run Python test orchestrator (concurrent execution, detailed diff filtering)
+# Python test orchestrator (parallel execution, calls build_benchmarks first)
 cd ../..
 python3 run_scripts.py
 ```
@@ -107,8 +107,12 @@ When stalls occur, the processor injects NOPs (`0x00000013`) and repeats the sta
 ### Verification Infrastructure
 
 Tests are located in `verilog/rv32-benchmarks/`:
-- `individual-instructions/` - Per-instruction tests (rv32ui-p-*.x)
-- `simple-programs/` - Integration tests (SimpleAdd.x, etc.)
+- `individual-instructions/` - Per-instruction tests (source: `rv32ui-p-*.s`)
+- `simple-programs/` - Integration tests (source: `*.c`)
+
+`.elf` and `.x` files are **generated outputs** — do not commit them. The `.s` and `.c` files are the source of truth.
+
+Verification uses Spike (`--log-commits`) as the golden reference. `cmp_wb_spike.py` compares the processor's register write sequence against Spike's commit log.
 
 Trace files follow the FDXMW format (6 lines per cycle):
 ```
@@ -120,23 +124,16 @@ Trace files follow the FDXMW format (6 lines per cycle):
 [W] pc_addr write_enable rd data       # Writeback
 ```
 
-Golden reference traces are in `verilog/verif/golden_sim/`.
-
+Spike commit traces go to `verilog/verif/spike_traces/`.
 Simulation outputs go to `verilog/verif/sim/verilator/test_pd/`.
-
-Diff reports are generated in `verilog/verif/diffs/` or `verilog/verif/sim/diff/` (depending on tool).
+Spike diff reports go to `verilog/verif/diffs/spike/`.
 
 ### Test Orchestration
 
 Two testing approaches:
 
-1. **Makefile-based** (`make run_all_benchmarks`) - Sequential execution, basic diff
-2. **Python script** (`run_scripts.py`) - Parallel execution, intelligent filtering
-
-The Python script generates 3 diff files per test:
-- `*-diff.txt` - Unfiltered raw comparison
-- `*-diff-filtered.txt` - Standard filtering (ignores don't-care fields like I-type rs2)
-- `*-diff-filtered-wb-only.txt` - Only writeback stage differences
+1. **Makefile-based** (`make run_all_benchmarks`) - Builds sources, runs sims, compares vs Spike
+2. **Python script** (`run_scripts.py`) - Parallel execution, builds sources first
 
 ### Memory Map
 
@@ -160,10 +157,9 @@ The Python script generates 3 diff files per test:
 - Branch resolution in Execute stage (1-cycle penalty on taken branches)
 
 ### File Conventions
-- `.x` files - Executable binaries for the processor
-- `.d` files - Disassembly with addresses, encoding, and assembly
-- `.s` files - Assembly source
-- `.c` files - C source
+- `.s` / `.c` files - **Source of truth** (assembly/C sources)
+- `.elf` files - Generated: Spike input (built by Makefile.new / Makefile.iss)
+- `.x` files - Generated: Processor `$readmemh` input (derived from same `.elf`)
 - `.trace` files - Execution traces in FDXMW format
 - `.vcd` files - Waveform dumps (optional, enable with VCD=1)
 
@@ -196,4 +192,4 @@ The `unity/` directory is reserved for game/frontend components but is currently
 
 ## Git Status Note
 
-The file `verilog/ESHAAN.md` has been deleted but not committed. This appears to be cleanup of team member notes.
+Generated files (`.elf`, `.x`, `.bin`) in `rv32-benchmarks/` should be gitignored. Only `.s` and `.c` sources should be committed.

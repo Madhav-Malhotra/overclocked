@@ -10,11 +10,29 @@ This project implements a complete RV32I base integer instruction set processor 
 - Comprehensive trace-based verification
 - Verilator simulation support
 
-## Quick Start
+Directory structure:
 
-### Prerequisites
+```
+verilog/
+├── design/
+│   ├── code/              # RTL source files (ALU, decoder, pipeline stages)
+│   └── design_wrapper.v   # Top-level wrapper
+├── verif/
+│   ├── tests/             # Test harnesses (test_pd.sv, test_pd.cpp)
+│   ├── scripts/           # Build scripts (Makefile, Makefile.verilator)
+│   ├── data/              # Test benchmarks (.x files)
+│   ├── golden_sim/        # Golden reference traces
+│   ├── sim/               # Simulation outputs (generated)
+│   └── diffs/             # Diff comparison results (generated)
+├── rv32-benchmarks/       # RISC-V test programs
+│   ├── individual-instructions/  # Per-instruction tests
+│   └── simple-programs/          # Integration tests
+└── README.md              # This file
+```
 
-#### Dependencies for Running Benchmarks
+## Installation
+
+### Dependencies for Running Benchmarks
 
 These are required to run benchmarks on your processor and compare against Spike:
 
@@ -29,7 +47,7 @@ sudo apt install spike
 **Alternative Spike installation from source** (if not available in package manager):
 ```bash
 # Install dependencies
-sudo apt install device-tree-compiler libboost-regex-dev libboost-system-dev
+sudo apt install device-tree-compiler libboost-all-dev libboost-regex-dev libboost-system-dev
 
 # Clone and build Spike
 git clone https://github.com/riscv-software-src/riscv-isa-sim.git
@@ -39,7 +57,7 @@ mkdir build && cd build
 make -j$(nproc)
 sudo make install
 
-# Add to PATH
+# Add to PATH (change to .zshrc if using zsh)
 echo 'export PATH=/opt/riscv/bin:$PATH' >> ~/.bashrc
 source ~/.bashrc
 ```
@@ -48,7 +66,7 @@ source ~/.bashrc
 - Verilator 5.020, 5.040, 5.042, 4.210
 - Spike 1.1.0+
 
-#### Dependencies for Creating Benchmarks (Optional)
+### Dependencies for Creating Benchmarks (Optional)
 
 Only needed if you want to compile new benchmarks from C or assembly source:
 
@@ -79,69 +97,36 @@ source ~/.bashrc
 # Check Spike
 spike --version
 
-# Check toolchain (if installed)
+# Check toolchain (if installed for benchmark creation)
 riscv64-unknown-elf-gcc --version
 riscv32-unknown-elf-gcc --version  # Alternative name on some systems
 ```
 
-### Build and Run
+## Testing Guide
+
+### Testing with Spike (Recommended)
+
+Spike is an instruction set simulator (ISS). It runs instructions on software and simulates what the output should be.
 
 ```bash
-# Navigate to verification scripts
-cd verif/scripts
+# Navigate to benchmarks directory
+cd rv32-benchmarks/simple-programs
 
-# Run default test (rv32ui-p-add)
-make all
+# Build ISS-compatible ELF files from C sources
+make -f Makefile.iss all
 
-# Run a specific benchmark by name
-make run_bench BENCH=rv32ui-p-add
+# Run on Spike
+spike --isa=rv32g -m0x01000000:0x200000 --log-commits SimpleAdd.iss.elf
 
-# Run all available benchmarks
-make run_all_benchmarks
-
-# Compare traces against golden references
-make diff_all_benchmarks
-
-# Clean build artifacts
-make clean
+# For assembly tests
+cd ../individual-instructions
+make -f Makefile.new all
+spike --isa=rv32g -m0x01000000:0x200000 --log-commits test-add-simple.elf
 ```
 
-### Example Output
+**See `rv32-benchmarks/README.md` for detailed instructions on creating and running benchmarks.**
 
-```
-$ make all
-Verilator Compilation
-...
-Verilator Run
-- .../clockgen.sv:40: Verilog $finish
-
-$ ls verif/sim/verilator/test_pd/
-rv32ui-p-add.trace  Vtop  Vtop__ALL.a  ...
-```
-
-## Repository Structure
-
-```
-verilog/
-├── design/
-│   ├── code/              # RTL source files (ALU, decoder, pipeline stages)
-│   └── design_wrapper.v   # Top-level wrapper
-├── verif/
-│   ├── tests/             # Test harnesses (test_pd.sv, test_pd.cpp)
-│   ├── scripts/           # Build scripts (Makefile, Makefile.verilator)
-│   ├── data/              # Test benchmarks (.x files)
-│   ├── golden_sim/        # Golden reference traces
-│   ├── sim/               # Simulation outputs (generated)
-│   └── diffs/             # Diff comparison results (generated)
-├── rv32-benchmarks/       # RISC-V test programs
-│   ├── individual-instructions/  # Per-instruction tests
-│   └── simple-programs/          # Integration tests
-└── README.md              # This file
-```
-
-## Common Commands
-
-### Running Tests on Your Processor
+### Testing with Diffs (Legacy)
 
 ```bash
 # Navigate to scripts directory
@@ -156,26 +141,6 @@ make run_bench BENCH=SimpleAdd
 # List all available benchmarks
 make list_benchmarks
 ```
-
-### Running Tests on Spike (Reference ISS)
-
-```bash
-# Navigate to benchmarks directory
-cd rv32-benchmarks/simple-programs
-
-# Build ISS-compatible ELF files from C sources
-make -f Makefile.iss all
-
-# Run on Spike
-spike --isa=rv32i -m0x01000000:0x200000 SimpleAdd.iss.elf
-
-# For assembly tests
-cd ../individual-instructions
-make -f Makefile.new all
-spike --isa=rv32i -m0x01000000:0x200000 test-add-simple.elf
-```
-
-**See `rv32-benchmarks/README.md` for detailed instructions on creating and running benchmarks.**
 
 ### Debug and Analysis
 

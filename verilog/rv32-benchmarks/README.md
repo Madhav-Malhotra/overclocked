@@ -17,8 +17,7 @@ rv32-benchmarks/
 - `.x` - Executable binary files for your processor
 - `.c` - C source code (simple-programs only)
 - `.s` - Assembly source code
-- `.d` - Disassembly files (address + encoding + assembly)
-- `.trace` - Execution trace files (FDXMW format)
+- `.trace` - Spike execution traces (shows commits and register writes)
 
 ---
 
@@ -26,18 +25,19 @@ rv32-benchmarks/
 
 ### Quick Start: Running All Benchmarks
 
-From the verification scripts directory, run all benchmarks and compare outputs:
+From the verification scripts directory, run the full pipeline:
 
 ```bash
 cd verilog/verif/scripts
 make run_all_benchmarks
 ```
 
-This will:
-1. Run all `.x` benchmarks on your processor
-2. Generate trace files in `verilog/verif/sim/verilator/test_pd/`
-3. Compare traces against golden references in `verilog/verif/golden_sim/`
-4. Print pass/fail summary
+This single command:
+1. Compiles all `.s`/`.c` sources into `.elf` (for Spike) and `.x` (for the processor)
+2. Runs all `.x` benchmarks on your processor
+3. Generates Spike commit traces for each benchmark
+4. Compares processor register writes against Spike
+5. Prints PASS/FAIL summary
 
 ### Running Individual Benchmarks
 
@@ -53,24 +53,26 @@ cd verilog/verif/scripts
 make run_bench BENCH=rv32ui-p-add
 ```
 
-### Running Benchmarks on Spike (Reference ISS)
+### Running Benchmarks on Spike (Manual)
 
-To run benchmarks on Spike and compare with your processor:
+To manually build and run on Spike:
 
 ```bash
-# From individual-instructions directory
+# Individual instructions
 cd verilog/rv32-benchmarks/individual-instructions
-make -f Makefile.new all                    # Build new test-*.s files
-spike --isa=rv32i -m0x01000000:0x200000 test-add-simple.elf
+make -f Makefile.new all                    # Build all .elf + .x from *.s
+spike --isa=rv32g -m0x01000000:0x200000 rv32ui-p-add.elf
 
-# From simple-programs directory
+# Simple programs
 cd verilog/rv32-benchmarks/simple-programs
-make -f Makefile.iss all                    # Build ISS-compatible ELFs
-spike --isa=rv32i -m0x01000000:0x200000 SimpleAdd.iss.elf
+make -f Makefile.iss all                    # Build all .iss.elf + .x from *.c
+spike --isa=rv32g -m0x01000000:0x200000 SimpleAdd.iss.elf
 ```
 
+Note: `make run_all_benchmarks` does all of this automatically.
+
 **Important Spike flags:**
-- `--isa=rv32i` - Use RV32I instruction set
+- `--isa=rv32g` - Use RV32G ISA (I+M+A+F+D superset; accepts binaries from any standard 32-bit extension)
 - `-m0x01000000:0x200000` - Set memory base address to 0x01000000 with 2MB size (matches processor)
 
 ### Interpreting Results
@@ -85,14 +87,14 @@ spike --isa=rv32i -m0x01000000:0x200000 SimpleAdd.iss.elf
 
 **Trace Comparison:**
 ```
-PASS: rv32ui-p-add.trace        # Processor matches golden reference
-FAIL: rv32ui-p-sub.trace        # Mismatch detected (check diff file)
+PASS: rv32ui-p-add (320 commits)   # Processo r register writes match Spike
+FAIL: rv32ui-p-sub (3 mismatches, 320 commits)  # Mismatch detected
 ```
 
-**Diff files** are written to `verilog/verif/diffs/sim/<benchmark>.diff`:
-- Shows line-by-line comparison of simulation vs. golden traces
-- Focus on `[W]` (writeback) lines - these show final register writes
-- Mismatches indicate your processor computed different results
+**Diff files** are written to `verilog/verif/diffs/spike/<benchmark>.diff`:
+- Shows per-commit comparison of processor vs. Spike register writes
+- Each row: `[W]` commit index, status (OK/MISMATCH), PROC and SPIKE (pc, rd, value)
+- Mismatches indicate your processor computed different register values than expected
 
 ---
 
@@ -159,22 +161,11 @@ test_data:
 
 **4. Build and test:**
 ```bash
-make -f Makefile.new test-myinstruction.elf
-spike --isa=rv32i -m0x01000000:0x200000 test-myinstruction.elf
+make -f Makefile.new test-myinstruction.elf test-myinstruction.x
+spike --isa=rv32g -m0x01000000:0x200000 test-myinstruction.elf
+# Or just run the full pipeline to pick it up automatically:
+cd ../../verif/scripts && make run_all_benchmarks
 ```
-
-**Common Patterns:**
-
-- **Testing arithmetic:** Set up operands with `addi`, perform operation, compare result
-- **Testing loads/stores:** Create `.data` section, use `la` to get address, perform memory operation
-- **Testing branches:** Set up condition, branch, verify correct path taken
-- **Testing immediates:** Use `lui` for upper bits, `addi` for lower bits
-
-**Tips:**
-- Number your tests (store test number in `x5`) for easy debugging
-- Use `fence iorw, iorw` before writing to `tohost` (ensures memory ordering)
-- Always write to `tohost` before `ecall` (required for Spike to detect test completion)
-- Keep data sections `.align 4` aligned (prevents unaligned access issues)
 
 ### Creating C Benchmarks
 
@@ -222,7 +213,7 @@ make -f Makefile.iss MyProgram.iss.elf
 
 **4. Test on Spike:**
 ```bash
-spike --isa=rv32i -m0x01000000:0x200000 MyProgram.iss.elf
+spike --isa=rv32g -m0x01000000:0x200000 MyProgram.iss.elf
 ```
 
 **Compiler Flags (from Makefile.iss):**
@@ -316,26 +307,3 @@ The toolchain includes:
 - `riscv32-unknown-elf-objdump` - Disassembler
 - `riscv32-unknown-elf-objcopy` - Binary converter
 - And more tools for bare-metal RISC-V development
-
----
-
-## File Summaries
-
-### individual-instructions/
-- `test-*.s` - Assembly tests for individual RV32I instructions (new format)
-- `rv32ui-p-*.x` - Original RISC-V test suite binaries
-- `template-test.s` - Reusable template for creating new instruction tests
-- `Makefile.new` - Build system for new assembly tests
-- `Makefile.iss` - Build system for extracted tests (legacy)
-
-### simple-programs/
-- `*.c` - C source files for algorithm benchmarks
-- `*.x` - Executable binaries for processor
-- `*.iss.elf` - ISS-compatible ELF files for Spike
-- `Makefile` - Original build system
-- `Makefile.iss` - ISS-compatible build system
-- `pass_fail.h` - Header for test pass/fail convention
-
-### Root files
-- `riscv32.ld` - Linker script (0x01000000 base, HTIF symbols)
-- `start.s` - Startup code for C programs (initializes stack, calls main, signals exit)

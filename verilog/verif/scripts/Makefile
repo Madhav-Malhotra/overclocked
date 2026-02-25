@@ -86,25 +86,45 @@ GOLDEN_DIR := $(CL_ROOT)/verif/golden_sim
 DIFF_GEN := $(SCRIPTS_DIR)/cmp_sim_trace.py
 DIFF_SUBDIR := $(DIFF_DIR)/sim
 
-# Run all benchmarks
-# Run all benchmarks
+# Spike-based verification configuration
+SPIKE_TRACES_DIR := $(CL_ROOT)/verif/spike_traces
+SPIKE_TRACE_GEN  := $(SCRIPTS_DIR)/spike_trace_gen.py
+CMP_WB_SPIKE     := $(SCRIPTS_DIR)/cmp_wb_spike.py
+SPIKE_DIFF_DIR   := $(CL_ROOT)/verif/diffs/spike
+
+PARALLEL_RUNNER := $(SCRIPTS_DIR)/run_benchmarks_parallel.py
+JOBS            ?= $(shell nproc)
+
+# Build benchmarks from source (.s and .c -> .elf + .x)
+# Always cleans first to ensure .elf and .x are both derived from current .s/.c sources
+.PHONY: build_benchmarks
+build_benchmarks:
+	@echo "Building benchmarks from source ($(JOBS) jobs)..."
+	@$(MAKE) -C $(BENCH_ROOT)/individual-instructions -f Makefile.new clean
+	@$(MAKE) -C $(BENCH_ROOT)/individual-instructions -f Makefile.new -j$(JOBS) all
+	@$(MAKE) -C $(BENCH_ROOT)/simple-programs -f Makefile.iss clean
+	@$(MAKE) -C $(BENCH_ROOT)/simple-programs -f Makefile.iss -j$(JOBS) all
+	@echo "Benchmarks built."
+
+# Run all benchmarks end-to-end: build -> simulate -> spike traces -> compare (all parallel)
 .PHONY: run_all_benchmarks
-run_all_benchmarks:
-	@echo "Running all benchmarks..."
-	@echo "Found $(words $(ALL_BENCHMARKS)) benchmarks"
-	@if [ -z "$(ALL_BENCHMARKS)" ]; then \
-		echo "ERROR: No benchmarks found!"; \
-		echo "Check paths:"; \
-		echo "  $(CL_ROOT)/../../../rv32-benchmarks/individual-instructions/*.x"; \
-		echo "  $(CL_ROOT)/../../../rv32-benchmarks/simple-programs/*.x"; \
-		exit 1; \
-	fi
-	@for bench in $(ALL_BENCHMARKS); do \
-		echo "Running benchmark: $$bench"; \
-		$(MAKE) -s run TEST=test_pd MEM_PATH=$$bench || exit 1; \
-	done
-	@echo "All benchmarks completed. Running diff comparison..."
-	@$(MAKE) -s diff_all_benchmarks
+run_all_benchmarks: build_benchmarks
+	@python3 $(PARALLEL_RUNNER) \
+		--bench-root $(BENCH_ROOT) \
+		--scripts-dir $(SCRIPTS_DIR) \
+		--cl-root $(CL_ROOT) \
+		--jobs $(JOBS) \
+		--skip-build
+
+# Same as run_all_benchmarks but skip the build step (benchmarks already built)
+.PHONY: run_all_benchmarks_no_build
+run_all_benchmarks_no_build:
+	@python3 $(PARALLEL_RUNNER) \
+		--bench-root $(BENCH_ROOT) \
+		--scripts-dir $(SCRIPTS_DIR) \
+		--cl-root $(CL_ROOT) \
+		--jobs $(JOBS) \
+		--skip-build
 
 # Pattern rule to run individual benchmarks
 $(ALL_BENCHMARKS): %:
@@ -142,6 +162,65 @@ diff_all_benchmarks:
 	echo "Failed: $$fail"; \
 	echo "=========================================="
 
+# =====================================================================
+# Spike-based verification targets
+# =====================================================================
+
+# Generate spike commit trace for a single benchmark
+# Usage: make gen_spike_trace BENCH=rv32ui-p-add
+.PHONY: gen_spike_trace
+gen_spike_trace:
+	@if [ -z "$(BENCH)" ]; then echo "ERROR: BENCH not set. Usage: make gen_spike_trace BENCH=<name>"; exit 1; fi
+	@echo "Generating spike trace for: $(BENCH)"
+	@python3 $(SPIKE_TRACE_GEN) \
+		--bench $(BENCH) \
+		--bench-root $(BENCH_ROOT) \
+		--out-dir $(SPIKE_TRACES_DIR)
+
+# Generate spike commit traces for ALL benchmarks
+.PHONY: gen_all_spike_traces
+gen_all_spike_traces:
+	@echo "Generating spike traces for all benchmarks..."
+	@mkdir -p $(SPIKE_TRACES_DIR)
+	@pass=0; fail=0; \
+	for bench in $(ALL_BENCHMARKS); do \
+		name=$$(basename $$bench .x); \
+		echo "  $$name"; \
+		python3 $(SPIKE_TRACE_GEN) \
+			--bench $$name \
+			--bench-root $(BENCH_ROOT) \
+			--out-dir $(SPIKE_TRACES_DIR) || fail=$$((fail + 1)); \
+		pass=$$((pass + 1)); \
+	done; \
+	echo "=========================================="; \
+	echo "Generated: $$pass  Failed: $$fail"; \
+	echo "=========================================="
+
+# Compare processor [W] output vs spike commits for one benchmark
+# Usage: make diff_spike MEM_PATH=<path/to/bench.x>
+.PHONY: diff_spike
+diff_spike:
+	@mkdir -p $(SPIKE_DIFF_DIR)
+	@bench_name=$(MEM_PATH_NOT_DIR:x=trace); \
+	spike_trace="$(SPIKE_TRACES_DIR)/$(MEM_PATH_NOT_DIR:x=trace)"; \
+	proc_trace="$(TEST_TRACE_DIR)/$(MEM_PATH_NOT_DIR:x=trace)"; \
+	python3 $(CMP_WB_SPIKE) \
+		"$$proc_trace" \
+		"$$spike_trace" \
+		--out "$(SPIKE_DIFF_DIR)/$(MEM_PATH_NOT_DIR:x=diff)"
+
+# Run a benchmark then generate spike trace and compare
+# Usage: make run_and_verify MEM_PATH=<path/to/bench.x>
+.PHONY: run_and_verify
+run_and_verify:
+	$(MAKE) run MEM_PATH=$(MEM_PATH)
+	$(MAKE) gen_spike_trace BENCH=$(MEM_PATH_NOT_DIR:.x=)
+	$(MAKE) diff_spike MEM_PATH=$(MEM_PATH)
+
+# verify_all: alias for run_all_benchmarks (full pipeline from source)
+.PHONY: verify_all
+verify_all: run_all_benchmarks
+
 # Run single benchmark by name
 .PHONY: run_bench
 run_bench:
@@ -168,6 +247,13 @@ help:
 	@echo "Available Make Targets"
 	@echo "=========================================="
 	@echo ""
+	@echo "Main Targets:"
+	@echo "  make run_all_benchmarks          - Full pipeline: build -> simulate -> spike compare (parallel)"
+	@echo "  make run_all_benchmarks_no_build - Same but skip rebuild (benchmarks already built)"
+	@echo "  make verify_all                  - Alias for run_all_benchmarks"
+	@echo "  make build_benchmarks            - Compile .s/.c sources into .elf + .x (no simulation)"
+	@echo "  JOBS=N make run_all_benchmarks   - Override parallelism (default: nproc=$(JOBS))"
+	@echo ""
 	@echo "Build & Run Targets:"
 	@echo "  make all                    - Build simulation directory, compile, and run (default target)"
 	@echo "  make compile                - Compile the design"
@@ -177,11 +263,13 @@ help:
 	@echo "Benchmark Targets:"
 	@echo "  make run_bench BENCH=<name> - Run a single benchmark by name (without .x extension)"
 	@echo "                                Example: make run_bench BENCH=rv32ui-p-add"
-	@echo "  make run_all_benchmarks     - Run all benchmarks found in rv32-benchmarks directory"
 	@echo "  make list_benchmarks        - List all available benchmarks and their paths"
 	@echo ""
-	@echo "Diff/Comparison Targets:"
-	@echo "  make diff_all_benchmarks    - Compare all simulation traces against golden references"
+	@echo "Spike-based Verification Targets (manual):"
+	@echo "  make gen_spike_trace BENCH=<name>  - Generate spike commit trace for one benchmark"
+	@echo "  make gen_all_spike_traces           - Generate spike commit traces for all benchmarks"
+	@echo "  make diff_spike MEM_PATH=<path>     - Compare processor [W] trace vs spike (one bench)"
+	@echo "  make run_and_verify MEM_PATH=<path> - Run simulation + compare vs spike (one bench)"
 	@echo ""
 	@echo "Utility Targets:"
 	@echo "  make clean                  - Clean simulation files"

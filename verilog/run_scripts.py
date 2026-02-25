@@ -25,7 +25,7 @@ class Config:
 
     mem_dir: Path
     scripts_dir: Path
-    golden_dir: Path
+    spike_traces_dir: Path
     sim_trace_dir: Path
     out_dir: Path
     max_workers: int = os.cpu_count() or 4
@@ -679,6 +679,28 @@ class InstructionTester:
             print(f"ERROR: diff failed: {e}", file=sys.stderr)
             return []
 
+    def compare_vs_spike(
+        self,
+        trace_sim: Path,
+        spike_trace: Path,
+        out_path: Path,
+    ) -> bool:
+        """Run cmp_wb_spike.py and return True if PASS."""
+        cmp_script = self.config.scripts_dir / "cmp_wb_spike.py"
+        try:
+            result = subprocess.run(
+                [sys.executable, str(cmp_script), str(trace_sim), str(spike_trace),
+                 "--out", str(out_path)],
+                capture_output=True,
+                text=True,
+                timeout=60,
+            )
+            print(f" {result.stdout.strip()}")
+            return result.returncode == 0
+        except subprocess.SubprocessError as e:
+            print(f"ERROR: cmp_wb_spike failed: {e}", file=sys.stderr)
+            return False
+
     def process_instruction(
         self,
         mem_path: Path,
@@ -709,95 +731,56 @@ class InstructionTester:
                 file=sys.stderr,
             )
 
-        # Paths for traces and output - handle both rv32ui-p- prefix and plain names
+        # Determine trace file names (include rv32ui-p- prefix for individual instructions)
         if category == "instructions":
-            trace_gold = self.config.golden_dir / f"rv32ui-p-{instr_name}.trace"
-            trace_sim = self.config.sim_trace_dir / f"rv32ui-p-{instr_name}.trace"
+            trace_name = f"rv32ui-p-{instr_name}.trace"
         else:
-            trace_gold = self.config.golden_dir / f"{instr_name}.trace"
-            trace_sim = self.config.sim_trace_dir / f"{instr_name}.trace"
+            trace_name = f"{instr_name}.trace"
 
-        outfile = self.config.out_dir / f"{instr_name}.txt"
+        trace_sim = self.config.sim_trace_dir / trace_name
+        spike_trace = self.config.spike_traces_dir / trace_name
 
-        # Check if traces exist
-        if not trace_gold.exists():
-            print(f"Missing golden trace: {trace_gold}", file=sys.stderr)
-            outfile.write_text(f"MISSING_GOLD: {trace_gold}\n")
-            return instr_name, False
-
+        # Check if processor trace exists
         if not trace_sim.exists():
             print(f"Missing sim trace: {trace_sim}", file=sys.stderr)
-            outfile.write_text(f"MISSING_SIM: {trace_sim}\n")
+            (self.config.out_dir / f"{instr_name}-spike.diff").write_text(
+                f"MISSING_SIM: {trace_sim}\n"
+            )
             return instr_name, False
 
-        # STEP 1: Create annotated versions of BOTH traces
-        trace_gold_annotated = (
-            trace_gold.with_suffix(".trace").parent
-            / f"{trace_gold.stem}-annotated.trace"
-        )
-        trace_sim_annotated = (
-            trace_sim.with_suffix(".trace").parent / f"{trace_sim.stem}-annotated.trace"
-        )
+        # Check if spike trace exists
+        if not spike_trace.exists():
+            print(f"Missing spike trace: {spike_trace}", file=sys.stderr)
+            print(f" Run: make gen_spike_trace BENCH={trace_name[:-6]}", file=sys.stderr)
+            (self.config.out_dir / f"{instr_name}-spike.diff").write_text(
+                f"MISSING_SPIKE: {spike_trace}\n"
+            )
+            return instr_name, False
 
-        # Annotate both golden and sim traces
-        TraceAnnotator.annotate_file(trace_gold, trace_gold_annotated)
+        # PRIMARY COMPARISON: processor [W] vs spike commits
+        out_spike = self.config.out_dir / f"{instr_name}-spike.diff"
+        passed = self.compare_vs_spike(trace_sim, spike_trace, out_spike)
+
+        # DEBUGGING AID: also generate a raw full-trace diff vs spike trace
+        # (using the existing annotated-diff machinery for human inspection)
+        trace_sim_annotated = trace_sim.parent / f"{trace_sim.stem}-annotated.trace"
         TraceAnnotator.annotate_file(trace_sim, trace_sim_annotated)
-        print(
-            f" Created annotated traces: {trace_gold_annotated.name}, {trace_sim_annotated.name}"
-        )
 
-        # STEP 2: Generate diff from annotated traces (transparency - no filtering yet)
-        diff_lines = self.generate_diff(trace_gold_annotated, trace_sim_annotated)
+        # Build a simple unfiltered [W]-only diff for debugging
+        diff_lines = []
+        diff_lines.append(f"PROC:  {trace_sim}\n")
+        diff_lines.append(f"SPIKE: {spike_trace}\n\n")
 
-        # Immediately save the unfiltered diff for transparency
-        outfile_original = self.config.out_dir / f"{instr_name}-diff.txt"
-        outfile_original.write_text("".join(diff_lines))
-        print(f" Saved unfiltered diff -> {outfile_original}")
+        with open(trace_sim, "r") as f:
+            for line in f:
+                if line.startswith("[W]"):
+                    diff_lines.append(line)
 
-        # STEP 3: Apply standard filtering to a COPY of the diff data
-        filtered_lines = DiffFilter.filter_diff_lines(diff_lines.copy())
+        outfile_raw = self.config.out_dir / f"{instr_name}-diff.txt"
+        outfile_raw.write_text("".join(diff_lines))
+        print(f" Raw [W] lines saved -> {outfile_raw}")
 
-        # Write standard filtered diff
-        outfile_filtered = self.config.out_dir / f"{instr_name}-diff-filtered.txt"
-
-        # Check if there are actual diff lines beyond the header in filtered output
-        # Header is now 4-5 lines (GOLDEN, ACTUAL, line counts, blank, optional NOTE)
-        has_diffs = False
-        for line in filtered_lines[4:]:  # Skip first 4 header lines
-            if line.strip() and not line.startswith("NOTE:"):
-                has_diffs = True
-                break
-
-        if has_diffs:
-            # Found differences after filtering - write filtered version
-            outfile_filtered.write_text("".join(filtered_lines))
-            print(f" Filtered diff saved -> {outfile_filtered}")
-        else:
-            # No differences after filtering
-            outfile_filtered.write_text("No differences detected after filtering\n")
-            print(f" No differences after filtering -> {outfile_filtered}")
-
-        # STEP 4: Apply extreme filtering (writeback-only) to original diff
-        extreme_filtered_lines = DiffFilter.filter_diff_lines_extreme(diff_lines.copy())
-
-        # Write extreme filtered diff (writeback-only)
-        outfile_extreme = self.config.out_dir / f"{instr_name}-diff-filtered-wb-only.txt"
-
-        # Check if there are actual diff lines in extreme filtered output
-        has_wb_diffs = False
-        for line in extreme_filtered_lines:
-            if "[W]" in line:
-                has_wb_diffs = True
-                break
-
-        if has_wb_diffs:
-            outfile_extreme.write_text("".join(extreme_filtered_lines))
-            print(f" Writeback-only diff saved -> {outfile_extreme}")
-        else:
-            outfile_extreme.write_text("No writeback differences detected\n")
-            print(f" No writeback differences -> {outfile_extreme}")
-
-        return instr_name, True
+        return instr_name, passed
 
 
 def find_mem_files(mem_dirs: List[Path]) -> List[Tuple[Path, str]]:
@@ -833,14 +816,13 @@ def main() -> None:
     """Main entry point for the test runner."""
     # Configuration
     base_dir = Path(__file__).parent
-    # benchmarks_base = Path("/home/mdvmlhtr/ece320/e3mehta-pd5/rv32-benchmarks")
-    benchmarks_base = Path("/home/e3mehta/ece320/rv32-benchmarks")
+    benchmarks_base = base_dir / "rv32-benchmarks"
 
     config = Config(
         mem_dir=benchmarks_base
         / "individual-instructions",  # Still used for compatibility
         scripts_dir=base_dir / "verif" / "scripts",
-        golden_dir=base_dir / "verif" / "golden_sim",
+        spike_traces_dir=base_dir / "verif" / "spike_traces",
         sim_trace_dir=base_dir / "verif" / "sim" / "verilator" / "test_pd",
         out_dir=base_dir / "verif" / "sim" / "diff",
         max_workers=os.cpu_count() or 4,
@@ -866,6 +848,13 @@ def main() -> None:
 
     # Ensure output directory exists
     config.out_dir.mkdir(parents=True, exist_ok=True)
+
+    # Build benchmarks from source before searching for .x files
+    print("Building benchmarks from source...")
+    subprocess.run(
+        ["make", "-C", str(config.scripts_dir), "build_benchmarks"],
+        check=True,
+    )
 
     # Find all MEM files from both directories
     mem_files = find_mem_files(mem_dirs)

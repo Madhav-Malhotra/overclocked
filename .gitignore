@@ -15,3 +15,4 @@ verilog/rv32-benchmarks/individual-instructions/rv32ui-p-*
 verilog/rv32-benchmarks/individual-instructions/test-*
 
 verilog/verif/diffs/spike/*
+.DS_Store

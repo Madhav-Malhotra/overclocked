@@ -56,7 +56,8 @@ BENCH_ROOT := $(shell if [ -d "$(CL_ROOT)/../../../rv32-benchmarks" ]; then \
 
 BENCH_INDIVIDUAL := $(wildcard $(BENCH_ROOT)/individual-instructions/*.x)
 BENCH_SIMPLE := $(wildcard $(BENCH_ROOT)/simple-programs/*.x)
-ALL_BENCHMARKS := $(BENCH_INDIVIDUAL) $(BENCH_SIMPLE)
+BENCH_M_EXT := $(wildcard $(BENCH_ROOT)/m-extension/*.x)
+ALL_BENCHMARKS := $(BENCH_INDIVIDUAL) $(BENCH_SIMPLE) $(BENCH_M_EXT)
 
 # Debug: print benchmark list
 .PHONY: list_benchmarks
@@ -153,11 +154,14 @@ run_bench:
 		$(MAKE) -s run TEST=test_pd MEM_PATH="$(BENCH_ROOT)/individual-instructions/$(BENCH).x"; \
 	elif [ -f "$(BENCH_ROOT)/simple-programs/$(BENCH).x" ]; then \
 		$(MAKE) -s run TEST=test_pd MEM_PATH="$(BENCH_ROOT)/simple-programs/$(BENCH).x"; \
+	elif [ -f "$(BENCH_ROOT)/m-extension/$(BENCH).x" ]; then \
+		$(MAKE) -s run TEST=test_pd MEM_PATH="$(BENCH_ROOT)/m-extension/$(BENCH).x"; \
 	else \
 		echo "Error: Benchmark $(BENCH) not found"; \
 		echo "Searched in:"; \
 		echo "  $(BENCH_ROOT)/individual-instructions/$(BENCH).x"; \
 		echo "  $(BENCH_ROOT)/simple-programs/$(BENCH).x"; \
+		echo "  $(BENCH_ROOT)/m-extension/$(BENCH).x"; \
 		exit 1; \
 	fi
 

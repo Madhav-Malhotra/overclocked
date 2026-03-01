@@ -23,7 +23,13 @@ module control_signals #(
     output br_un,
     output [1:0] a_sel,
     output [1:0] b_sel,
+    output [1:0] fu_sel,
     output [3:0] alu_sel,
+    output mul_is_signed_a,
+    output mul_is_signed_b,
+    output mul_high,
+    output div_is_signed,
+    output div_sel_rem,
     output mem_rw,
     output reg_wen,
     output [1:0] wb_sel
@@ -48,6 +54,11 @@ localparam WB_MEM = 2'd0;
 localparam WB_ALU = 2'd1;
 localparam WB_PC4 = 2'd2;
 
+// FU sel definitions
+localparam FU_ALU = 2'b00;
+localparam FU_MUL = 2'b01;
+localparam FU_DIV = 2'b10;
+
 
 // Decode-Execute Pipeline registers
 reg [2:0] funct3_dx_r;
@@ -68,7 +79,7 @@ end
 // ===============================
 
 wire is_branch_x  = (opcode_dx == 7'b1100011);
-wire is_alu_x     = (opcode_dx == 7'b0110011);
+wire is_alu_x     = (opcode_dx == 7'b0110011) && (funct7_dx_r != 7'b0000001);
 wire is_alu_imm_x = (opcode_dx == 7'b0010011);
 wire is_jal_x     = (opcode_dx == 7'b1101111);
 wire is_auipc_x   = (opcode_dx == 7'b0010111);
@@ -77,6 +88,8 @@ wire is_load_x    = (opcode_dx == 7'b0000011);
 wire is_store_x   = (opcode_dx == 7'b0100011);
 wire is_jalr_x    = (opcode_dx == 7'b1100111);
 wire is_ecall_x   = (opcode_dx == 7'b1110011);
+wire is_mul_x     = (opcode_dx == 7'b0110011) && (funct7_dx_r == 7'b0000001) && !funct3_dx_r[2];
+wire is_div_x     = (opcode_dx == 7'b0110011) && (funct7_dx_r == 7'b0000001) && funct3_dx_r[2];
 wire is_u_type_x  = is_lui_x || is_auipc_x;
 
 wire branch_taken = (is_branch_x && (
@@ -125,9 +138,10 @@ assign a_sel = (is_branch_x || is_auipc_x || is_jal_x) ? PC :
                (!(is_u_type_x || is_jal_x) && addr_rs1_dx == addr_rd_xm && addr_rd_xm != 0 && insn_xm_writes_reg) ? MX_BYPASS :
                (!(is_u_type_x || is_jal_x) && addr_rs1_dx == addr_rd_mw && addr_rd_mw != 0 && insn_mw_writes_reg) ? WX_BYPASS :
                 REG;
-assign b_sel = (is_alu_x && addr_rs2_dx == addr_rd_xm && addr_rd_xm != 0 && insn_xm_writes_reg) ? MX_BYPASS :
-               (is_alu_x && addr_rs2_dx == addr_rd_mw && addr_rd_mw != 0 && insn_mw_writes_reg) ? WX_BYPASS :
-               (!is_alu_x) ? IMM :
+wire is_r_type_x = is_alu_x || is_mul_x || is_div_x;
+assign b_sel = (is_r_type_x && addr_rs2_dx == addr_rd_xm && addr_rd_xm != 0 && insn_xm_writes_reg) ? MX_BYPASS :
+               (is_r_type_x && addr_rs2_dx == addr_rd_mw && addr_rd_mw != 0 && insn_mw_writes_reg) ? WX_BYPASS :
+               (!is_r_type_x) ? IMM :
                              REG;
 
 assign branch_comp_data1_sel =  (addr_rs1_dx == addr_rd_xm && addr_rd_xm != 0 && insn_xm_writes_reg) ? MX_BYPASS :
@@ -139,6 +153,8 @@ assign branch_comp_data2_sel =  (addr_rs2_dx == addr_rd_xm && addr_rd_xm != 0 &&
 
 assign br_taken = branch_taken;             // Just for test file
 assign pc_sel = branch_taken || is_jal_x || is_jalr_x;
+
+assign fu_sel = is_mul_x ? FU_MUL : is_div_x ? FU_DIV : FU_ALU;
 
 assign alu_sel =    (is_lui_x) ? NOP :
                     (is_auipc_x || is_jal_x || is_jalr_x || is_load_x || is_store_x || is_branch_x) ? ADD :
@@ -155,6 +171,15 @@ assign alu_sel =    (is_lui_x) ? NOP :
                         (funct3_dx_r == 'h7) ? AND :
                         NOP) // invalid funct3 for ALU
                     : NOP;  // invalid opcode
+
+// Control inputs to multiplier based on instruction (MUL, MULH, MULHSU, MULHU)
+assign mul_is_signed_a = is_mul_x && (funct3_dx_r == 3'h1 || funct3_dx_r == 3'h2);
+assign mul_is_signed_b = is_mul_x && (funct3_dx_r == 3'h1);
+assign mul_high        = is_mul_x && (funct3_dx_r != 3'h0);
+
+// Contorl inputs to divider based on instruction (DIV, DIVU, REM, REMU)
+assign div_is_signed = is_div_x && !funct3_dx_r[0];
+assign div_sel_rem   = is_div_x && funct3_dx_r[1];
 
 // Execute-Memory Pipeline
 always @(posedge clock) begin

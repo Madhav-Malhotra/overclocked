@@ -40,7 +40,7 @@ module pd #(
   wire [1:0] b_sel;
   wire [1:0] branch_comp_data1_sel;
   wire [1:0] branch_comp_data2_sel;
-  wire [3:0] alu_sel;
+  wire [1:0] fu_sel;
   wire [1:0] wb_sel;
   wire br_eq;
   wire br_lt;
@@ -50,10 +50,28 @@ module pd #(
   wire [DATAW-1:0] data_rs1_w;     // wire - register file output
   wire [DATAW-1:0] data_rs2_w;     // wire - register file output
 
-  // ALU inputs
-  wire [DATAW-1:0] alu_in1_w;
-  wire [DATAW-1:0] alu_in2_w;
+  // Execute/functional units (FUs)
+  wire [DATAW-1:0] fu_in1_w;
+  wire [DATAW-1:0] fu_in2_w;
+
+  // ALU
+  wire [3:0] alu_sel;
   wire [DATAW-1:0] alu_out_w;
+
+  // Multiplier
+  wire mul_is_signed_a;
+  wire mul_is_signed_b;
+  wire mul_high;
+  wire [2*DATAW-1:0] mul_out_w;
+  wire [DATAW-1:0] mul_result_w;
+  wire [DATAW-1:0] ex_result_w;
+
+  // Divider
+  wire div_is_signed;
+  wire div_sel_rem;
+  wire [DATAW-1:0] div_quotient_w;
+  wire [DATAW-1:0] div_remainder_w;
+  wire [DATAW-1:0] div_result_w;
 
   // Data memory unit
   wire [DATAW-1:0] data_mem_w;
@@ -85,7 +103,7 @@ module pd #(
   reg [DATAW-1:0] pc_xm_r;   
   reg [DATAW-1:0] imm_xm_r;
   reg [2:0] funct3_xm_r;
-  reg [DATAW-1:0] alu_xm_r;
+  reg [DATAW-1:0] fu_xm_r;
   reg [DATAW-1:0] data_rs2_xm_r;        // P.S. Class slides don't need rs1_xm
   reg [6:0] opcode_xm_r;                // Need for stalling logic
   reg [ADDRW-1:0] addr_rs2_xm_r;        // Need for forwarding logic
@@ -163,7 +181,6 @@ module pd #(
       pc_r <= (pc_sel == 1) ? alu_out_w : pc4_f_w;
     end
   end 
-
   
   // ===================
   // PIPELINE LOGIC
@@ -238,7 +255,7 @@ module pd #(
       imm_xm_r <= 0;
       funct3_xm_r <= 0;
       data_rs2_xm_r <= 0;
-      alu_xm_r <= 0;
+      fu_xm_r <= 0;
       opcode_xm_r <= 0;
       addr_rs2_xm_r <= 0;
       addr_rd_xm_r <= 0;
@@ -248,7 +265,7 @@ module pd #(
       imm_xm_r <= imm_dx_r; 
       funct3_xm_r <= funct3_dx_r;
       data_rs2_xm_r <= data_rs2_w; 
-      alu_xm_r <= alu_out_w;          // Pipeline ALU output
+      fu_xm_r <= ex_result_w;         // Pipeline FU output
       opcode_xm_r <= opcode_dx_r;     // Pipeline decoded instruction from last stage
       addr_rs2_xm_r <= addr_rs2_dx_r;
       addr_rd_xm_r <= addr_rd_dx_r;
@@ -258,7 +275,7 @@ module pd #(
   // PC + 4 in MEM stage
   wire [DATAW-1:0] pc4_xm_w = pc_xm_r + 4;
   reg [DATAW-1:0] pc4_mw_r;
-  reg [DATAW-1:0] alu_mw_r;
+  reg [DATAW-1:0] fu_mw_r;
   reg [2:0] funct3_mw_r;
 
   // Memory-Writeback stage
@@ -268,7 +285,7 @@ module pd #(
       opcode_mw_r <= 0;
       addr_rd_mw_r <= 0;
       pc_mw_r <= 0;
-      alu_mw_r <= 0;
+      fu_mw_r <= 0;
       funct3_mw_r <= 0;
     end 
     else begin
@@ -276,7 +293,7 @@ module pd #(
       opcode_mw_r <= opcode_xm_r;
       addr_rd_mw_r <= addr_rd_xm_r;
       pc4_mw_r <= pc4_xm_w;
-      alu_mw_r <= alu_xm_r;
+      fu_mw_r <= fu_xm_r;
       funct3_mw_r <= funct3_xm_r;
     end
   end
@@ -339,8 +356,8 @@ module pd #(
     .addr_rd_xm(addr_rd_xm_r),    // input
     .addr_rd_mw(addr_rd_mw_r),    // input
     .br_taken(br_taken),          // output
-    .branch_comp_data1_sel(branch_comp_data1_sel), // output
-    .branch_comp_data2_sel(branch_comp_data2_sel), // output
+    .branch_comp_data1_sel(branch_comp_data1_sel),      // output
+    .branch_comp_data2_sel(branch_comp_data2_sel),      // output
     .pc_sel(pc_sel),              // output
     .br_un(br_un),                // output
     .a_sel(a_sel),                // output
@@ -348,7 +365,13 @@ module pd #(
     .alu_sel(alu_sel),            // output
     .mem_rw(data_mem_rw),         // output
     .reg_wen(reg_wen),            // output
-    .wb_sel(wb_sel)               // output
+    .wb_sel(wb_sel),              // output
+    .mul_is_signed_a(mul_is_signed_a), // output
+    .mul_is_signed_b(mul_is_signed_b), // output
+    .mul_high(mul_high),          // output
+    .fu_sel(fu_sel),              // output
+    .div_is_signed(div_is_signed), // output
+    .div_sel_rem(div_sel_rem)     // output
   );
 
   // Forwarding logic values
@@ -360,11 +383,11 @@ module pd #(
   // branch forwarding logic (cases for WX and MX bypassing)
 
   wire [DATAW-1:0] idata1_in =  (branch_comp_data1_sel == WX_BYPASS) ? data_rd_w :
-                                (branch_comp_data1_sel == MX_BYPASS) ? alu_xm_r :
+                                (branch_comp_data1_sel == MX_BYPASS) ? fu_xm_r :
                                                                      data_rs1_w;
 
   wire [DATAW-1:0] idata2_in =  (branch_comp_data2_sel == WX_BYPASS) ? data_rd_w :
-                                (branch_comp_data2_sel == MX_BYPASS) ? alu_xm_r :
+                                (branch_comp_data2_sel == MX_BYPASS) ? fu_xm_r :
                                                                      data_rs2_w;
 
   branch_comp bc1(
@@ -376,24 +399,58 @@ module pd #(
   );
 
   // A sel definitions (determines ALU input 1)
-  assign alu_in1_w = (a_sel == REG) ? data_rs1_w :
+  assign fu_in1_w = (a_sel == REG) ? data_rs1_w :
                      (a_sel == PC) ? pc_dx_r :
                      (a_sel == WX_BYPASS) ? data_rd_w :
-                                            alu_xm_r;
+                                            fu_xm_r;
 
   // B sel definitions (determines ALU input 2)
   localparam IMM  = 2'b01;
-  assign alu_in2_w = (b_sel == REG) ? data_rs2_w :
+  assign fu_in2_w = (b_sel == REG) ? data_rs2_w :
                      (b_sel == IMM) ? imm_dx_r :
                      (b_sel == WX_BYPASS) ? data_rd_w :
-                                            alu_xm_r;
+                                            fu_xm_r;
 
-  alu al1(
-    .idata1(alu_in1_w),
-    .idata2(alu_in2_w),
+  fu_alu al1(
+    .idata1(fu_in1_w),
+    .idata2(fu_in2_w),
     .alu_sel(alu_sel),
     .odata(alu_out_w)
   );
+
+  fu_multiplier mult1(
+    .clk(clock),
+    .rst_n(!reset),
+    .rs1_data(fu_in1_w),
+    .rs2_data(fu_in2_w),
+    .is_signed_a(mul_is_signed_a),
+    .is_signed_b(mul_is_signed_b),
+    .rd_data(mul_out_w)
+  );
+
+  // Select upper or lower 32 bits of multiplier result
+  assign mul_result_w = mul_high ? mul_out_w[2*DATAW-1:DATAW] : mul_out_w[DATAW-1:0];
+
+  fu_divider div1(
+    .clk(clock),
+    .rst_n(!reset),
+    .rs1_data(fu_in1_w),
+    .rs2_data(fu_in2_w),
+    .is_signed(div_is_signed),
+    .quotient(div_quotient_w),
+    .remainder(div_remainder_w)
+  );
+
+  // Select quotient or remainder based on instruction
+  assign div_result_w = div_sel_rem ? div_remainder_w : div_quotient_w;
+
+  // FU output mux: select between ALU, multiplier, and divider
+  localparam FU_ALU = 2'b00;
+  localparam FU_MUL = 2'b01;
+  localparam FU_DIV = 2'b10;
+  assign ex_result_w = (fu_sel == FU_MUL) ? mul_result_w :
+                       (fu_sel == FU_DIV) ? div_result_w :
+                       alu_out_w;
 
   wire [1:0] mem_write_access_size = funct3_xm_r[1:0];     // For testbench
 
@@ -412,7 +469,7 @@ module pd #(
     .clock(clock),               // input
     .read_write(data_mem_rw),    // input
     .access_size(mem_write_access_size),   // input
-    .address(alu_xm_r),          // input
+    .address(fu_xm_r),          // input
     .data_in(dmem_data_in),      // input
     .data_out(data_mem_w)        // output
   );
@@ -436,7 +493,7 @@ module pd #(
 
   // According to lecture slides, this should be in the memory stage
   writeback wb1(
-    .alu(alu_mw_r),                 // input
+    .alu(fu_mw_r),                  // input
     .mem(data_mem_w_sized),         // input
     .pc4(pc4_mw_r),                 // input
     .wb_sel(wb_sel),                // input

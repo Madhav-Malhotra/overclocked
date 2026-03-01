@@ -43,7 +43,9 @@ module decoder #(
     //                                imm[20]    imm[19:12]    imm[11]     imm[10:1]
 
     // instruction identification
-    wire is_alu = (_opcode == 7'b0110011);
+    wire is_mul = (_opcode == 7'b0110011) & (_funct7 == 7'b0000001) & ~_funct3[2];
+    wire is_div = (_opcode == 7'b0110011) & (_funct7 == 7'b0000001) & _funct3[2];
+    wire is_alu = (_opcode == 7'b0110011) & ~(_funct7 == 7'b0000001);
     wire is_alu_imm = (_opcode == 7'b0010011);
     wire is_load = (_opcode == 7'b0000011);
     wire is_store = (_opcode == 7'b0100011);
@@ -55,7 +57,7 @@ module decoder #(
     wire is_ecall = (_opcode == 7'b1110011) & (_funct3 == 3'b000) & (_imm_i == 12'b000000000000);
 
     // instruction type identification
-    wire is_r_type = is_alu;
+    wire is_r_type = is_alu | is_mul | is_div;
     wire is_i_type = is_alu_imm | is_load | is_jalr | is_ecall;
     wire is_s_type = is_store;
     wire is_b_type = is_branch;

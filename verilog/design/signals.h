@@ -25,11 +25,11 @@
 `define R_READ_RS2_DATA     data_rs2_w
 
 `define E_PC                pc_dx_r
-`define E_ALU_RES           alu_out_w
+`define E_ALU_RES           ex_result_w
 `define E_BR_TAKEN          br_taken
 
 `define M_PC                pc_xm_r
-`define M_ADDRESS           alu_xm_r
+`define M_ADDRESS           fu_xm_r
 `define M_RW                data_mem_rw
 `define M_SIZE_ENCODED      mem_write_access_size
 `define M_DATA              dmem_data_in

@@ -1,4 +1,6 @@
-alu.v
+fu_alu.v
+fu_multiplier.v
+fu_divider.v
 branch_comp.v
 control_signals.v
 decoder.v

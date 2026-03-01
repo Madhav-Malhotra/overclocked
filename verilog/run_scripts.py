@@ -833,8 +833,7 @@ def main() -> None:
     """Main entry point for the test runner."""
     # Configuration
     base_dir = Path(__file__).parent
-    # benchmarks_base = Path("/home/mdvmlhtr/ece320/e3mehta-pd5/rv32-benchmarks")
-    benchmarks_base = Path("/home/e3mehta/ece320/rv32-benchmarks")
+    benchmarks_base = base_dir / "rv32-benchmarks"
 
     config = Config(
         mem_dir=benchmarks_base

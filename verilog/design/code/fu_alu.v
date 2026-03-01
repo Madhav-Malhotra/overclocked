@@ -1,4 +1,4 @@
-module alu #(
+module fu_alu #(
     parameter IDATAW = 32,
     parameter ODATAW = 32
 )(

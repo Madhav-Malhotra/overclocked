@@ -132,6 +132,26 @@ class CPU : IDisposable
                 );
     }
 
+    public CPUState GetState() {
+        get_cpu_state(out this.state);
+        return this.state;
+    }
+
+    public uint GetPC() {
+        get_cpu_state(out this.state);
+        return this.state.pc;
+    }
+
+    public uint GetInstruction() {
+        get_cpu_state(out this.state);
+        return this.state.instruction;
+    }
+
+    public uint GetALUOut() {
+        get_cpu_state(out this.state);
+        return this.state.aluOut;
+    }
+
     private CPUState state;
     private bool disposed = false;
 

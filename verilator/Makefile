@@ -17,10 +17,23 @@ V_FLAGS += -DLINE_COUNT=$(LINE_COUNT)
 V_FLAGS += -I../verilog/design/ -I../verilog/design/code/
 VERILOG_TOP = ../verilog/design/design_wrapper.v
 
+# Detect OS and set Verilator paths accordingly
+UNAME_S := $(shell uname -s)
+ifeq ($(UNAME_S),Darwin)
+    # macOS (Homebrew)
+    VERILATOR_INC = /opt/homebrew/share/verilator/include
+    CXXFLAGS = -O3 -fPIC -dynamiclib
+    LIB_EXT = dylib
+else
+    # Linux (or other Unix-like systems)
+    VERILATOR_INC = /usr/share/verilator/include
+    CXXFLAGS = -O3 -shared -fPIC
+    LIB_EXT = so
+endif
 # Verilator paths (Adjust /usr/share if your install is elsewhere)
 VERILATOR_INC = /usr/share/verilator/include
 OBJ_DIR = obj_dir
-LIB_NAME = libdesign_wrapper.so
+LIB_NAME = libdesign_wrapper.$(LIB_EXT)
 
 # Default target
 all: verilog bridge

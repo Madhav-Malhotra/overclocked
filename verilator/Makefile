@@ -1,4 +1,8 @@
 # use `make -n` to view constructed commands
+# If you get errors related to verilator's included files not being found, run
+# `verilator -V`, retrieve the VERILATOR_ROOT variable, and set the
+# VERILATOR_INC variables below to
+# VERILATOR_INC = ${VERILATOR_ROOT}/include
 
 MEM_PATH   ?= "../verilog/verif/data/rv32ui-p-add.x"
 LINE_COUNT := $(shell wc -l < $(MEM_PATH))
@@ -8,7 +12,6 @@ MEM_DEPTH  ?= 1048576
 VERILATOR = verilator
 CXX = g++
 CXXFLAGS = -O3 -shared -fPIC
-# V_FLAGS = -DMEM_DEPTH=1048576 --public-flat-rw
 V_SOURCE = "../verilog/design"
 V_FLAGS = --public-flat-rw
 V_FLAGS += -DMEM_PATH="\$(MEM_PATH)\"
@@ -30,8 +33,6 @@ else
     CXXFLAGS = -O3 -shared -fPIC
     LIB_EXT = so
 endif
-# Verilator paths (Adjust /usr/share if your install is elsewhere)
-VERILATOR_INC = /usr/share/verilator/include
 OBJ_DIR = obj_dir
 LIB_NAME = libdesign_wrapper.$(LIB_EXT)
 

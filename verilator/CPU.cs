@@ -63,33 +63,34 @@ enum Operation : byte {
 
 class CPU : IDisposable
 {
+    private const string NativeLib = "design_wrapper";
     // Imports the function from our compiled shared library
     // required for each external function
-    [DllImport("libdesign_wrapper", CallingConvention = CallingConvention.Cdecl)]
+    [DllImport(NativeLib, CallingConvention = CallingConvention.Cdecl)]
     public static extern void init_design_wrapper();
 
-    [DllImport("libdesign_wrapper", CallingConvention = CallingConvention.Cdecl)]
+    [DllImport(NativeLib, CallingConvention = CallingConvention.Cdecl)]
     public static extern void tick();
 
-    [DllImport("libdesign_wrapper", CallingConvention = CallingConvention.Cdecl)]
+    [DllImport(NativeLib, CallingConvention = CallingConvention.Cdecl)]
     public static extern void eval();
 
-    [DllImport("libdesign_wrapper", CallingConvention = CallingConvention.Cdecl)]
+    [DllImport(NativeLib, CallingConvention = CallingConvention.Cdecl)]
     public static extern void get_cpu_state(out CPUState state);
 
-    [DllImport("libdesign_wrapper", CallingConvention = CallingConvention.Cdecl)]
+    [DllImport(NativeLib, CallingConvention = CallingConvention.Cdecl)]
     public static extern void set_imem(uint addr, uint instruction);
 
-    [DllImport("libdesign_wrapper", CallingConvention = CallingConvention.Cdecl)]
+    [DllImport(NativeLib, CallingConvention = CallingConvention.Cdecl)]
     public static extern uint peek_imem(uint addr);
 
-    [DllImport("libdesign_wrapper", CallingConvention = CallingConvention.Cdecl)]
+    [DllImport(NativeLib, CallingConvention = CallingConvention.Cdecl)]
     public static extern void dump_imem(uint count);
 
-    [DllImport("libdesign_wrapper", CallingConvention = CallingConvention.Cdecl)]
+    [DllImport(NativeLib, CallingConvention = CallingConvention.Cdecl)]
     public static extern void dump_dmem(uint count);
 
-    [DllImport("libdesign_wrapper", CallingConvention = CallingConvention.Cdecl)]
+    [DllImport(NativeLib, CallingConvention = CallingConvention.Cdecl)]
     public static extern void cleanup_design_wrapper();
 
     // WriteIMem puts the file's (located at `path`) contents (assembled instructions) into imem
@@ -130,6 +131,26 @@ class CPU : IDisposable
                 $"x6: 0x{state.regs[6],-8:X} | " +
                 $"x7: {state.regs[7],-3}"
                 );
+    }
+
+    public CPUState GetState() {
+        get_cpu_state(out this.state);
+        return this.state;
+    }
+
+    public uint GetPC() {
+        get_cpu_state(out this.state);
+        return this.state.pc;
+    }
+
+    public uint GetInstruction() {
+        get_cpu_state(out this.state);
+        return this.state.instruction;
+    }
+
+    public uint GetALUOut() {
+        get_cpu_state(out this.state);
+        return this.state.aluOut;
     }
 
     private CPUState state;

@@ -79,6 +79,21 @@ class CPU : IDisposable
     public static extern void get_cpu_state(out CPUState state);
 
     [DllImport(NativeLib, CallingConvention = CallingConvention.Cdecl)]
+    public static extern void set_fetch_en(bool val);
+
+    [DllImport(NativeLib, CallingConvention = CallingConvention.Cdecl)]
+    public static extern void set_fd_en(bool val);
+
+    [DllImport(NativeLib, CallingConvention = CallingConvention.Cdecl)]
+    public static extern void set_dx_en(bool val);
+
+    [DllImport(NativeLib, CallingConvention = CallingConvention.Cdecl)]
+    public static extern void set_xm_en(bool val);
+
+    [DllImport(NativeLib, CallingConvention = CallingConvention.Cdecl)]
+    public static extern void set_mw_en(bool val);
+
+    [DllImport(NativeLib, CallingConvention = CallingConvention.Cdecl)]
     public static extern void set_imem(uint addr, uint instruction);
 
     [DllImport(NativeLib, CallingConvention = CallingConvention.Cdecl)]
@@ -151,6 +166,26 @@ class CPU : IDisposable
     public uint GetALUOut() {
         get_cpu_state(out this.state);
         return this.state.aluOut;
+    }
+
+    public void SetFetchEn(bool val) {
+        set_fetch_en(val);
+    }
+
+    public void SetFdEn(bool val) {
+        set_fd_en(val);
+    }
+
+    public void SetDxEn(bool val) {
+        set_dx_en(val);
+    }
+
+    public void SetXmEn(bool val) {
+        set_xm_en(val);
+    }
+
+    public void SetMwEn(bool val) {
+        set_mw_en(val);
     }
 
     private CPUState state;

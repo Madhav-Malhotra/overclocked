@@ -136,6 +136,26 @@ void cleanup_design_wrapper() {
 }
 
 
+void set_fetch_en (bool val) {
+    design->rootp->design_wrapper__DOT__core__DOT__fetch_en = val;
+}
+
+void set_fd_en (bool val) {
+    design->rootp->design_wrapper__DOT__core__DOT__fd_en = val;
+}
+
+void set_dx_en (bool val) {
+    design->rootp->design_wrapper__DOT__core__DOT__dx_en = val;
+}
+
+void set_xm_en (bool val) {
+    design->rootp->design_wrapper__DOT__core__DOT__xm_en = val;
+}
+
+void set_mw_en (bool val) {
+    design->rootp->design_wrapper__DOT__core__DOT__mw_en = val;
+}
+
 // instruction memory access
 // load instructions for the level, then tick the CPU to advance
 // utility functions to view the instruction memory contents

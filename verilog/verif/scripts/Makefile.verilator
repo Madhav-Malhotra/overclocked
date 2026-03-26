@@ -37,6 +37,7 @@ compile: $(SRC) $(CL_ROOT)/verif/tests/tracegen.v
 		-I$(CL_ROOT)/verif/tests \
 		-top-module $(TOP) \
 		--Mdir $(SIM_DIR) \
+		--public-flat-rw \
 		+define+MEM_PATH=$(MEM_PATH_STR) \
 		+define+TEST_VECTOR=$(TEST_VECTOR_STR) \
 		+define+MEM_DEPTH=$(MEM_DEPTH) \

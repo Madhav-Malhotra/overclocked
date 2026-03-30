@@ -199,6 +199,7 @@ class CPU : IDisposable
     }
 
     public void SetFetchEn(bool val) {
+        tick();
         set_fetch_en(val);
     }
 
@@ -210,6 +211,7 @@ class CPU : IDisposable
     }
 
     public void SetFdEn(bool val) {
+        tick();
         set_fd_en(val);
     }
 
@@ -223,6 +225,7 @@ class CPU : IDisposable
     }
 
     public void SetDxEn(bool val) {
+        tick();
         set_dx_en(val);
     }
 
@@ -235,6 +238,7 @@ class CPU : IDisposable
     }
 
     public void SetXmEn(bool val) {
+        tick();
         set_xm_en(val);
     }
 
@@ -247,6 +251,7 @@ class CPU : IDisposable
     }
 
     public void SetMwEn(bool val) {
+        tick();
         set_mw_en(val);
     }
 

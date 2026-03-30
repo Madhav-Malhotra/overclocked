@@ -139,7 +139,7 @@ class CPU : IDisposable
     public static extern void cleanup_design_wrapper();
 
     // WriteIMem puts the file's (located at `path`) contents (assembled instructions) into imem
-    public static void writeIMem(string path) {
+    public void writeIMem(string path) {
         try
         {
             string[] lines = File.ReadAllLines(path);

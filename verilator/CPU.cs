@@ -10,7 +10,7 @@ public struct CPUState {
 
     [MarshalAs(UnmanagedType.ByValArray, SizeConst = 32)]
     public uint[] regs;
-    public uint aluOut;      // Maps to uint32_t
+    public uint alu_out;     // Maps to uint32_t
                              // branch_comp.v output ports
     public byte br_eq;
     public byte br_lt;
@@ -195,7 +195,7 @@ class CPU : IDisposable
 
     public uint GetALUOut() {
         get_cpu_state(out this.state);
-        return this.state.aluOut;
+        return this.state.alu_out;
     }
 
     public void SetFetchEn(bool val) {

@@ -46,8 +46,38 @@ public struct CPUState {
     public uint data_rs2;       // [DATAW-1:0]
                                 // writeback.v output ports
     public uint wb_data; // dependent on DATAW=32
+
+    public uint dmem_data_in;
+    public uint wb_in_alu;
+    public uint mem;
+    public uint pc4;
 }
 
+// output structs after each corresponding enable signal is high
+// returned in the get_${stage} functions
+public record struct Fetch(uint pc);
+
+public record struct Fd(
+    uint fd_pc,
+    uint fd_pc4,
+    uint instruction
+);
+
+public record struct Dx(
+    uint addr_rs1,
+    uint addr_rs2
+);
+
+public record struct Xm(
+    uint alu_out,
+    uint dmem_data_in
+);
+
+public record struct Mw(
+    uint pc4,
+    uint wb_in_alu,
+    uint mem
+);
 enum Operation : byte {
     ADD = 0,
     SUB = 1,
@@ -172,23 +202,64 @@ class CPU : IDisposable
         set_fetch_en(val);
     }
 
+    public Fetch GetFetch() {
+        get_cpu_state(out this.state);
+        return new Fetch {
+            pc = this.state.pc
+        };
+    }
+
     public void SetFdEn(bool val) {
         set_fd_en(val);
+    }
+
+    public Fd GetFd() {
+        get_cpu_state(out this.state);
+        return new Fd {
+            fd_pc = this.state.pc,
+            fd_pc4 = this.state.pc4,
+            instruction = this.state.instruction
+        };
     }
 
     public void SetDxEn(bool val) {
         set_dx_en(val);
     }
 
+    public Dx GetDx() {
+        get_cpu_state(out this.state);
+        return new Dx {
+            addr_rs1 = this.state.addr_rs1,
+            addr_rs2 = this.state.addr_rs2,
+        };
+    }
+
     public void SetXmEn(bool val) {
         set_xm_en(val);
+    }
+
+    public Xm GetXm() {
+        get_cpu_state(out this.state);
+        return new Xm {
+            alu_out = this.state.alu_out,
+            dmem_data_in = this.state.dmem_data_in
+        };
     }
 
     public void SetMwEn(bool val) {
         set_mw_en(val);
     }
 
-    private CPUState state;
+    public Mw GetMw() {
+        get_cpu_state(out this.state);
+        return new Mw {
+            pc4 = this.state.pc4,
+            wb_in_alu = this.state.wb_in_alu,
+            mem = this.state.mem
+        };
+    }
+
+    private CPUState state; // TODO fix, the interface has the property, and this private var can't be used
     private bool disposed = false;
 
     // Constructor (initialized with path to level file)

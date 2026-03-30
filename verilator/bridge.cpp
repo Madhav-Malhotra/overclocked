@@ -51,17 +51,25 @@ struct CPUState {
     uint32_t data_rs2;       // [DATAW-1:0]
     // writeback.v
     uint32_t wb_data; // dependent on DATAW=32
+    //
+    // specific pipeline stages
+    // xm stage
+    uint32_t dmem_data_in;
+    // mw stage
+    uint32_t wb_in_alu;
+    uint32_t mem;
+    uint32_t pc4;
 };
 // CPU state := outputs of every module
 // pick modules here to add to the state (can be incremental)
 void get_cpu_state(CPUState* out_state) {
     if (!design || !out_state) return;
     out_state->pc          = design->rootp->design_wrapper__DOT__core__DOT__pc_r;
-    out_state->instruction = design->rootp->design_wrapper__DOT__core__DOT__imem1__DOT__data_out;
+    out_state->instruction = design->rootp->design_wrapper__DOT__core__DOT__instr_fd_w;
     for (int i = 0; i < 32; i++) {
         out_state->registers[i] = design->rootp->design_wrapper__DOT__core__DOT__rf1__DOT__regs[i];
     }
-    out_state->alu_out     = design->rootp->design_wrapper__DOT__core__DOT__al1__DOT__odata;
+    out_state->alu_out     = design->rootp->design_wrapper__DOT__core__DOT__alu_xm_r;
     // branch_comp.v
     out_state->br_eq = design->rootp->design_wrapper__DOT__core__DOT__br_eq;
     out_state->br_lt = design->rootp->design_wrapper__DOT__core__DOT__br_lt;
@@ -82,7 +90,7 @@ void get_cpu_state(CPUState* out_state) {
     out_state->addr_rd = design->rootp->design_wrapper__DOT__core__DOT__addr_rd_dx_r;
     out_state->addr_rs1 = design->rootp->design_wrapper__DOT__core__DOT__addr_rs1_dx_r;
     out_state->addr_rs2 = design->rootp->design_wrapper__DOT__core__DOT__addr_rs2_dx_r;
-    out_state->funct3 = design->rootp->design_wrapper__DOT__core__DOT__cs1__DOT__funct3_dx_r;
+    out_state->funct3 = design->rootp->design_wrapper__DOT__core__DOT__funct3_dx_r;
     out_state->funct7 = design->rootp->design_wrapper__DOT__core__DOT__cs1__DOT__funct7_dx_r;
     out_state->imm = design->rootp->design_wrapper__DOT__core__DOT__imm_dx_r;
     out_state->shamt = design->rootp->design_wrapper__DOT__core__DOT__shamt_w;
@@ -97,7 +105,15 @@ void get_cpu_state(CPUState* out_state) {
     out_state->data_rs1 = design->rootp->design_wrapper__DOT__core__DOT__rf1__DOT__data_rs1_r;
     out_state->data_rs2 = design->rootp->design_wrapper__DOT__core__DOT__rf1__DOT__data_rs2_r;
     // writeback.v
-    out_state->wb_data = design->rootp->design_wrapper__DOT__core__DOT__wb1__DOT__wb_data;
+    out_state->wb_data = design->rootp->design_wrapper__DOT__core__DOT__data_rd_w;
+
+    // more specific pipeline stage data:
+    // xm
+    out_state->dmem_data_in = design->rootp->design_wrapper__DOT__core__DOT__dmem_data_in;
+    // mw
+    out_state->wb_in_alu = design->rootp->design_wrapper__DOT__core__DOT__alu_mw_r;
+    out_state->mem = design->rootp->design_wrapper__DOT__core__DOT__data_mem_w_sized;
+    out_state->pc4 = design->rootp->design_wrapper__DOT__core__DOT__pc4_mw_r;
 }
 
 

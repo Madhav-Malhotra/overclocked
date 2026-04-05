@@ -5,7 +5,7 @@
 # VERILATOR_INC = ${VERILATOR_ROOT}/include
 
 MEM_PATH   ?= "../verilog/verif/data/rv32ui-p-add.x"
-LINE_COUNT := $(shell wc -l < $(MEM_PATH))
+LINE_COUNT := $(shell wc -l < $(MEM_PATH) | tr -d ' ')
 MEM_DEPTH  ?= 1048576
 
 # Variables for paths and flags
@@ -53,7 +53,7 @@ bridge:
 		$(VERILATOR_INC)/verilated.cpp \
 		$(VERILATOR_INC)/verilated_threads.cpp \
 		$(OBJ_DIR)/Vdesign_wrapper*.cpp \
-		bridge.cpp
+		bridge.cpp sc_time_stamp.cpp
 
 # Utility to clean up generated verilator, shared library files (not Unity)
 clean:

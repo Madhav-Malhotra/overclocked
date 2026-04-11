@@ -240,6 +240,27 @@ run_bench:
 		exit 1; \
 	fi
 
+# Usage: make run_stage_test BENCH=rv32ui-p-add
+.PHONY: run_stage_test
+run_stage_test:
+	@if [ -z "$(BENCH)" ]; then echo "ERROR: Set BENCH=<name>"; exit 1; fi
+	@# Find path and call make all in one go
+	@BENCH_FILE=$$(find $(BENCH_ROOT) -name "$(BENCH).x" | head -n 1); \
+	if [ -z "$$BENCH_FILE" ]; then \
+		echo "ERROR: Benchmark $(BENCH) not found in $(BENCH_ROOT)"; \
+		exit 1; \
+	fi; \
+	$(MAKE) all TEST=test_stage_en MEM_PATH=$$BENCH_FILE
+
+# Usage: make waves_stage_test BENCH=rv32ui-p-add
+.PHONY: waves_stage_test
+waves_stage_test:
+	@# Find the benchmark path to ensure we point to the right VCD filename
+	$(eval UNIT_PATH := $(shell find $(BENCH_ROOT) -name "$(BENCH).x" | head -n 1))
+	@if [ -z "$(UNIT_PATH)" ]; then echo "ERROR: BENCH=$(BENCH) not found"; exit 1; fi
+	@# Run the waves target with the TEST and MEM_PATH overrides
+	$(MAKE) waves TEST=test_stage_en MEM_PATH=$(UNIT_PATH) VCD=1
+
 # Help target
 .PHONY: help
 help:

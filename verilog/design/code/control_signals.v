@@ -5,6 +5,10 @@ module control_signals #(
 (
     input clock,
     input reset,
+    // pipeline enable signals for freezing the CPU
+    input dx_en,
+    input xm_en,
+    input mw_en,
     input [6:0] opcode_dx,
     input [6:0] opcode_xm,
     input [6:0] opcode_mw,
@@ -57,7 +61,7 @@ always @(posedge clock) begin
         funct3_dx_r <= 3'd0;
         funct7_dx_r <= 7'd0;
     end
-    else begin
+    else if (dx_en) begin
         funct3_dx_r <= funct3;
         funct7_dx_r <= funct7;
     end
@@ -166,7 +170,7 @@ always @(posedge clock) begin
         is_branch_xm_r <= 1'b0;
         is_ecall_xm_r <= 1'b0;
     end
-    else begin
+    else if (xm_en) begin
         is_store_xm_r <= is_store_x;
         is_load_xm_r <= is_load_x;
         is_jal_xm_r <= is_jal_x;
@@ -194,7 +198,7 @@ always @(posedge clock) begin
         is_jal_mw_r <= 1'b0;
         is_jalr_mw_r <= 1'b0;
     end
-    else begin
+    else if (mw_en) begin
         is_store_mw_r <= is_store_xm_r;
         is_branch_mw_r <= is_branch_xm_r;
         is_ecall_mw_r <= is_ecall_xm_r;

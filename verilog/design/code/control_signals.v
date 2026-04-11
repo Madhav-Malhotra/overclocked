@@ -1,3 +1,25 @@
+// =============================================================================
+// Module:      control_signals
+// Description: Generates all datapath control signals for the RV32I pipeline.
+//              Decodes opcode/funct3/funct7 from the DX stage and produces
+//              ALU op, branch logic, memory R/W, register write-enable, and
+//              writeback select. Also computes MX/WX forwarding selects for
+//              ALU inputs and the branch comparator.
+// Inputs:      clock, reset
+//              dx_en, xm_en, mw_en - pipeline stage enables (for internal regs)
+//              opcode_dx/xm/mw     - opcodes of instructions in each stage
+//              funct3, funct7      - function codes of the DX instruction
+//              br_eq, br_lt        - branch comparator outputs
+//              addr_rs1_dx, addr_rs2_dx - source register addresses in DX
+//              addr_rd_xm, addr_rd_mw   - destination register addresses in XM/MW
+// Outputs:     pc_sel, br_un, br_taken
+//              a_sel, b_sel            - ALU input forwarding selects (2-bit)
+//              branch_comp_data1/2_sel - branch comparator forwarding selects
+//              alu_sel                 - 4-bit ALU operation
+//              mem_rw                  - data memory write enable
+//              reg_wen                 - register file write enable
+//              wb_sel                  - 2-bit writeback source select
+// =============================================================================
 module control_signals #(
     parameter DATAW = 32,
     parameter ADDRW = $clog2(DATAW)

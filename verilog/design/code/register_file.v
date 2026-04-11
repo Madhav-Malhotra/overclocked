@@ -1,3 +1,18 @@
+// =============================================================================
+// Module:      register_file
+// Description: 32x32-bit register file with two read ports and one write port.
+//              x0 is not hardwired here; the write-enable gate is in pd.v.
+//              x2 (stack pointer) is initialised to BASE_ADDR + MEM_DEPTH.
+//              Reads and writes are registered (one-cycle latency).
+// Inputs:      clock        - clock
+//              write_enable - enables write to addr_rd on rising edge
+//              addr_rs1     - read address for port 1
+//              addr_rs2     - read address for port 2
+//              addr_rd      - write address
+//              data_rd      - data to write
+// Outputs:     data_rs1     - data from register addr_rs1 (registered)
+//              data_rs2     - data from register addr_rs2 (registered)
+// =============================================================================
 module register_file #(
     parameter DATAW = 32,
     parameter ADDRW = $clog2(DATAW),

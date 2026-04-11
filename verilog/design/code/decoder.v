@@ -1,3 +1,14 @@
+// =============================================================================
+// Module:      decoder
+// Description: Extracts all instruction fields and generates sign-extended
+//              immediates for all RV32I formats (R, I, S, B, U, J).
+//              Also identifies instruction type for stall logic in pd.v.
+// Inputs:      instr          - 32-bit raw instruction word
+// Outputs:     opcode, addr_rd, addr_rs1, addr_rs2, funct3, funct7
+//              imm            - sign-extended immediate (format-dependent)
+//              shamt          - shift amount (I-type shifts only)
+//              is_u_type_w, is_j_type_w, is_i_type_w - instruction type flags
+// =============================================================================
 module decoder #(
     parameter DATAW = 32,
     parameter ADDRW = $clog2(DATAW),

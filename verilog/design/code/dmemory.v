@@ -1,3 +1,15 @@
+// =============================================================================
+// Module:      dmemory
+// Description: Byte-addressable data memory for RV32I load/store instructions.
+//              Supports byte (SB/LB), halfword (SH/LH), and word (SW/LW) access.
+//              Initialised from MEM_PATH at simulation start.
+// Inputs:      clock       - write clock
+//              read_write  - 1 = write, 0 = read
+//              access_size - 2'b00 byte, 2'b01 halfword, 2'b10 word
+//              address     - byte address (absolute, BASE subtracted internally)
+//              data_in     - data to write
+// Outputs:     data_out    - data read from memory (registered, one-cycle latency)
+// =============================================================================
 module dmemory #(
     parameter integer BASE = 32'h01000000
 )

@@ -16,3 +16,6 @@ verilog/rv32-benchmarks/individual-instructions/test-*
 
 verilog/verif/diffs/spike/*
 .DS_Store
+
+# C# stuff
+*.sln

@@ -1,3 +1,16 @@
+// =============================================================================
+// Module:      imemory
+// Description: Read-only instruction memory implemented as block RAM.
+//              Word-addressed internally; byte address translated by subtracting
+//              START_ADDR and dividing by 4. Stalls fetch when enable is low.
+//              Initialised from MEM_PATH at simulation start.
+// Inputs:      clock      - read clock
+//              address    - byte address of instruction to fetch
+//              data_in    - unused (write port kept for interface symmetry)
+//              read_write - unused (hardwired to 0 in pd.v)
+//              enable     - gates the memory read; output holds when low
+// Outputs:     data_out   - 32-bit instruction word (registered, one-cycle latency)
+// =============================================================================
 module imemory(
     input             clock,
     input      [31:0] address,

@@ -1,4 +1,27 @@
-﻿using System;
+/*
+ * V0.1.0
+ * CPU.cs — C# wrapper around the Verilated RISC-V processor shared library.
+ *
+ * Provides a managed, object-oriented interface to the flat C API exported by
+ * bridge.cpp.  P/Invoke is used to call into the compiled shared library
+ * (libdesign_wrapper.so / design_wrapper.dll).
+ *
+ * Key responsibilities:
+ *   - Declare [DllImport] bindings for every extern "C" function in bridge.cpp.
+ *   - Expose per-stage helper structs (Fetch, Fd, Dx, Xm, Mw) so callers get
+ *     strongly-typed snapshots of each pipeline register.
+ *   - Wrap raw enable-setter calls in SetXxxEn() methods that also tick the
+ *     clock, matching the game's "advance one stage at a time" usage pattern.
+ *   - Implement IDisposable so cleanup_design_wrapper() is always called even
+ *     if an exception occurs.
+ *
+ * ⚠️ Keep this file in sync with bridge.cpp: whenever a new signal is added to
+ * CPUState in C++ or a new extern "C" function is added, mirror the change here.
+ *
+ * See verilator/README.md for build instructions.
+ */
+
+using System;
 using System.Runtime.InteropServices;
 
 [StructLayout(LayoutKind.Sequential, Pack = 1)]
@@ -138,7 +161,16 @@ class CPU : IDisposable
     [DllImport(NativeLib, CallingConvention = CallingConvention.Cdecl)]
     public static extern void cleanup_design_wrapper();
 
-    // WriteIMem puts the file's (located at `path`) contents (assembled instructions) into imem
+    /*
+     * writeIMem — Load a hex-encoded program file into instruction memory.
+     *
+     * Reads each line of the file at `path`, strips comments and optional "0x"
+     * prefixes, parses the remaining text as a 32-bit hex instruction, and writes
+     * it to imem via set_imem() starting at the base address 0x01000000.
+     * Blank lines and comment-only lines are skipped.
+     *
+     * @param path  Path to the hex file (one instruction word per line).
+     */
     public void writeIMem(string path) {
         try
         {
@@ -163,8 +195,13 @@ class CPU : IDisposable
         }
     }
 
-    // PrintState prints the state. Only select fields are shown, but more can be added. This is mostly a debugging function for development
-    // use get_cpu_state for the full struct data
+    /*
+     * PrintState — Print a human-readable summary of key CPU signals to stdout.
+     *
+     * Only a subset of fields (PC, instruction, ALU output, and a few registers)
+     * is shown for brevity.  Calls get_cpu_state() internally to refresh state.
+     * For the full signal snapshot use GetState().
+     */
     public void PrintState() {
         get_cpu_state(out this.state);
         Console.WriteLine(
@@ -178,31 +215,68 @@ class CPU : IDisposable
                 );
     }
 
+    /*
+     * GetState — Return a full snapshot of every observable CPU signal.
+     *
+     * Calls get_cpu_state() to refresh and returns the raw CPUState struct.
+     * Prefer the typed stage helpers (GetFetch, GetFd, …) when only one
+     * pipeline stage's signals are needed.
+     *
+     * @return  A CPUState struct populated with the current simulation state.
+     */
     public CPUState GetState() {
         get_cpu_state(out this.state);
         return this.state;
     }
 
+    /*
+     * GetPC — Return the current program counter value.
+     *
+     * @return  The pc field from the refreshed CPUState.
+     */
     public uint GetPC() {
         get_cpu_state(out this.state);
         return this.state.pc;
     }
 
+    /*
+     * GetInstruction — Return the instruction word currently in the Fetch/Decode register.
+     *
+     * @return  The instruction field from the refreshed CPUState.
+     */
     public uint GetInstruction() {
         get_cpu_state(out this.state);
         return this.state.instruction;
     }
 
+    /*
+     * GetALUOut — Return the ALU result register value (alu_xm_r).
+     *
+     * @return  The alu_out field from the refreshed CPUState.
+     */
     public uint GetALUOut() {
         get_cpu_state(out this.state);
         return this.state.alu_out;
     }
 
+    /*
+     * SetFetchEn — Enable/disable the Fetch stage and advance the clock.
+     *
+     * Ticks the clock before applying the enable so the prior stage's outputs
+     * are latched before the new enable takes effect.
+     *
+     * @param val  true to enable the Fetch stage; false to stall it.
+     */
     public void SetFetchEn(bool val) {
         tick();
         set_fetch_en(val);
     }
 
+    /*
+     * GetFetch — Return a typed snapshot of the Fetch stage outputs.
+     *
+     * @return  A Fetch record containing the current PC.
+     */
     public Fetch GetFetch() {
         get_cpu_state(out this.state);
         return new Fetch {
@@ -210,11 +284,21 @@ class CPU : IDisposable
         };
     }
 
+    /*
+     * SetFdEn — Enable/disable the Fetch→Decode pipeline register and advance the clock.
+     *
+     * @param val  true to enable the FD register; false to stall it.
+     */
     public void SetFdEn(bool val) {
         tick();
         set_fd_en(val);
     }
 
+    /*
+     * GetFd — Return a typed snapshot of the Fetch→Decode register contents.
+     *
+     * @return  An Fd record containing fd_pc, fd_pc4, and the instruction word.
+     */
     public Fd GetFd() {
         get_cpu_state(out this.state);
         return new Fd {
@@ -224,11 +308,21 @@ class CPU : IDisposable
         };
     }
 
+    /*
+     * SetDxEn — Enable/disable the Decode→Execute pipeline register and advance the clock.
+     *
+     * @param val  true to enable the DX register; false to stall it.
+     */
     public void SetDxEn(bool val) {
         tick();
         set_dx_en(val);
     }
 
+    /*
+     * GetDx — Return a typed snapshot of the Decode→Execute register contents.
+     *
+     * @return  A Dx record containing the source register addresses (addr_rs1, addr_rs2).
+     */
     public Dx GetDx() {
         get_cpu_state(out this.state);
         return new Dx {
@@ -237,11 +331,21 @@ class CPU : IDisposable
         };
     }
 
+    /*
+     * SetXmEn — Enable/disable the Execute→Memory pipeline register and advance the clock.
+     *
+     * @param val  true to enable the XM register; false to stall it.
+     */
     public void SetXmEn(bool val) {
         tick();
         set_xm_en(val);
     }
 
+    /*
+     * GetXm — Return a typed snapshot of the Execute→Memory register contents.
+     *
+     * @return  An Xm record containing alu_out and the data memory write value (dmem_data_in).
+     */
     public Xm GetXm() {
         get_cpu_state(out this.state);
         return new Xm {
@@ -250,11 +354,21 @@ class CPU : IDisposable
         };
     }
 
+    /*
+     * SetMwEn — Enable/disable the Memory→Writeback pipeline register and advance the clock.
+     *
+     * @param val  true to enable the MW register; false to stall it.
+     */
     public void SetMwEn(bool val) {
         tick();
         set_mw_en(val);
     }
 
+    /*
+     * GetMw — Return a typed snapshot of the Memory→Writeback register contents.
+     *
+     * @return  An Mw record containing pc4, wb_in_alu, and the memory read value (mem).
+     */
     public Mw GetMw() {
         get_cpu_state(out this.state);
         return new Mw {
@@ -267,7 +381,14 @@ class CPU : IDisposable
     private CPUState state; // TODO fix, the interface has the property, and this private var can't be used
     private bool disposed = false;
 
-    // Constructor (initialized with path to level file)
+    /*
+     * CPU — Initialize the Verilated model and load a program into instruction memory.
+     *
+     * Calls init_design_wrapper() to reset the simulation, then writeIMem() to
+     * populate imem from the hex file at `path`.
+     *
+     * @param path  Path to the hex program file (see writeIMem for format details).
+     */
     public CPU (string path) {
         this.state = new CPUState();
         init_design_wrapper();

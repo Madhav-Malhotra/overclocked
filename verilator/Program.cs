@@ -1,3 +1,9 @@
+/*
+ * This is JUST A DEMO of how to use the bridge (CPU.cs)
+ * You can write similar code within the Unity game engine to achieve desired 
+ * functionality. 
+ */
+
 // any other c# source code, e.g. Unity, can now have the following interaction with the CPU wrapper:
 // TODO: maybe wrap around the static functions imported from shared library. There should only be 1 instance at a time though
 //

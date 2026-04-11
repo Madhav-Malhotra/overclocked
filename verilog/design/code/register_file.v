@@ -14,39 +14,43 @@
 //              data_rs2     - data from register addr_rs2 (registered)
 // =============================================================================
 module register_file #(
-    parameter DATAW = 32,
-    parameter ADDRW = $clog2(DATAW),
-    parameter NUM_REGS = 32,
+    parameter DATAW     = 32,
+    parameter ADDRW     = $clog2(DATAW),
+    parameter NUM_REGS  = 32,
     parameter BASE_ADDR = 32'h01000000
 )
 (
     input clock,
     input write_enable,
-    input [ADDRW-1:0] addr_rs1,
-    input [ADDRW-1:0] addr_rs2,
-    input [ADDRW-1:0] addr_rd,
-    input [DATAW-1:0] data_rd,
-    output  [DATAW-1:0] data_rs1,
-    output  [DATAW-1:0] data_rs2
+    input  [ADDRW-1:0] addr_rs1,
+    input  [ADDRW-1:0] addr_rs2,
+    input  [ADDRW-1:0] addr_rd,
+    input  [DATAW-1:0] data_rd,
+    output [DATAW-1:0] data_rs1,
+    output [DATAW-1:0] data_rs2
 );
 
-// Signal declarations
+// ====================
+// SIGNALS + INIT
+// ====================
 (* ram_style = "block" *) reg [DATAW-1:0] regs [0:NUM_REGS-1];
-
+reg [DATAW-1:0] data_rs1_r;
+reg [DATAW-1:0] data_rs2_r;
 integer i;
+
 initial begin
     for (i = 0; i < NUM_REGS; i = i + 1) begin
         regs[i] = 32'h0;
     end
-    regs[2] = BASE_ADDR + `MEM_DEPTH; // stack pointer
+    // x2 is the stack pointer; initialise to top of memory
+    regs[2] = BASE_ADDR + `MEM_DEPTH;
 end
 
-reg [DATAW-1:0] data_rs1_r;
-reg [DATAW-1:0] data_rs2_r;
-
-// Sequential writes
+// ====================
+// READ/WRITE LOGIC
+// ====================
 always @(posedge clock) begin
-    // Write to any register (except x0 - moved check to control signals)
+    // x0 write guard is handled by reg_wen in control_signals.v
     if (write_enable) begin
         regs[addr_rd] <= data_rd;
     end

@@ -19,9 +19,9 @@ module branch_comp #(
     output br_lt
 );
 
-    assign br_eq = (idata1 == idata2);
-    assign br_lt = (br_un) ? 
-        ( $unsigned(idata1) < $unsigned(idata2) ) : 
-        ( idata1 < idata2 ); 
+assign br_eq = (idata1 == idata2);
+assign br_lt = (br_un) ?
+    ( $unsigned(idata1) < $unsigned(idata2) ) :
+    ( idata1 < idata2 );
 
 endmodule

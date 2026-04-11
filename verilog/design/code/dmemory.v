@@ -22,11 +22,16 @@ module dmemory #(
     output reg [31:0] data_out
 );
 
+// ====================
+// SIGNALS + INIT
+// ====================
 reg  [31:0] temp [0:`LINE_COUNT-1];
 reg  [7:0]  mem  [0:`MEM_DEPTH-1];
+// Convert absolute byte address to memory-relative offset
 wire [31:0] addr = address - BASE;
 integer i;
 
+// Load word-packed hex file then unpack into byte array (little-endian)
 initial begin
     $readmemh(`MEM_PATH, temp);
     for (i = 0; i < `LINE_COUNT; i = i + 1) begin
@@ -34,6 +39,9 @@ initial begin
     end
 end
 
+// ====================
+// READ/WRITE LOGIC
+// ====================
 always @(posedge clock) begin
     if (read_write == 1'b1) begin
         if (access_size == 2'd0) begin
@@ -44,6 +52,7 @@ always @(posedge clock) begin
             {mem[addr+3], mem[addr+2], mem[addr+1], mem[addr]} <= data_in;
         end
     end
+    // Read always occurs; caller ignores data_out on writes
     data_out <= {mem[addr+3], mem[addr+2], mem[addr+1], mem[addr]};
 end
 

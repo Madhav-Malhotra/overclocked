@@ -27,6 +27,6 @@ localparam WB_PC4 = 2'd2;
 assign wb_data = (wb_sel == WB_MEM) ? mem :
                  (wb_sel == WB_ALU) ? alu :
                  (wb_sel == WB_PC4) ? pc4 :
-                 32'b0; 
+                 32'b0;
 
 endmodule

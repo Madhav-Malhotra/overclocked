@@ -1,3 +1,14 @@
+// =============================================================================
+// Module:      pd
+// Description: Top-level 5-stage pipelined RV32I processor.
+//              Stages: Fetch (F) -> Decode (D) -> Execute (X) -> Memory (M) -> Writeback (W).
+//              Implements hazard detection (load, write-data, load-store, store-rs2 stalls),
+//              MX/WX/WM data forwarding, and branch resolution in the execute stage
+//              (predict not-taken, 1-cycle penalty on taken branch).
+// Inputs:      clock - processor clock
+//              reset - synchronous reset; returns PC to BASE_ADDR
+// Outputs:     (none - all state is internal; testbench probes internal signals)
+// =============================================================================
 module pd #(
   parameter DATAW = 32,
   parameter BASE_ADDR = 32'h01000000,

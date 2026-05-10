@@ -1,3 +1,13 @@
+// =============================================================================
+// Module:      writeback
+// Description: Selects the data written back to the register file.
+//              Chooses between ALU result, memory load data, and PC+4 (for JAL/JALR).
+// Inputs:      alu    - result from the ALU
+//              mem    - data read from data memory (already sign/zero-extended)
+//              pc4    - PC+4 value from the memory stage
+//              wb_sel - 2-bit selector: WB_MEM=0, WB_ALU=1, WB_PC4=2
+// Outputs:     wb_data - value written to the register file
+// =============================================================================
 module writeback #(
     parameter DATAW = 32
 )
@@ -17,6 +27,6 @@ localparam WB_PC4 = 2'd2;
 assign wb_data = (wb_sel == WB_MEM) ? mem :
                  (wb_sel == WB_ALU) ? alu :
                  (wb_sel == WB_PC4) ? pc4 :
-                 32'b0; 
+                 32'b0;
 
 endmodule

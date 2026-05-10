@@ -17,6 +17,7 @@ class ControlSignals(BaseModel):
     mw_en: Optional[bool] = None
 
 class ToggleUpdate(BaseModel):
+    """ Schema contining 1 boolean indicating the desired state of the Enable signal """
     en: bool
 
 class Outputs(BaseModel):

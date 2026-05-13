@@ -15,6 +15,7 @@ module alu #(
     input signed [IDATAW-1:0] idata1,
     input signed [IDATAW-1:0] idata2,
     input [3:0] alu_sel,
+    input mul_sel,
     output reg signed [ODATAW-1:0] odata
 );
 
@@ -69,5 +70,9 @@ always @(*) begin
         default: odata = 0;
     endcase
 end
+
+// always @(posedge clk) begin
+
+// end 
 
 endmodule

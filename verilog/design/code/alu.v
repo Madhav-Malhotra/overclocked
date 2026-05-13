@@ -1,8 +1,9 @@
 // =============================================================================
 // Module:      alu
-// Description: 10-operation arithmetic logic unit for RV32I.
+// Description: Arithmetic logic unit for RV32I.
 //              Supports ADD, SUB, shifts (SLL/SRL/SRA), logical (XOR/OR/AND),
-//              comparisons (SLT/SLTU), and NOP (pass-through idata2 for LUI).
+//              comparisons (SLT/SLTU), NOP (pass-through idata2 for LUI), and 
+//              MUL (low 32b product).
 // Inputs:      idata1, idata2 - 32-bit operands
 //              alu_sel        - 4-bit operation selector
 // Outputs:     odata          - 32-bit result

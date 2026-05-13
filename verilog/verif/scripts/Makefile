@@ -93,8 +93,7 @@ CMP_WB_SPIKE     := $(SCRIPTS_DIR)/cmp_wb_spike.py
 SPIKE_DIFF_DIR   := $(CL_ROOT)/verif/diffs/spike
 
 PARALLEL_RUNNER := $(SCRIPTS_DIR)/run_benchmarks_parallel.py
-JOBS            ?= $(shell sysctl -n hw.ncpu)
-# JOBS            ?= $(shell nproc)
+JOBS := $(shell nproc 2>/dev/null || sysctl -n hw.ncpu)
 
 # Build benchmarks from source (.s and .c -> .elf + .x)
 # Always cleans first to ensure .elf and .x are both derived from current .s/.c sources

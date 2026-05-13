@@ -8,7 +8,7 @@ OBJCOPY = $(RISCV_PREFIX)objcopy
 OBJDUMP = $(RISCV_PREFIX)objdump
 
 # Flags
-ASFLAGS = -march=rv32i -mabi=ilp32
+ASFLAGS = -march=rv32im -mabi=ilp32 
 LDFLAGS = -T../riscv32.ld -nostdlib
 
 # Find all *.s files (excludes template-test.s which has no _start)

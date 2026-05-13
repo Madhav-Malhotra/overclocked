@@ -93,7 +93,8 @@ CMP_WB_SPIKE     := $(SCRIPTS_DIR)/cmp_wb_spike.py
 SPIKE_DIFF_DIR   := $(CL_ROOT)/verif/diffs/spike
 
 PARALLEL_RUNNER := $(SCRIPTS_DIR)/run_benchmarks_parallel.py
-JOBS            ?= $(shell nproc)
+JOBS            ?= $(shell sysctl -n hw.ncpu)
+# JOBS            ?= $(shell nproc)
 
 # Build benchmarks from source (.s and .c -> .elf + .x)
 # Always cleans first to ensure .elf and .x are both derived from current .s/.c sources
@@ -273,7 +274,8 @@ help:
 	@echo "  make run_all_benchmarks_no_build - Same but skip rebuild (benchmarks already built)"
 	@echo "  make verify_all                  - Alias for run_all_benchmarks"
 	@echo "  make build_benchmarks            - Compile .s/.c sources into .elf + .x (no simulation)"
-	@echo "  JOBS=N make run_all_benchmarks   - Override parallelism (default: nproc=$(JOBS))"
+	@echo "  JOBS=N make run_all_benchmarks   - Override parallelism (default: sysctl -n hw.ncpu=$(JOBS))"
+# 	@echo "  JOBS=N make run_all_benchmarks   - Override parallelism (default: nproc=$(JOBS))"
 	@echo ""
 	@echo "Build & Run Targets:"
 	@echo "  make all                    - Build simulation directory, compile, and run (default target)"

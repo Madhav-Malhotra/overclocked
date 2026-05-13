@@ -75,6 +75,8 @@ localparam XOR = 4'd7;
 localparam OR = 4'd8;
 localparam AND = 4'd9;
 localparam NOP = 4'd10;
+localparam MUL = 4'd11;
+
 
 // wb_sel encoding
 localparam WB_MEM = 2'd0;
@@ -188,7 +190,7 @@ assign alu_sel =    (is_lui_x) ? NOP :
                     (is_auipc_x || is_jal_x || is_jalr_x || is_load_x || is_store_x || is_branch_x) ? ADD :
                     (is_alu_x && funct7_dx_r == 'h20) ? ((funct3_dx_r == 'h0) ? SUB : SRA) :
                     (is_alu_x || is_alu_imm_x) ?
-                        ((funct3_dx_r == 'h0) ? ADD :
+                        ((funct3_dx_r == 'h0) ? ((funct7_dx_r == 'h1) ? MUL : ADD) :
                         (funct3_dx_r == 'h1) ? SLL :
                         (funct3_dx_r == 'h2) ? SLT :
                         (funct3_dx_r == 'h3) ? SLTU :

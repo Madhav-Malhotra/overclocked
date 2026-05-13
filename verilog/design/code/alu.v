@@ -14,6 +14,7 @@ module alu #(
     input signed [IDATAW-1:0] idata1,
     input signed [IDATAW-1:0] idata2,
     input [3:0] alu_sel,
+    input multi_sel,
     output reg signed [ODATAW-1:0] odata
 );
 
@@ -32,6 +33,9 @@ localparam OR   = 4'd8;
 localparam AND  = 4'd9;
 // Pass idata2 through unchanged; used by LUI which needs imm with no addend
 localparam NOP  = 4'd10;
+localparam DIV = 4'd12;
+localparam DIVU = 4'd13;
+
 
 reg [ODATAW-1:0] mask;
 
@@ -63,8 +67,29 @@ always @(*) begin
         end
         SLT:  odata = (idata1 < idata2) ? 1 : 0;
         SLTU: odata = ($unsigned(idata1) < $unsigned(idata2)) ? 1 : 0;
+        DIV: begin
+            if (multi_sel) begin 
+                // Use pipelined version
+            end 
+            // If division by 0, set to -1
+            else odata = (idata2 == 'h0) ? 32'hFFFFFFFF : idata1 / idata2;
+        end 
+        DIVU: begin
+            if (multi_sel) begin 
+                // Use pipelined version
+            end 
+            // If division by 0, set to -1
+            else odata = (idata2 == 'h0) ? 32'hFFFFFFFF : idata1 / idata2;
+        end 
         default: odata = 0;
     endcase
 end
+
+
+
+// ====================
+// PIPELINED DIVIDER
+// ====================
+
 
 endmodule

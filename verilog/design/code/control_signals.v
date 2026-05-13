@@ -75,6 +75,8 @@ localparam XOR = 4'd7;
 localparam OR = 4'd8;
 localparam AND = 4'd9;
 localparam NOP = 4'd10;
+localparam DIV = 4'd12;
+localparam DIVU = 4'd13;
 
 // wb_sel encoding
 localparam WB_MEM = 2'd0;
@@ -192,8 +194,8 @@ assign alu_sel =    (is_lui_x) ? NOP :
                         (funct3_dx_r == 'h1) ? SLL :
                         (funct3_dx_r == 'h2) ? SLT :
                         (funct3_dx_r == 'h3) ? SLTU :
-                        (funct3_dx_r == 'h4) ? XOR :
-                        (funct3_dx_r == 'h5 && funct7_dx_r == 'h0) ? SRL :
+                        (funct3_dx_r == 'h4) ? ((funct7_dx_r == 'h0) ? XOR : DIV) : // divider added
+                        (funct3_dx_r == 'h5) ? ((funct7_dx_r == 'h0) ? SRL : DIVU) : // unsigned divider added
                         (funct3_dx_r == 'h5 && funct7_dx_r == 'h20) ? SRA :
                         (funct3_dx_r == 'h6) ? OR :
                         (funct3_dx_r == 'h7) ? AND :

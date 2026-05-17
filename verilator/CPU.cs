@@ -74,6 +74,22 @@ public struct CPUState {
     public uint wb_in_alu;
     public uint mem;
     public uint pc4;
+
+    // overriding the ToString() function so the string representation is easier to read during debugging
+    public override string ToString()
+    {
+        string regHex = regs != null
+        ? string.Join(", ", Array.ConvertAll(regs, r => $"0x{r:X8}"))
+        : string.Empty;
+
+        return $"PC: 0x{pc:X8} | Instr: 0x{instruction:X8} | ALU: 0x{alu_out:X8}\n" +
+            $"Regs: [{regHex}]\n" +
+            $"Reg Data-> rs1_val: 0x{data_rs1:X8}, rs2_val: 0x{data_rs2:X8}\n" +
+            $"Signals -> eq: 0x{br_eq:X}, lt: 0x{br_lt:X}, un: 0x{br_un:X}, taken: 0x{br_taken:X} | bc_sel1: 0x{branch_comp_data1_sel:X}, bc_sel2: 0x{branch_comp_data2_sel:X} | pc_sel: 0x{pc_sel:X}, a_sel: 0x{a_sel:X}, b_sel: 0x{b_sel:X}, alu_sel: 0x{alu_sel:X1}, mem_rw: 0x{mem_rw:X}, reg_wen: 0x{reg_wen:X}, wb_sel: 0x{wb_sel:X}\n" +
+            $"Decode  -> op: 0x{opcode:X2}, rd: 0x{addr_rd:X2}, rs1: 0x{addr_rs1:X2}, rs2: 0x{addr_rs2:X2}, f3: 0x{funct3:X1}, f7: 0x{funct7:X2}, imm: 0x{imm:X8}, shamt: 0x{shamt:X2} | types(u/j/i): {is_u_type_w}/{is_j_type_w}/{is_i_type_w}\n" +
+            $"Memory  -> imem_out: 0x{imem_data_out:X8}, dmem_in: 0x{dmem_data_in:X8}, dmem_out: 0x{dmem_data_out:X8}\n" +
+            $"Pipeline-> wb_data: 0x{wb_data:X8}, wb_in_alu: 0x{wb_in_alu:X8}, mem: 0x{mem:X8}, pc4: 0x{pc4:X8}";
+    }
 }
 
 // output structs after each corresponding enable signal is high

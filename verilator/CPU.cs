@@ -25,7 +25,8 @@ using System;
 using System.Runtime.InteropServices;
 
 [StructLayout(LayoutKind.Sequential, Pack = 1)]
-public struct CPUState {
+public struct CPUState
+{
     // MUST stay sync'ed with CPUState in C++, since we pass the struct ptr
     // order must match the CPUState definition
     public uint pc;          // Maps to uint32_t
@@ -37,16 +38,16 @@ public struct CPUState {
                              // branch_comp.v output ports
     public byte br_eq;
     public byte br_lt;
-    public byte branch_comp_data1_sel; // 
-    public byte branch_comp_data2_sel; // 
-    public byte br_taken;              // 
-    public byte pc_sel;                // 
-    public byte br_un;                 // 
+    public byte branch_comp_data1_sel; //
+    public byte branch_comp_data2_sel; //
+    public byte br_taken;              //
+    public byte pc_sel;                //
+    public byte br_un;                 //
     public byte a_sel;                 // [1:0]
     public byte b_sel;                 // [1:0]
     public byte alu_sel;               // [3:0]
-    public byte mem_rw;                // 
-    public byte reg_wen;               // 
+    public byte mem_rw;                //
+    public byte reg_wen;               //
     public byte wb_sel;                // [1:0]
                                        // decoder.v output ports
     public byte opcode;         // [6:0]
@@ -119,7 +120,8 @@ public record struct Mw(
     uint wb_in_alu,
     uint mem
 );
-enum Operation : byte {
+enum Operation : byte
+{
     ADD = 0,
     SUB = 1,
     SLL = 2,
@@ -133,7 +135,8 @@ enum Operation : byte {
 }
 
 // Bridge CPU interface to abstract FPGA/Verilator backend from Unity.
-public interface ICPU {
+public interface ICPU
+{
     // CPUState struct representing all module outputs.
     CPUState state { get; } // TODO make this var name uppercase
     // Tick advances the clock to mark the end of a CPU cycle.
@@ -182,7 +185,7 @@ public static class CPUFactory
         return type switch
         {
             ImplementationType.Verilator => new VerilatorClient(levelPath),
-            //ImplementationType.FPGA      => new FPGAClient(levelPath),
+            //ImplementationType.FPGA => new FPGAClient(levelPath),
             _ => throw new System.ArgumentException("Invalid Implementation Type")
         };
     }

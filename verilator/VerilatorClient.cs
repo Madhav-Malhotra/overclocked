@@ -49,7 +49,8 @@ public class VerilatorClient : IDisposable, ICPU
     public static extern void cleanup_design_wrapper();
 
 
-    public void Tick() {
+    public void Tick()
+    {
         tick();
         return;
     }
@@ -63,7 +64,8 @@ public class VerilatorClient : IDisposable, ICPU
      *
      * @param path  Path to the hex file (one instruction word per line).
      */
-    public void writeIMem(string path) {
+    public void writeIMem(string path)
+    {
         try
         {
             string[] lines = File.ReadAllLines(path);
@@ -71,7 +73,7 @@ public class VerilatorClient : IDisposable, ICPU
             foreach (string line in lines)
             {
                 // Clean the line (remove comments, whitespace, or '0x' prefix)
-                string cleanLine = line.Split("//")[0].Trim(); 
+                string cleanLine = line.Split("//")[0].Trim();
                 if (string.IsNullOrEmpty(cleanLine)) continue;
                 if (cleanLine.StartsWith("0x")) cleanLine = cleanLine.Substring(2); // cut off 0x
                                                                                     // Parse hex string to 32-bit uint
@@ -90,10 +92,12 @@ public class VerilatorClient : IDisposable, ICPU
     /*
      * PrintState — Print a human-readable summary of key CPU signals to stdout.
      *
+
      * Calls GetState() internally to refresh state.
      * To access fields of full signal snapshot use GetState().
      */
-    public void PrintState() {
+    public void PrintState()
+    {
         GetState();
         Console.WriteLine(this.state);
     }
@@ -107,7 +111,8 @@ public class VerilatorClient : IDisposable, ICPU
      *
      * @return  A CPUState struct populated with the current simulation state.
      */
-    public CPUState GetState() {
+    public CPUState GetState()
+    {
         CPUState state;
         get_cpu_state(out state);
         this.state = state;
@@ -119,7 +124,8 @@ public class VerilatorClient : IDisposable, ICPU
      *
      * @return  The pc field from the refreshed CPUState.
      */
-    public uint GetPC() {
+    public uint GetPC()
+    {
         GetState();
         return this.state.pc;
     }
@@ -129,7 +135,8 @@ public class VerilatorClient : IDisposable, ICPU
      *
      * @return  The instruction field from the refreshed CPUState.
      */
-    public uint GetInstruction() {
+    public uint GetInstruction()
+    {
         GetState();
         return this.state.instruction;
     }
@@ -139,7 +146,8 @@ public class VerilatorClient : IDisposable, ICPU
      *
      * @return  The alu_out field from the refreshed CPUState.
      */
-    public uint GetALUOut() {
+    public uint GetALUOut()
+    {
         GetState();
         return this.state.alu_out;
     }
@@ -148,13 +156,14 @@ public class VerilatorClient : IDisposable, ICPU
      * SetFetchEn — Enable/disable the Fetch stage and advance the clock.
      *
      * Apply the enable value. The new value is latched at the next cycle.
-     * This function call should typically be followed by a GetFetch() to 
+     * This function call should typically be followed by a GetFetch() to
      * retrieve the outputs of the Fetch stage.
      * Each SetFetchEn(true) must have a corresponding SetFetchEn(false).
      *
      * @param val  true to enable the Fetch stage; false to stall it.
      */
-    public void SetFetchEn(bool val) {
+    public void SetFetchEn(bool val)
+    {
         set_fetch_en(val);
     }
 
@@ -163,9 +172,11 @@ public class VerilatorClient : IDisposable, ICPU
      *
      * @return  A Fetch record containing the current PC.
      */
-    public Fetch GetFetch() {
+    public Fetch GetFetch()
+    {
         GetState();
-        return new Fetch {
+        return new Fetch
+        {
             pc = this.state.pc
         };
     }
@@ -174,13 +185,14 @@ public class VerilatorClient : IDisposable, ICPU
      * SetFdEn — Enable/disable the Fetch→Decode pipeline register and advance the clock.
      *
      * Apply the enable value. The new value is latched at the next cycle.
-     * This function call should typically be followed by a GetFd() to 
+     * This function call should typically be followed by a GetFd() to
      * retrieve the outputs of the Fetch-Decode stage.
      * Each SetFdEn(true) must have a corresponding SetFdEn(false).
      *
      * @param val  true to enable the FD register; false to stall it.
      */
-    public void SetFdEn(bool val) {
+    public void SetFdEn(bool val)
+    {
         set_fd_en(val);
     }
 
@@ -189,7 +201,8 @@ public class VerilatorClient : IDisposable, ICPU
      *
      * @return  An Fd record containing fd_pc, fd_pc4, and the instruction word.
      */
-    public Fd GetFd() {
+    public Fd GetFd()
+    {
         GetState();
         return new Fd
         {
@@ -203,13 +216,14 @@ public class VerilatorClient : IDisposable, ICPU
      * SetDxEn — Enable/disable the Decode→Execute pipeline register and advance the clock.
      *
      * Apply the enable value. The new value is latched at the next cycle.
-     * This function call should typically be followed by a GetDx() to 
+     * This function call should typically be followed by a GetDx() to
      * retrieve the outputs of the Decode-Execute stage.
      * Each SetDxEn(true) must have a corresponding SetDxEn(false).
      *
      * @param val  true to enable the DX register; false to stall it.
      */
-    public void SetDxEn(bool val) {
+    public void SetDxEn(bool val)
+    {
         set_dx_en(val);
     }
 
@@ -218,9 +232,11 @@ public class VerilatorClient : IDisposable, ICPU
      *
      * @return  A Dx record containing the source register addresses (addr_rs1, addr_rs2).
      */
-    public Dx GetDx() {
+    public Dx GetDx()
+    {
         GetState();
-        return new Dx {
+        return new Dx
+        {
             addr_rs1 = this.state.addr_rs1,
             addr_rs2 = this.state.addr_rs2,
         };
@@ -231,13 +247,14 @@ public class VerilatorClient : IDisposable, ICPU
      *
      *
      * Apply the enable value. The new value is latched at the next cycle.
-     * This function call should typically be followed by a GetXm() to 
+     * This function call should typically be followed by a GetXm() to
      * retrieve the outputs of the Execute-Memory stage.
      * Each SetXmEn(true) must have a corresponding SetXmEn(false).
      *
      * @param val  true to enable the XM register; false to stall it.
      */
-    public void SetXmEn(bool val) {
+    public void SetXmEn(bool val)
+    {
         set_xm_en(val);
     }
 
@@ -246,9 +263,11 @@ public class VerilatorClient : IDisposable, ICPU
      *
      * @return  An Xm record containing alu_out and the data memory write value (dmem_data_in).
      */
-    public Xm GetXm() {
+    public Xm GetXm()
+    {
         GetState();
-        return new Xm {
+        return new Xm
+        {
             alu_out = this.state.alu_out,
             dmem_data_in = this.state.dmem_data_in
         };
@@ -259,13 +278,14 @@ public class VerilatorClient : IDisposable, ICPU
      *
      *
      * Apply the enable value. The new value is latched at the next cycle.
-     * This function call should typically be followed by a GetMw() to 
+     * This function call should typically be followed by a GetMw() to
      * retrieve the outputs of the Memory-Writeback stage.
      * Each SetMwEn(true) must have a corresponding SetMwEn(false).
      *
      * @param val  true to enable the MW register; false to stall it.
      */
-    public void SetMwEn(bool val) {
+    public void SetMwEn(bool val)
+    {
         set_mw_en(val);
     }
 
@@ -274,7 +294,8 @@ public class VerilatorClient : IDisposable, ICPU
      *
      * @return  An Mw record containing pc4, wb_in_alu, and the memory read value (mem).
      */
-    public Mw GetMw() {
+    public Mw GetMw()
+    {
         GetState();
         return new Mw
         {
@@ -295,7 +316,8 @@ public class VerilatorClient : IDisposable, ICPU
      *
      * @param path  Path to the hex program file (see writeIMem for format details).
      */
-    public VerilatorClient(string path) {
+    public VerilatorClient(string path)
+    {
         this.state = new CPUState();
         init_design_wrapper();
         writeIMem(path);
@@ -326,11 +348,11 @@ public class VerilatorClient : IDisposable, ICPU
     protected virtual void Dispose(bool disposing)
     {
         // Check to see if Dispose has already been called.
-        if(!this.disposed)
+        if (!this.disposed)
         {
             // If disposing equals true, dispose all managed
             // and unmanaged resources.
-            if(disposing)
+            if (disposing)
             {
                 // Dispose managed resources.
                 // nothing in this class is currently managed, just the unmanaged bridge memory below

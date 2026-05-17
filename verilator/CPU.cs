@@ -97,13 +97,25 @@ public struct CPUState
 
 // output structs after each corresponding enable signal is high
 // returned in the get_${stage} functions
-public record struct Fetch(uint pc);
+public record struct Fetch(uint pc)
+{
+    public override string ToString()
+    {
+        return $"Fetch {{ pc = 0x{pc:X8} }}";
+    }
+};
 
 public record struct Fd(
     uint fd_pc,
     uint fd_pc4,
     uint instruction
-);
+    )
+{
+    public override string ToString()
+    {
+        return $"Fd {{ fd_pc = 0x{fd_pc:X8}, fd_pc = 0x{fd_pc4:X8}, instruction = 0x{instruction:X8} }}";
+    }
+};
 
 public record struct Dx(
     uint addr_rs1,

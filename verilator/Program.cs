@@ -5,48 +5,76 @@
  */
 
 // any other c# source code, e.g. Unity, can now have the following interaction with the CPU wrapper:
-// TODO: maybe wrap around the static functions imported from shared library. There should only be 1 instance at a time though
-//
 class Program {
     static void Main(string[] args) {
-        var myCpu = new CPU("level1.txt");
+        ICPU myCpu = CPUFactory.Create(CPUFactory.ImplementationType.Verilator, "level1.txt");
+        Action printAllStages =  delegate () // use for pretty-printing all pipeline stages in debugging
+        {
+            Console.WriteLine(
+                    $"{myCpu.GetFetch(),-30}" + // only needs to be wide enough for the instruction in PC
+                    $"{myCpu.GetFd(),-75}" +
+                    $"{myCpu.GetDx(), -40}" +
+                    $"{myCpu.GetXm(), -50}" +
+                    $"{myCpu.GetMw(), -40}"
+                    );
+            Console.WriteLine("=============");
+        };
+        Action printOutput = delegate () // use for pretty-printing all outputs in debugging
+        {
+            myCpu.PrintState();
+            Console.WriteLine("=============");
+        };
         //uncomment for normal CPU operation
-        //myCpu.SetFetchEn(true);
-        //myCpu.SetFdEn(true);
-        //myCpu.SetDxEn(true);
-        //myCpu.SetXmEn(true);
-        //myCpu.SetMwEn(true);
+        /*
+        myCpu.SetFetchEn(true);
+        myCpu.SetFdEn(true);
+        myCpu.SetDxEn(true);
+        myCpu.SetXmEn(true);
+        myCpu.SetMwEn(true);
+        for (int i = 0; i < 10; i ++)
+        {
+            myCpu.Tick();
+            printOutput();
+        }
+        */
         //// now advance the instruction through the stages
-        for(int i=0; i<20; i++) {
-            //CPU.tick();
-            if (i == 1) myCpu.SetFetchEn(true);
-            // read pc_r wire output
-            //Console.WriteLine(myCpu.GetFetch());
-            // can also retrieve a specific field of the pipeline register
-            // Console.WriteLine(myCpu.GetFetch().pc);
-            if (i == 2) myCpu.SetFetchEn(false);
+        for (int i = 1; i <= 2; i ++)
+        {
+            Console.WriteLine($"running instruction: {i}");
+            printOutput();
+            myCpu.SetFetchEn(true);
+            myCpu.Tick();
+            printOutput();
+            myCpu.SetFetchEn(false);
+            myCpu.Tick();
+            printOutput();
 
-            if (i == 3) myCpu.SetFdEn(true);
-            // read the instruction output
-            //Console.WriteLine(myCpu.GetFd());
-            if (i == 4) myCpu.SetFdEn(false);
+            myCpu.SetFdEn(true);
+            myCpu.Tick();
+            printOutput();
+            myCpu.SetFdEn(false);
+            myCpu.Tick();
+            printOutput();
 
-            if (i == 5) myCpu.SetDxEn(true);
-            // read reg file output
-            //Console.WriteLine(myCpu.GetDx());
-            if (i == 6) myCpu.SetDxEn(false);
+            myCpu.SetDxEn(true);
+            myCpu.Tick();
+            printOutput();
+            myCpu.SetDxEn(false);
+            myCpu.Tick();
+            printOutput();
 
-            if (i == 7) myCpu.SetXmEn(true);
-            // read the ALU output data w, addr input to DMEM
-            //Console.WriteLine(myCpu.GetXm());
-            if (i == 8) myCpu.SetXmEn(false);
+            myCpu.SetXmEn(true);
+            myCpu.Tick();
+            printOutput();
+            myCpu.SetXmEn(false);
+            myCpu.Tick();
+            printOutput();
 
-            if (i == 9) myCpu.SetMwEn(true);
-            // should read input to WB Mux: mem output, alu, pc +4
-            //Console.WriteLine(myCpu.GetMw());
-            if (i == 10) myCpu.SetMwEn(false);
-
-            //myCpu.PrintState();
+            myCpu.SetMwEn(true);
+            myCpu.Tick();
+            printOutput();
+            myCpu.SetMwEn(false);
+            myCpu.Tick();
         }
     }
 }

@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from typing import Annotated, Optional
+from typing import Annotated, List, Optional
 from pydantic import BaseModel, Field
 
 """ This file contains the minimal fastAPI server used to set variables in memory shared with the FPGA """
@@ -7,6 +7,10 @@ app = FastAPI()
 
 # var naming: snake_case within python variables, but presenting camelCase to API
 # using camelCase in the API endpoints as well to keep consistency with the value
+
+class IMem(BaseModel):
+    """ Schema containing instruction memory content """
+    mem: List[int] = []
 
 class ControlSignals(BaseModel):
     """ Schema containing all pipline register control signals """
@@ -70,6 +74,11 @@ class Outputs(BaseModel):
             }
         }
 
+
+""" in-memory instance of the IMem (instruction memory contents """
+imem = IMem(
+    mem=[]
+)
 
 """ in-memory instance of the ControlSignals class """
 control_signals = ControlSignals(
@@ -138,13 +147,21 @@ def get_state():
     """ Return all modules' output signals """
     return outputs
 
+@app.post("/imem/update", response_model=IMem)
+def update_imem(payload: IMem):
+    """ Update imem contents to payload """
+    imem.mem = payload.mem
+    #print([f"0x{num:08X}" for num in imem.mem]) # debugging
+    return imem
+
 @app.post("/controls/update", response_model=ControlSignals)
 def update_data(payload: ControlSignals):
     """ Update multiple control signals """
     data = payload.dict()
     for key, value in data.items():
-        if key in control_signals:
-            control_signals.update({key: value})
+        if hasattr(control_signals, key):
+            setattr(control_signals, key, value)
+            print(f"{key} is in cotnrol signals object")
         else: 
             errMsg = f"{key} not in control signals object"
             print(errMsg)

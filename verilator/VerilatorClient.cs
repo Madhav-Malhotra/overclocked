@@ -48,6 +48,11 @@ public class VerilatorClient : IDisposable, ICPU
     [DllImport(NativeLib, CallingConvention = CallingConvention.Cdecl)]
     public static extern void cleanup_design_wrapper();
 
+
+    public void Tick() {
+        tick();
+        return;
+    }
     /*
      * writeIMem — Load a hex-encoded program file into instruction memory.
      *
@@ -151,7 +156,7 @@ public class VerilatorClient : IDisposable, ICPU
     /*
      * SetFetchEn — Enable/disable the Fetch stage and advance the clock.
      *
-     * Apply the enable value, then tick the clock to latch the outputs.
+     * Apply the enable value. The new value is latched at the next cycle.
      * This function call should typically be followed by a GetFetch() to 
      * retrieve the outputs of the Fetch stage.
      * Each SetFetchEn(true) must have a corresponding SetFetchEn(false).
@@ -160,7 +165,6 @@ public class VerilatorClient : IDisposable, ICPU
      */
     public void SetFetchEn(bool val) {
         set_fetch_en(val);
-        tick();
     }
 
     /*
@@ -178,7 +182,7 @@ public class VerilatorClient : IDisposable, ICPU
     /*
      * SetFdEn — Enable/disable the Fetch→Decode pipeline register and advance the clock.
      *
-     * Apply the enable value, then tick the clock to latch the outputs.
+     * Apply the enable value. The new value is latched at the next cycle.
      * This function call should typically be followed by a GetFd() to 
      * retrieve the outputs of the Fetch-Decode stage.
      * Each SetFdEn(true) must have a corresponding SetFdEn(false).
@@ -187,7 +191,6 @@ public class VerilatorClient : IDisposable, ICPU
      */
     public void SetFdEn(bool val) {
         set_fd_en(val);
-        tick();
     }
 
     /*
@@ -207,7 +210,7 @@ public class VerilatorClient : IDisposable, ICPU
     /*
      * SetDxEn — Enable/disable the Decode→Execute pipeline register and advance the clock.
      *
-     * Apply the enable value, then tick the clock to latch the outputs.
+     * Apply the enable value. The new value is latched at the next cycle.
      * This function call should typically be followed by a GetDx() to 
      * retrieve the outputs of the Decode-Execute stage.
      * Each SetDxEn(true) must have a corresponding SetDxEn(false).
@@ -216,7 +219,6 @@ public class VerilatorClient : IDisposable, ICPU
      */
     public void SetDxEn(bool val) {
         set_dx_en(val);
-        tick();
     }
 
     /*
@@ -236,7 +238,7 @@ public class VerilatorClient : IDisposable, ICPU
      * SetXmEn — Enable/disable the Execute→Memory pipeline register and advance the clock.
      *
      *
-     * Apply the enable value, then tick the clock to latch the outputs.
+     * Apply the enable value. The new value is latched at the next cycle.
      * This function call should typically be followed by a GetXm() to 
      * retrieve the outputs of the Execute-Memory stage.
      * Each SetXmEn(true) must have a corresponding SetXmEn(false).
@@ -245,7 +247,6 @@ public class VerilatorClient : IDisposable, ICPU
      */
     public void SetXmEn(bool val) {
         set_xm_en(val);
-        tick();
     }
 
     /*
@@ -265,7 +266,7 @@ public class VerilatorClient : IDisposable, ICPU
      * SetMwEn — Enable/disable the Memory→Writeback pipeline register and advance the clock.
      *
      *
-     * Apply the enable value, then tick the clock to latch the outputs.
+     * Apply the enable value. The new value is latched at the next cycle.
      * This function call should typically be followed by a GetMw() to 
      * retrieve the outputs of the Memory-Writeback stage.
      * Each SetMwEn(true) must have a corresponding SetMwEn(false).
@@ -274,7 +275,6 @@ public class VerilatorClient : IDisposable, ICPU
      */
     public void SetMwEn(bool val) {
         set_mw_en(val);
-        tick();
     }
 
     /*

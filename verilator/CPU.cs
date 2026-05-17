@@ -134,6 +134,8 @@ enum Operation : byte {
 public interface ICPU {
     // CPUState struct representing all module outputs.
     CPUState state { get; } // TODO make this var name uppercase
+    // Tick advances the clock to mark the end of a CPU cycle.
+    void Tick();
     // writeIMem loads a hex-encoded program file into instruction memory.
     void writeIMem(string path);
     // PrintState outputs the `state` for debugging.

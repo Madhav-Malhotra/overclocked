@@ -90,21 +90,12 @@ public class VerilatorClient : IDisposable, ICPU
     /*
      * PrintState — Print a human-readable summary of key CPU signals to stdout.
      *
-     * Only a subset of fields (PC, instruction, ALU output, and a few registers)
-     * is shown for brevity.  Calls get_cpu_state() internally to refresh state.
-     * For the full signal snapshot use GetState().
+     * Calls GetState() internally to refresh state.
+     * To access fields of full signal snapshot use GetState().
      */
     public void PrintState() {
-        CPUState state = GetState();
-        Console.WriteLine(
-                $"PC: 0x{state.pc,-8:X} | " +
-                $"Instr: 0x{state.instruction,-8:X} | " +
-                $"ALU: {state.alu_out,-10} | " +
-                $"x0: {state.regs[0],-3} | " +
-                $"x5: {state.regs[5],-3} | " +
-                $"x6: 0x{state.regs[6],-8:X} | " +
-                $"x7: {state.regs[7],-3}"
-                );
+        GetState();
+        Console.WriteLine(this.state);
     }
 
     /*

@@ -337,14 +337,16 @@ module pd #(
       addr_rd_xm_r <= 0;
     end
     else if (mul_stall) begin
-      pc_xm_r <= pc_xm_r;
-      imm_xm_r <= imm_xm_r;
-      funct3_xm_r <= funct3_xm_r;
-      data_rs2_xm_r <= data_rs2_xm_r;
-      alu_xm_r <= alu_xm_r;
-      opcode_xm_r <= opcode_xm_r;
-      addr_rs2_xm_r <= addr_rs2_xm_r;
-      addr_rd_xm_r <= addr_rd_xm_r;
+      // Hold the MUL in DX, but inject a bubble into XM so older instructions in
+      // XM/MW can drain instead of re-committing every stall cycle.
+      pc_xm_r <= 0;
+      imm_xm_r <= 0;
+      funct3_xm_r <= 0;
+      data_rs2_xm_r <= 0;
+      alu_xm_r <= 0;
+      opcode_xm_r <= 0;
+      addr_rs2_xm_r <= 0;
+      addr_rd_xm_r <= 0;
     end
     else if (!xm_en) begin
       pc_xm_r <= pc_xm_r;
@@ -387,14 +389,6 @@ module pd #(
       alu_mw_r <= 0;
       funct3_mw_r <= 0;
     end 
-    else if (mul_stall) begin
-      pc_mw_r <= pc_mw_r;
-      opcode_mw_r <= opcode_mw_r;
-      addr_rd_mw_r <= addr_rd_mw_r;
-      pc4_mw_r <= pc4_mw_r;
-      alu_mw_r <= alu_mw_r;
-      funct3_mw_r <= funct3_mw_r;
-    end
     else if (!mw_en) begin
       pc_mw_r <= pc_mw_r;
       opcode_mw_r <= opcode_mw_r;
@@ -460,7 +454,7 @@ module pd #(
     .clock(clock),
     .reset(reset),
     .dx_en(dx_en),
-    .stall(stall),
+    .stall(mul_stall),
     .xm_en(xm_en),
     .mw_en(mw_en),
     .opcode_dx(opcode_dx_r),      // input

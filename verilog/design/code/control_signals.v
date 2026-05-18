@@ -229,14 +229,15 @@ always @(posedge clock) begin
         is_ecall_xm_r  <= 1'b0;
     end
     else if (xm_en) begin
-        // ONLY freeze/hold the control state if a structural multicycle stall is active
+        // While a multicycle MUL is held in EX, inject a bubble into XM so older
+        // instructions can drain through MW instead of being held and re-issued.
         if (USE_MULTICYCLE_MULT && stall) begin
-            is_store_xm_r  <= is_store_xm_r;
-            is_load_xm_r   <= is_load_xm_r;
-            is_jal_xm_r    <= is_jal_xm_r;
-            is_jalr_xm_r   <= is_jalr_xm_r;
-            is_branch_xm_r <= is_branch_xm_r;
-            is_ecall_xm_r  <= is_ecall_xm_r;
+            is_store_xm_r  <= 1'b0;
+            is_load_xm_r   <= 1'b0;
+            is_jal_xm_r    <= 1'b0;
+            is_jalr_xm_r   <= 1'b0;
+            is_branch_xm_r <= 1'b0;
+            is_ecall_xm_r  <= 1'b0;
         end 
         else begin
             // Normal pipeline progression: Execute stage moves into Memory stage.
@@ -270,22 +271,12 @@ always @(posedge clock) begin
         is_jalr_mw_r   <= 1'b0;
     end
     else if (mw_en) begin
-        if (USE_MULTICYCLE_MULT && stall) begin
-            is_store_mw_r  <= is_store_mw_r;
-            is_branch_mw_r <= is_branch_mw_r;
-            is_ecall_mw_r  <= is_ecall_mw_r;
-            is_load_mw_r   <= is_load_mw_r;
-            is_jal_mw_r    <= is_jal_mw_r;
-            is_jalr_mw_r   <= is_jalr_mw_r;
-        end
-        else begin
-            is_store_mw_r  <= is_store_xm_r;
-            is_branch_mw_r <= is_branch_xm_r;
-            is_ecall_mw_r  <= is_ecall_xm_r;
-            is_load_mw_r   <= is_load_xm_r;
-            is_jal_mw_r    <= is_jal_xm_r;
-            is_jalr_mw_r   <= is_jalr_xm_r;
-        end
+        is_store_mw_r  <= is_store_xm_r;
+        is_branch_mw_r <= is_branch_xm_r;
+        is_ecall_mw_r  <= is_ecall_xm_r;
+        is_load_mw_r   <= is_load_xm_r;
+        is_jal_mw_r    <= is_jal_xm_r;
+        is_jalr_mw_r   <= is_jalr_xm_r;
     end
 end
 // ===================================

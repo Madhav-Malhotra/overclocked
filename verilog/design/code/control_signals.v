@@ -22,7 +22,8 @@
 // =============================================================================
 module control_signals #(
     parameter DATAW = 32,
-    parameter ADDRW = $clog2(DATAW)
+    parameter ADDRW = $clog2(DATAW),
+    parameter USE_MULTICYCLE_MULT = 1'b0
 )
 (
     input clock,
@@ -44,6 +45,7 @@ module control_signals #(
     input [ADDRW-1:0] addr_rs2_dx,
     input [ADDRW-1:0] addr_rd_xm,
     input [ADDRW-1:0] addr_rd_mw,
+    input stall,
     output [1:0] branch_comp_data1_sel,
     output [1:0] branch_comp_data2_sel,
     // br_taken exposed for use in test harness
@@ -105,6 +107,8 @@ end
 // EXECUTE STAGE CONTROL SIGNALS
 // ===============================
 
+wire branch_taken;
+
 wire is_branch_x  = (opcode_dx == 7'b1100011);
 wire is_alu_x     = (opcode_dx == 7'b0110011);
 wire is_alu_imm_x = (opcode_dx == 7'b0010011);
@@ -118,17 +122,17 @@ wire is_ecall_x   = (opcode_dx == 7'b1110011);
 wire is_u_type_x  = is_lui_x || is_auipc_x;
 
 // JAL/JALR always jump; conditional branches jump when their condition holds
-wire branch_taken = (is_branch_x && (
-    (funct3_dx_r == 'h0 && br_eq) ||               // BEQ
-    (funct3_dx_r == 'h1 && !br_eq) ||              // BNE
-    (funct3_dx_r == 'h4 && br_lt) ||               // BLT
-    (funct3_dx_r == 'h5 && !br_lt) ||              // BGE
-    (funct3_dx_r == 'h6 && br_lt) ||               // BLTU
-    (funct3_dx_r == 'h7 && !br_lt))                // BGEU
+assign branch_taken = (is_branch_x && (
+    (funct3 == 'h0 && br_eq) ||               // BEQ
+    (funct3 == 'h1 && !br_eq) ||              // BNE
+    (funct3 == 'h4 && br_lt) ||               // BLT
+    (funct3 == 'h5 && !br_lt) ||              // BGE
+    (funct3 == 'h6 && br_lt) ||               // BLTU
+    (funct3 == 'h7 && !br_lt))                // BGEU
 ) || is_jal_x || is_jalr_x;
 
 // unsigned comparison for BLTU/BGEU
-assign br_un = is_branch_x && (funct3_dx_r == 'h6 || funct3_dx_r == 'h7);
+assign br_un = is_branch_x && (funct3 == 'h6 || funct3 == 'h7);
 
 // A sel definitions (ALU input 1)
 localparam REG = 2'b00;
@@ -188,37 +192,63 @@ assign pc_sel = branch_taken || is_jal_x || is_jalr_x;
 // LUI passes B (immediate) through unchanged; all other non-ALU ops use ADD for address/target computation
 assign alu_sel =    (is_lui_x) ? NOP :
                     (is_auipc_x || is_jal_x || is_jalr_x || is_load_x || is_store_x || is_branch_x) ? ADD :
-                    (is_alu_x && funct7_dx_r == 'h20) ? ((funct3_dx_r == 'h0) ? SUB : SRA) :
-                    (is_alu_x || is_alu_imm_x) ?
-                        ((funct3_dx_r == 'h0) ? ((funct7_dx_r == 'h1) ? MUL : ADD) :
-                        (funct3_dx_r == 'h1) ? SLL :
-                        (funct3_dx_r == 'h2) ? SLT :
-                        (funct3_dx_r == 'h3) ? SLTU :
-                        (funct3_dx_r == 'h4) ? XOR :
-                        (funct3_dx_r == 'h5 && funct7_dx_r == 'h0) ? SRL :
-                        (funct3_dx_r == 'h5 && funct7_dx_r == 'h20) ? SRA :
-                        (funct3_dx_r == 'h6) ? OR :
-                        (funct3_dx_r == 'h7) ? AND :
-                        NOP) // invalid funct3 for ALU
-                    : NOP;  // invalid opcode
+                    (is_alu_x) ?
+                        ((funct3 == 'h0 && funct7 == 'h20) ? SUB :
+                        (funct3 == 'h0 && funct7 == 'h01) ? MUL :
+                        (funct3 == 'h0) ? ADD :
+                        (funct3 == 'h1) ? SLL :
+                        (funct3 == 'h2) ? SLT :
+                        (funct3 == 'h3) ? SLTU :
+                        (funct3 == 'h4) ? XOR :
+                        (funct3 == 'h5 && funct7 == 'h20) ? SRA :
+                        (funct3 == 'h5) ? SRL :
+                        (funct3 == 'h6) ? OR :
+                        (funct3 == 'h7) ? AND :
+                        NOP) :
+                    (is_alu_imm_x) ?
+                        ((funct3 == 'h0) ? ADD :
+                        (funct3 == 'h1) ? SLL :
+                        (funct3 == 'h2) ? SLT :
+                        (funct3 == 'h3) ? SLTU :
+                        (funct3 == 'h4) ? XOR :
+                        (funct3 == 'h5 && funct7 == 'h20) ? SRA :
+                        (funct3 == 'h5) ? SRL :
+                        (funct3 == 'h6) ? OR :
+                        (funct3 == 'h7) ? AND :
+                        NOP) :
+                    NOP;
 
 // Execute-Memory Pipeline
 always @(posedge clock) begin
     if (reset) begin
-        is_store_xm_r <= 1'b0;
-        is_load_xm_r <= 1'b0;
-        is_jal_xm_r <= 1'b0;
-        is_jalr_xm_r <= 1'b0;
+        is_store_xm_r  <= 1'b0;
+        is_load_xm_r   <= 1'b0;
+        is_jal_xm_r    <= 1'b0;
+        is_jalr_xm_r   <= 1'b0;
         is_branch_xm_r <= 1'b0;
-        is_ecall_xm_r <= 1'b0;
+        is_ecall_xm_r  <= 1'b0;
     end
     else if (xm_en) begin
-        is_store_xm_r <= is_store_x;
-        is_load_xm_r <= is_load_x;
-        is_jal_xm_r <= is_jal_x;
-        is_jalr_xm_r <= is_jalr_x;
-        is_branch_xm_r <= is_branch_x;
-        is_ecall_xm_r <= is_ecall_x;
+        // ONLY freeze/hold the control state if a structural multicycle stall is active
+        if (USE_MULTICYCLE_MULT && stall) begin
+            is_store_xm_r  <= is_store_xm_r;
+            is_load_xm_r   <= is_load_xm_r;
+            is_jal_xm_r    <= is_jal_xm_r;
+            is_jalr_xm_r   <= is_jalr_xm_r;
+            is_branch_xm_r <= is_branch_xm_r;
+            is_ecall_xm_r  <= is_ecall_xm_r;
+        end 
+        else begin
+            // Normal pipeline progression: Execute stage moves into Memory stage.
+            // (If pd.v injected a NOP opcode into Execute via hazard_stall, 
+            // these wires naturally read 0 on the next cycle anyway).
+            is_store_xm_r  <= is_store_x;
+            is_load_xm_r   <= is_load_x;
+            is_jal_xm_r    <= is_jal_x;
+            is_jalr_xm_r   <= is_jalr_x;
+            is_branch_xm_r <= is_branch_x;
+            is_ecall_xm_r  <= is_ecall_x;
+        end
     end
 end
 
@@ -232,23 +262,32 @@ assign mem_rw = is_store_xm_r && !reset;
 // Memory-Writeback Pipeline registers
 always @(posedge clock) begin
     if (reset) begin
-        is_store_mw_r <= 1'b0;
+        is_store_mw_r  <= 1'b0;
         is_branch_mw_r <= 1'b0;
-        is_ecall_mw_r <= 1'b0;
-        is_load_mw_r <= 1'b0;
-        is_jal_mw_r <= 1'b0;
-        is_jalr_mw_r <= 1'b0;
+        is_ecall_mw_r  <= 1'b0;
+        is_load_mw_r   <= 1'b0;
+        is_jal_mw_r    <= 1'b0;
+        is_jalr_mw_r   <= 1'b0;
     end
     else if (mw_en) begin
-        is_store_mw_r <= is_store_xm_r;
-        is_branch_mw_r <= is_branch_xm_r;
-        is_ecall_mw_r <= is_ecall_xm_r;
-        is_load_mw_r <= is_load_xm_r;
-        is_jal_mw_r <= is_jal_xm_r;
-        is_jalr_mw_r <= is_jalr_xm_r;
+        if (USE_MULTICYCLE_MULT && stall) begin
+            is_store_mw_r  <= is_store_mw_r;
+            is_branch_mw_r <= is_branch_mw_r;
+            is_ecall_mw_r  <= is_ecall_mw_r;
+            is_load_mw_r   <= is_load_mw_r;
+            is_jal_mw_r    <= is_jal_mw_r;
+            is_jalr_mw_r   <= is_jalr_mw_r;
+        end
+        else begin
+            is_store_mw_r  <= is_store_xm_r;
+            is_branch_mw_r <= is_branch_xm_r;
+            is_ecall_mw_r  <= is_ecall_xm_r;
+            is_load_mw_r   <= is_load_xm_r;
+            is_jal_mw_r    <= is_jal_xm_r;
+            is_jalr_mw_r   <= is_jalr_xm_r;
+        end
     end
 end
-
 // ===================================
 // WRITEBACK STAGE CONTROL SIGNALS
 // ===================================

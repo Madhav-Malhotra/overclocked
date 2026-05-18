@@ -5,6 +5,10 @@
 //              Implements hazard detection (load, write-data, load-store, store-rs2 stalls),
 //              MX/WX/WM data forwarding, and branch resolution in the execute stage
 //              (predict not-taken, 1-cycle penalty on taken branch).
+//              RV32M MUL: USE_MULTICYCLE_MULT selects the multiplier implementation:
+//                1: multicycle shift-and-add array multiplier (array_mult.v); stalls
+//                   fetch/decode and holds EX/MEM/WB until the product is stable for XM.
+//                0: single-cycle multiply via ALU * operator (no pipeline stall).
 // Inputs:      clock - processor clock
 //              reset - synchronous reset; returns PC to BASE_ADDR
 // Outputs:     (none - all state is internal; testbench probes internal signals)
@@ -13,7 +17,9 @@ module pd #(
   parameter DATAW = 32,
   parameter BASE_ADDR = 32'h01000000,
   parameter ADDRW = $clog2(DATAW),
-  parameter N_BITS = $clog2(DATAW)
+  parameter N_BITS = $clog2(DATAW),
+  // 1: multicycle array_mult (stalls pipeline); 0: single-cycle MUL in ALU
+  parameter USE_MULTICYCLE_MULT = 1'b0
 )
 (
   input clock,
@@ -24,12 +30,20 @@ module pd #(
   // INSTANTIATE SIGNALS
   // ===================
 
-  // enable signals for each pipeline stage
+  // enable signals for each pipeline stage (tied on for normal operation; tests
+  // may poke these nets via --public-flat-rw)
   wire fetch_en;
   wire fd_en;
   wire dx_en;
   wire xm_en;
   wire mw_en;
+  assign fetch_en = 1'b1;
+  assign fd_en    = 1'b1;
+  assign dx_en    = 1'b1;
+  assign xm_en    = 1'b1;
+  assign mw_en    = 1'b1;
+
+  localparam MUL_ALU = 4'd11;
 
   // Fetch unit
   reg [DATAW-1:0] pc_r;
@@ -71,7 +85,8 @@ module pd #(
   // ALU inputs
   wire [DATAW-1:0] alu_in1_w;
   wire [DATAW-1:0] alu_in2_w;
-  wire [DATAW-1:0] alu_out_w;
+  wire [DATAW-1:0] alu_comb_out;
+  wire [DATAW-1:0] mult_array_out;
 
   // Data memory unit
   wire [DATAW-1:0] data_mem_w;
@@ -94,6 +109,7 @@ module pd #(
   // Decode Execute
   reg [6:0] opcode_dx_r;
   reg [2:0] funct3_dx_r;
+  reg [6:0] funct7_dx_r;
   reg [DATAW-1:0] imm_dx_r;
   reg [ADDRW-1:0] addr_rs1_dx_r;
   reg [ADDRW-1:0] addr_rs2_dx_r;
@@ -160,8 +176,33 @@ module pd #(
     && instr_xm_writes_reg && !is_nop_xm;
 
 
-  // Combine stalls
-  wire stall = load_stall || wd_stall || load_store_stall || store_rs2_stall;
+  // Combine hazard stalls (bubbles DX with NOP) vs multiply structural stall
+  // (holds DX and freezes XM/MW until the array multiplier completes).
+  wire hazard_stall = load_stall || wd_stall || load_store_stall || store_rs2_stall;
+
+  wire is_mul_exec = (alu_sel == MUL_ALU); //is current ex-stage instruction a MUL
+  wire array_mult_hold = USE_MULTICYCLE_MULT && is_mul_exec;
+  wire array_mult_busy;
+  reg array_mult_busy_d1;
+  reg prev_is_mul;
+  always @(posedge clock) begin
+    if (reset) begin
+      array_mult_busy_d1 <= 1'b0;
+      prev_is_mul <= 1'b0;
+    end else begin
+      array_mult_busy_d1 <= array_mult_busy;
+      prev_is_mul <= is_mul_exec;
+    end
+  end
+  // wire mul_just_started = is_mul_exec && !prev_is_mul;
+  wire mul_just_started = USE_MULTICYCLE_MULT && is_mul_exec && !prev_is_mul;
+  wire array_mult_start = USE_MULTICYCLE_MULT && mul_just_started;
+  // One extra stall cycle after busy deasserts so XM samples a registered product.
+  wire mul_stall = USE_MULTICYCLE_MULT &&
+      (array_mult_busy || array_mult_busy_d1 || mul_just_started);
+
+  // wire stall = hazard_stall || mul_stall;
+  wire stall = hazard_stall || (USE_MULTICYCLE_MULT && mul_stall);
   wire imem_enable = !stall;
 
   // ===================
@@ -173,6 +214,11 @@ module pd #(
     if (reset) begin
       pc_r <= BASE_ADDR;
       imem_in_r <= 0;
+    end
+    else if (br_taken) begin
+      // Control-flow redirects must beat data stalls so wrong-path instructions
+      // don't get held and later reissued.
+      pc_r <= alu_out_w;
     end
     else if (stall || !fetch_en ) begin
       pc_r <= pc_r;  // Hold PC value during stall
@@ -202,14 +248,14 @@ module pd #(
         prev_instr <= prev_instr;
         stall_fd <= stall_fd;
     end
+    else if (br_taken) begin
+      pc_fd_r <= pc_r;
+      prev_instr <= NOP_INSTR;    // Insert NOP on branch/jump redirect
+      stall_fd <= 1;
+    end
     else if (stall) begin
       pc_fd_r <= pc_fd_r;          // Hold FD pipeline registers during stall
       prev_instr <= (!stall_fd) ? instr_w : prev_instr;
-      stall_fd <= 1;
-    end
-    else if (br_taken) begin
-      pc_fd_r <= pc_r;
-      prev_instr <= NOP_INSTR;    // Insert NOP on branch taken
       stall_fd <= 1;
     end
     else begin
@@ -227,6 +273,7 @@ module pd #(
       pc_dx_r <= 0;
       opcode_dx_r <= 0;
       funct3_dx_r <= 0;
+      funct7_dx_r <= 0;
       imm_dx_r <= 0;
       addr_rs1_dx_r <= 0;
       addr_rs2_dx_r <= 0;
@@ -236,16 +283,29 @@ module pd #(
       pc_dx_r <= pc_dx_r;
       opcode_dx_r <= opcode_dx_r;
       funct3_dx_r <= funct3_dx_r;
+      funct7_dx_r <= funct7_dx_r;
       imm_dx_r <= imm_dx_r;
       addr_rs1_dx_r <= addr_rs1_dx_r;
       addr_rs2_dx_r <= addr_rs2_dx_r;
       addr_rd_dx_r <= addr_rd_dx_r;
     end
-    else if (stall || br_taken) begin
-      // Insert NOP only on branch taken
+    else if (mul_stall) begin
+      // Hold MUL (or any insn) in EX while array multiplier runs
+      pc_dx_r <= pc_dx_r;
+      opcode_dx_r <= opcode_dx_r;
+      funct3_dx_r <= funct3_dx_r;
+      funct7_dx_r <= funct7_dx_r;
+      imm_dx_r <= imm_dx_r;
+      addr_rs1_dx_r <= addr_rs1_dx_r;
+      addr_rs2_dx_r <= addr_rs2_dx_r;
+      addr_rd_dx_r <= addr_rd_dx_r;
+    end
+    else if (hazard_stall || br_taken) begin
+      // Hazard: bubble DX; branch taken: bubble DX
       pc_dx_r <= pc_fd_r;
       opcode_dx_r <= NOP_OPCODE;
       funct3_dx_r <= 0;
+      funct7_dx_r <= 0;
       imm_dx_r <= 0;
       addr_rs1_dx_r <= 0;
       addr_rs2_dx_r <= 0;
@@ -256,6 +316,7 @@ module pd #(
       pc_dx_r <= pc_fd_r;
       opcode_dx_r <= opcode_w;
       funct3_dx_r <= funct3_w;
+      funct7_dx_r <= funct7_w;
       imm_dx_r <= imm_w;
       addr_rs1_dx_r <= addr_rs1_w;
       addr_rs2_dx_r <= addr_rs2_w;
@@ -275,6 +336,16 @@ module pd #(
       addr_rs2_xm_r <= 0;
       addr_rd_xm_r <= 0;
     end
+    else if (mul_stall) begin
+      pc_xm_r <= pc_xm_r;
+      imm_xm_r <= imm_xm_r;
+      funct3_xm_r <= funct3_xm_r;
+      data_rs2_xm_r <= data_rs2_xm_r;
+      alu_xm_r <= alu_xm_r;
+      opcode_xm_r <= opcode_xm_r;
+      addr_rs2_xm_r <= addr_rs2_xm_r;
+      addr_rd_xm_r <= addr_rd_xm_r;
+    end
     else if (!xm_en) begin
       pc_xm_r <= pc_xm_r;
       imm_xm_r <= imm_xm_r;
@@ -286,14 +357,17 @@ module pd #(
       addr_rd_xm_r <= 0;
     end
     else begin
-      pc_xm_r <= pc_dx_r;             // Pipeline PC, rs2 data from last stage
-      imm_xm_r <= imm_dx_r; 
-      funct3_xm_r <= funct3_dx_r;
-      data_rs2_xm_r <= data_rs2_w; 
-      alu_xm_r <= alu_out_w;          // Pipeline ALU output
-      opcode_xm_r <= opcode_dx_r;     // Pipeline decoded instruction from last stage
+      pc_xm_r       <= pc_dx_r;
+      imm_xm_r      <= imm_dx_r; 
+      funct3_xm_r   <= funct3_dx_r;
+      
+      // Stores must latch forwarded rs2 payload data, not the ALU immediate input.
+      data_rs2_xm_r <= store_data_w; 
+      
+      alu_xm_r      <= alu_out_w;          
+      opcode_xm_r   <= opcode_dx_r;     
       addr_rs2_xm_r <= addr_rs2_dx_r;
-      addr_rd_xm_r <= addr_rd_dx_r;
+      addr_rd_xm_r  <= addr_rd_dx_r;
     end
   end
 
@@ -313,6 +387,14 @@ module pd #(
       alu_mw_r <= 0;
       funct3_mw_r <= 0;
     end 
+    else if (mul_stall) begin
+      pc_mw_r <= pc_mw_r;
+      opcode_mw_r <= opcode_mw_r;
+      addr_rd_mw_r <= addr_rd_mw_r;
+      pc4_mw_r <= pc4_mw_r;
+      alu_mw_r <= alu_mw_r;
+      funct3_mw_r <= funct3_mw_r;
+    end
     else if (!mw_en) begin
       pc_mw_r <= pc_mw_r;
       opcode_mw_r <= opcode_mw_r;
@@ -369,22 +451,23 @@ module pd #(
     .data_rs1(data_rs1_w),  // output
     .data_rs2(data_rs2_w)   // output
   );
-  // wire [DATAW-1:0] data_rs1_stall_w = !(stall_fd || reset) ? data_rs1_w : 0;
-  // wire [DATAW-1:0] data_rs2_stall_w = !(stall_fd || reset) ? data_rs2_w : 0;
   wire [DATAW-1:0] data_rs1_stall_w = data_rs1_w;
-  wire [DATAW-1:0] data_rs2_stall_w =  data_rs2_w;
+  wire [DATAW-1:0] data_rs2_stall_w = data_rs2_w;
 
-  control_signals cs1(
+  control_signals #(
+.USE_MULTICYCLE_MULT(USE_MULTICYCLE_MULT)
+  )cs1(
     .clock(clock),
     .reset(reset),
     .dx_en(dx_en),
+    .stall(stall),
     .xm_en(xm_en),
     .mw_en(mw_en),
     .opcode_dx(opcode_dx_r),      // input
     .opcode_xm(opcode_xm_r),      // input
     .opcode_mw(opcode_mw_r),      // input
-    .funct3(funct3_w),            // input
-    .funct7(funct7_w),            // input
+    .funct3(funct3_dx_r),            // input
+    .funct7(funct7_dx_r),            // input
     .br_eq(br_eq),                // input
     .br_lt(br_lt),                // input
     .addr_rs1_dx(addr_rs1_dx_r),  // input
@@ -411,7 +494,6 @@ module pd #(
   localparam MX_BYPASS = 2'b11;
 
   // branch forwarding logic (cases for WX and MX bypassing)
-
   wire [DATAW-1:0] idata1_in =  (branch_comp_data1_sel == WX_BYPASS) ? data_rd_w :
                                 (branch_comp_data1_sel == MX_BYPASS) ? alu_xm_r :
                                                                      data_rs1_w;
@@ -441,12 +523,35 @@ module pd #(
                      (b_sel == WX_BYPASS) ? data_rd_w :
                                             alu_xm_r;
 
+  // Store write-data comes from rs2, so it needs its own forwarding path instead
+  // of reusing the ALU B mux, which selects the address offset immediate for stores.
+  wire [DATAW-1:0] store_data_w =
+                     ((addr_rs2_dx_r == addr_rd_xm_r) && (addr_rd_xm_r != 0) &&
+                      instr_xm_writes_reg && (opcode_xm_r != LOAD_OPCODE)) ? alu_xm_r :
+                     ((addr_rs2_dx_r == addr_rd_mw_r) && (addr_rd_mw_r != 0) &&
+                      instr_mw_writes_reg) ? data_rd_w :
+                     data_rs2_w;
+
+  array_mult array_mult1(
+    .clock(clock),
+    .reset(reset),
+    .start_pulse(array_mult_start),
+    .hold(array_mult_hold),
+    .op_a(alu_in1_w),
+    .op_b(alu_in2_w),
+    .result(mult_array_out),
+    .busy(array_mult_busy)
+  );
+
+  // USE_MULTICYCLE_MULT=1: route array_mult result; =0: route single-cycle ALU result
+  wire [DATAW-1:0] alu_out_w = (USE_MULTICYCLE_MULT && is_mul_exec) ? mult_array_out : alu_comb_out;
+
   alu al1(
     .idata1(alu_in1_w),
     .idata2(alu_in2_w),
     .alu_sel(alu_sel),
-    .mul_sel(1),
-    .odata(alu_out_w)
+    .multicyc_sel(USE_MULTICYCLE_MULT),  // 1=multicycle selected (ALU outputs 0), 0=single-cycle
+    .odata(alu_comb_out)
   );
 
   wire [1:0] mem_write_access_size = funct3_xm_r[1:0];     // For testbench

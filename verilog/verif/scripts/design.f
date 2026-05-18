@@ -1,3 +1,4 @@
+array_mult.v
 alu.v
 branch_comp.v
 control_signals.v

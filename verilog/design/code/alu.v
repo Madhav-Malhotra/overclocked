@@ -6,6 +6,9 @@
 //              MUL (low 32b product).
 // Inputs:      idata1, idata2 - 32-bit operands
 //              alu_sel        - 4-bit operation selector
+//              multicyc_sel        - 0: single-cycle multiply (* operator)
+//                               1: multicycle selected; MUL result comes from
+//                                  array_mult in pd.v, so ALU outputs 0 as placeholder
 // Outputs:     odata          - 32-bit result
 // =============================================================================
 module alu #(
@@ -15,7 +18,7 @@ module alu #(
     input signed [IDATAW-1:0] idata1,
     input signed [IDATAW-1:0] idata2,
     input [3:0] alu_sel,
-    input mul_sel,
+    input multicyc_sel,
     output reg signed [ODATAW-1:0] odata
 );
 
@@ -34,7 +37,7 @@ localparam OR   = 4'd8;
 localparam AND  = 4'd9;
 // Pass idata2 through unchanged; used by LUI which needs imm with no addend
 localparam NOP  = 4'd10;
-localparam MUL = 4'd11;
+localparam MUL  = 4'd11;
 
 reg [ODATAW-1:0] mask;
 
@@ -66,13 +69,12 @@ always @(*) begin
         end
         SLT:  odata = (idata1 < idata2) ? 1 : 0;
         SLTU: odata = ($unsigned(idata1) < $unsigned(idata2)) ? 1 : 0;
-        MUL: odata = idata1 * idata2;
+        // multicyc_sel=0: single-cycle multiply via * operator.
+        // multicyc_sel=1: multicycle selected; result comes from array_mult in pd.v,
+        //            ALU outputs 0 as a deterministic placeholder.
+        MUL:  odata = multicyc_sel ? 32'd0 : ($signed(idata1) * $signed(idata2));
         default: odata = 0;
     endcase
 end
-
-// always @(posedge clk) begin
-
-// end 
 
 endmodule

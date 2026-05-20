@@ -79,12 +79,15 @@ struct CPUState {
     uint32_t wb_data; // dependent on DATAW=32
     //
     // specific pipeline stages
+    // fd stage
+    uint32_t fd_pc;
+    uint32_t fd_pc4;
     // xm stage
     uint32_t dmem_data_in;
     // mw stage
     uint32_t wb_in_alu;
     uint32_t mem;
-    uint32_t pc4;
+    uint32_t mw_pc4;
 };
 
 /*
@@ -141,12 +144,15 @@ void get_cpu_state(CPUState* out_state) {
     out_state->wb_data = design->rootp->design_wrapper__DOT__core__DOT__data_rd_w;
 
     // more specific pipeline stage data:
+    // fd
+    out_state->fd_pc= design->rootp->design_wrapper__DOT__core__DOT__pc_fd_r;
+    out_state->fd_pc4= design->rootp->design_wrapper__DOT__core__DOT__pc4_f_w;
     // xm
     out_state->dmem_data_in = design->rootp->design_wrapper__DOT__core__DOT__dmem_data_in;
     // mw
     out_state->wb_in_alu = design->rootp->design_wrapper__DOT__core__DOT__alu_mw_r;
     out_state->mem = design->rootp->design_wrapper__DOT__core__DOT__data_mem_w_sized;
-    out_state->pc4 = design->rootp->design_wrapper__DOT__core__DOT__pc4_mw_r;
+    out_state->mw_pc4 = design->rootp->design_wrapper__DOT__core__DOT__pc4_mw_r;
 }
 
 
@@ -333,5 +339,3 @@ void dump_dmem(uint32_t count) {
 }
 
 }
-
-

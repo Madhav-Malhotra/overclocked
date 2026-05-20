@@ -191,9 +191,10 @@ public class VerilatorClient : IDisposable, ICPU
      */
     public Fd GetFd() {
         GetState();
-        return new Fd {
-            fd_pc = this.state.pc,
-            fd_pc4 = this.state.pc4,
+        return new Fd
+        {
+            fd_pc = this.state.fd_pc,
+            fd_pc4 = this.state.fd_pc4,
             instruction = this.state.instruction
         };
     }
@@ -275,8 +276,9 @@ public class VerilatorClient : IDisposable, ICPU
      */
     public Mw GetMw() {
         GetState();
-        return new Mw {
-            pc4 = this.state.pc4,
+        return new Mw
+        {
+            pc4 = this.state.mw_pc4,
             wb_in_alu = this.state.wb_in_alu,
             mem = this.state.mem
         };

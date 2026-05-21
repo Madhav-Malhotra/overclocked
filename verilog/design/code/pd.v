@@ -164,6 +164,10 @@ module pd #(
   wire stall = load_stall || wd_stall || load_store_stall || store_rs2_stall;
   wire imem_enable = !stall;
 
+
+// TASK: ADD initial begin block to add default values for enable signals (1)
+
+
   // ===================
   // CONTROL/FSMs
   // ===================
@@ -445,7 +449,6 @@ module pd #(
     .idata1(alu_in1_w),
     .idata2(alu_in2_w),
     .alu_sel(alu_sel),
-    .multi_sel(0), // hardcoded to 0 for now
     .odata(alu_out_w)
   );
 

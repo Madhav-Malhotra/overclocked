@@ -19,7 +19,7 @@ module pd #(
   parameter ADDRW = $clog2(DATAW),
   parameter N_BITS = $clog2(DATAW),
   // 1: multicycle array_mult (stalls pipeline); 0: single-cycle MUL in ALU
-  parameter USE_MULTICYCLE_MULT = 1'b0
+  parameter USE_MULTICYCLE_MULT = 1'b1
 )
 (
   input clock,

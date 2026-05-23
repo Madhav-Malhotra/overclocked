@@ -77,7 +77,6 @@ localparam AND = 4'd9;
 localparam NOP = 4'd10;
 localparam MUL = 4'd11;
 
-
 // wb_sel encoding
 localparam WB_MEM = 2'd0;
 localparam WB_ALU = 2'd1;

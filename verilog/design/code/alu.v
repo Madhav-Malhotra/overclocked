@@ -71,8 +71,4 @@ always @(*) begin
     endcase
 end
 
-// always @(posedge clk) begin
-
-// end 
-
 endmodule

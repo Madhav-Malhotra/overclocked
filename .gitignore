@@ -11,7 +11,8 @@ verilog/rv32-benchmarks/**/*.d
 verilog/rv32-benchmarks/**/*.spike.log
 verilog/rv32-benchmarks/simple-programs/spike_test.log
 # Extensionless compiled ELF binaries in individual-instructions
-verilog/rv32-benchmarks/individual-instructions/rv32ui-p-*
+verilog/rv32-benchmarks/individual-instructions/rv32ui-p-*.x
+verilog/rv32-benchmarks/individual-instructions/rv32ui-p-*.elf
 verilog/rv32-benchmarks/individual-instructions/test-*
 
 verilog/verif/diffs/spike/*

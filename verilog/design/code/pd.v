@@ -445,7 +445,6 @@ module pd #(
     .idata1(alu_in1_w),
     .idata2(alu_in2_w),
     .alu_sel(alu_sel),
-    .mul_sel(1),
     .odata(alu_out_w)
   );
 

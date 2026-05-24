@@ -25,11 +25,13 @@ module pd #(
   // ===================
 
   // enable signals for each pipeline stage
-  wire fetch_en = 1;
-  wire fd_en = 1;
-  wire dx_en = 1;
-  wire xm_en = 1;
-  wire mw_en = 1;
+  intial begin 
+    wire fetch_en = 1;
+    wire fd_en = 1;
+    wire dx_en = 1;
+    wire xm_en = 1;
+    wire mw_en = 1;
+  end  
 
   // Fetch unit
   reg [DATAW-1:0] pc_r;

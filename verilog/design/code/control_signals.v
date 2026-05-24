@@ -200,8 +200,8 @@ assign alu_sel =    (is_lui_x) ? NOP :
                         (funct3 == 'h1) ? SLL :
                         (funct3 == 'h2) ? SLT :
                         (funct3 == 'h3) ? SLTU :
-                        (funct3 == 'h4) ? XOR :
                         (funct3 == 'h4 && funct7 == 'h01) ? DIV :
+                        (funct3 == 'h4) ? XOR :
                         (funct3 == 'h5 && funct7 == 'h01) ? DIVU :
                         (funct3 == 'h5 && funct7 == 'h20) ? SRA :
                         (funct3 == 'h5) ? SRL :

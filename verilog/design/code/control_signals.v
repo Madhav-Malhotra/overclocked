@@ -78,7 +78,8 @@ localparam OR = 4'd8;
 localparam AND = 4'd9;
 localparam NOP = 4'd10;
 localparam MUL = 4'd11;
-
+localparam DIV = 4'd12;
+localparam DIVU = 4'd13;
 
 // wb_sel encoding
 localparam WB_MEM = 2'd0;
@@ -200,6 +201,8 @@ assign alu_sel =    (is_lui_x) ? NOP :
                         (funct3 == 'h2) ? SLT :
                         (funct3 == 'h3) ? SLTU :
                         (funct3 == 'h4) ? XOR :
+                        (funct3 == 'h4 && funct7 == 'h01) ? DIV :
+                        (funct3 == 'h5 && funct7 == 'h01) ? DIVU :
                         (funct3 == 'h5 && funct7 == 'h20) ? SRA :
                         (funct3 == 'h5) ? SRL :
                         (funct3 == 'h6) ? OR :

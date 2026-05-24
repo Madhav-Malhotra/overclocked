@@ -38,6 +38,8 @@ localparam AND  = 4'd9;
 // Pass idata2 through unchanged; used by LUI which needs imm with no addend
 localparam NOP  = 4'd10;
 localparam MUL  = 4'd11;
+localparam DIV = 4'd12;
+localparam DIVU = 4'd13;
 
 reg [ODATAW-1:0] mask;
 
@@ -73,6 +75,13 @@ always @(*) begin
         // multicyc_sel=1: multicycle selected; result comes from array_mult in pd.v,
         //            ALU outputs 0 as a deterministic placeholder.
         MUL:  odata = multicyc_sel ? 32'd0 : ($signed(idata1) * $signed(idata2));
+        // division by zero --> follow risc-v convention of setting to MAX_INT/-1
+        DIV: begin
+            odata = (idata2 == 'h0) ? 32'hFFFFFFFF : idata1 / idata2;
+        end 
+        DIVU: begin
+            odata = (idata2 == 'h0) ? 32'hFFFFFFFF : $unsigned(idata1) / $unsigned(idata2);
+        end 
         default: odata = 0;
     endcase
 end

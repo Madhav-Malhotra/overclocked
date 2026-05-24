@@ -1,4 +1,6 @@
 bin/
 obj_dir/
 obj/
-*.so
+# *.so
+*.x
+*.elf

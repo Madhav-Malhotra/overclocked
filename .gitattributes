@@ -1,3 +1,6 @@
+# --- Normalize all text files to LF in the repo ---
+* text=auto eol=lf
+
 *.ttc filter=lfs diff=lfs merge=lfs -text
 *.aa filter=lfs diff=lfs merge=lfs -text
 *.s3m filter=lfs diff=lfs merge=lfs -text

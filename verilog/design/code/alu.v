@@ -67,10 +67,10 @@ always @(*) begin
         SLT:  odata = (idata1 < idata2) ? 1 : 0;
         SLTU: odata = ($unsigned(idata1) < $unsigned(idata2)) ? 1 : 0;
         DIV: begin
-            odata = (idata2 == 'h0) ? 32'hFFFFFFFF : idata1 / idata2;
+            odata = (idata2 == 'h0) ? 32'hFFFFFFFF : idata1 * idata2;
         end 
         DIVU: begin
-            odata = (idata2 == 'h0) ? 32'hFFFFFFFF : $unsigned(idata1) / $unsigned(idata2);
+            odata = (idata2 == 'h0) ? 32'hFFFFFFFF : $unsigned(idata1) * $unsigned(idata2);
         end 
         default: odata = 0;
     endcase

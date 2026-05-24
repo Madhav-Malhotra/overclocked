@@ -76,11 +76,4 @@ always @(*) begin
     endcase
 end
 
-
-
-// ====================
-// PIPELINED DIVIDER
-// ====================
-
-
 endmodule

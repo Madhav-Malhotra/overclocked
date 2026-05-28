@@ -189,18 +189,32 @@ assign pc_sel = branch_taken || is_jal_x || is_jalr_x;
 assign alu_sel =    (is_lui_x) ? NOP :
                     (is_auipc_x || is_jal_x || is_jalr_x || is_load_x || is_store_x || is_branch_x) ? ADD :
                     (is_alu_x && funct7_dx_r == 'h20) ? ((funct3_dx_r == 'h0) ? SUB : SRA) :
-                    (is_alu_x || is_alu_imm_x) ?
+                    (is_alu_x) ?
+                        ((funct3_dx_r == 'h0 && funct7_dx_r == 'h20) ? SUB :
+                        (funct3_dx_r == 'h0) ? ADD :
+                        (funct3_dx_r == 'h1) ? SLL :
+                        (funct3_dx_r == 'h2) ? SLT :
+                        (funct3_dx_r == 'h3) ? SLTU :
+                        (funct3_dx_r == 'h4 && funct7_dx_r == 'h01) ? DIV :
+                        (funct3_dx_r == 'h4) ? XOR :
+                        (funct3_dx_r == 'h5 && funct7_dx_r == 'h01) ? DIVU :
+                        (funct3_dx_r == 'h5 && funct7_dx_r == 'h20) ? SRA :
+                        (funct3_dx_r == 'h5) ? SRL :
+                        (funct3_dx_r == 'h6) ? OR :
+                        (funct3_dx_r == 'h7) ? AND :
+                        NOP) :
+                    (is_alu_imm_x) ?
                         ((funct3_dx_r == 'h0) ? ADD :
                         (funct3_dx_r == 'h1) ? SLL :
                         (funct3_dx_r == 'h2) ? SLT :
                         (funct3_dx_r == 'h3) ? SLTU :
-                        (funct3_dx_r == 'h4) ? ((funct7_dx_r == 'h0) ? XOR : DIV) : // divider added
-                        (funct3_dx_r == 'h5) ? ((funct7_dx_r == 'h0) ? SRL : DIVU) : // unsigned divider added
+                        (funct3_dx_r == 'h4) ? XOR :
                         (funct3_dx_r == 'h5 && funct7_dx_r == 'h20) ? SRA :
+                        (funct3_dx_r == 'h5) ? SRL :
                         (funct3_dx_r == 'h6) ? OR :
                         (funct3_dx_r == 'h7) ? AND :
-                        NOP) // invalid funct3 for ALU
-                    : NOP;  // invalid opcode
+                        NOP) :
+                    NOP;
 
 // Execute-Memory Pipeline
 always @(posedge clock) begin

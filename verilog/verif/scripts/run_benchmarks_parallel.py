@@ -149,9 +149,9 @@ def run_verilator(bench_x: Path, scripts_dir: Path, cl_root: Path,
     mem_depth = 1048576
     # TRACE_FILE is a basename only; trace is written to cwd (sim_dir) at runtime
     trace_basename = f"{bench_name}.trace"
-
-    # Remove any prior build (e.g. from Docker with /workspace/... paths in *.d);
-    # otherwise make reuses test_pd.d and fails with "No rule to make target".
+    
+    # Remove any prior build (e.g. previous Docker builded images)
+    # otherwise make reuses test_pd.d and fails with "No rule to make target"
     if sim_dir.exists():
         shutil.rmtree(sim_dir)
     sim_dir.mkdir(parents=True, exist_ok=True)

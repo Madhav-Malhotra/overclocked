@@ -98,6 +98,7 @@ module pd #(
   reg [ADDRW-1:0] addr_rs1_dx_r;
   reg [ADDRW-1:0] addr_rs2_dx_r;
   reg [ADDRW-1:0] addr_rd_dx_r;
+  reg [6:0] funct7_dx_r; 
   
   // Execute Memory
   reg [DATAW-1:0] pc_xm_r;   
@@ -174,6 +175,9 @@ module pd #(
       pc_r <= BASE_ADDR;
       imem_in_r <= 0;
     end
+    else if (br_taken) begin          // ADD THIS BEFORE stall check
+    pc_r <= alu_out_w;
+  end
     else if (stall || !fetch_en ) begin
       pc_r <= pc_r;  // Hold PC value during stall
     end
@@ -202,14 +206,14 @@ module pd #(
         prev_instr <= prev_instr;
         stall_fd <= stall_fd;
     end
-    else if (stall) begin
-      pc_fd_r <= pc_fd_r;          // Hold FD pipeline registers during stall
-      prev_instr <= (!stall_fd) ? instr_w : prev_instr;
-      stall_fd <= 1;
-    end
     else if (br_taken) begin
       pc_fd_r <= pc_r;
       prev_instr <= NOP_INSTR;    // Insert NOP on branch taken
+      stall_fd <= 1;
+    end
+    else if (stall) begin
+      pc_fd_r <= pc_fd_r;          // Hold FD pipeline registers during stall
+      prev_instr <= (!stall_fd) ? instr_w : prev_instr;
       stall_fd <= 1;
     end
     else begin
@@ -231,6 +235,7 @@ module pd #(
       addr_rs1_dx_r <= 0;
       addr_rs2_dx_r <= 0;
       addr_rd_dx_r <= 0;
+      funct7_dx_r <= 0;
     end
     else if (!dx_en) begin
       pc_dx_r <= pc_dx_r;
@@ -240,6 +245,7 @@ module pd #(
       addr_rs1_dx_r <= addr_rs1_dx_r;
       addr_rs2_dx_r <= addr_rs2_dx_r;
       addr_rd_dx_r <= addr_rd_dx_r;
+      funct7_dx_r <= funct7_dx_r;
     end
     else if (stall || br_taken) begin
       // Insert NOP only on branch taken
@@ -250,6 +256,8 @@ module pd #(
       addr_rs1_dx_r <= 0;
       addr_rs2_dx_r <= 0;
       addr_rd_dx_r <= 0;
+      funct7_dx_r <= 0;
+
     end
     else begin
       // Normal pipeline progression
@@ -260,6 +268,7 @@ module pd #(
       addr_rs1_dx_r <= addr_rs1_w;
       addr_rs2_dx_r <= addr_rs2_w;
       addr_rd_dx_r <= addr_rd_w;
+      funct7_dx_r <= funct7_w;
     end
   end
 
@@ -383,8 +392,8 @@ module pd #(
     .opcode_dx(opcode_dx_r),      // input
     .opcode_xm(opcode_xm_r),      // input
     .opcode_mw(opcode_mw_r),      // input
-    .funct3(funct3_w),            // input
-    .funct7(funct7_w),            // input
+    .funct3(funct3_dx_r),         // input
+    .funct7(funct7_dx_r),         // input
     .br_eq(br_eq),                // input
     .br_lt(br_lt),                // input
     .addr_rs1_dx(addr_rs1_dx_r),  // input

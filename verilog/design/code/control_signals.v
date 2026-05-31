@@ -87,18 +87,21 @@ localparam WB_PC4 = 2'd2;
 // ====================
 
 // Decode-Execute Pipeline registers
-reg [2:0] funct3_dx_r;
-reg [6:0] funct7_dx_r;
-always @(posedge clock) begin
-    if (reset) begin
-        funct3_dx_r <= 3'd0;
-        funct7_dx_r <= 7'd0;
-    end
-    else if (dx_en) begin
-        funct3_dx_r <= funct3;
-        funct7_dx_r <= funct7;
-    end
-end
+
+////////////////////code below isn't needed
+// reg [2:0] funct3_dx_r;
+// reg [6:0] funct7_dx_r;
+// always @(posedge clock) begin
+//     if (reset) begin
+//         funct3_dx_r <= 3'd0;
+//         funct7_dx_r <= 7'd0;
+//     end
+//     else if (dx_en) begin
+//         funct3_dx_r <= funct3;
+//         funct7_dx_r <= funct7;
+//     end
+// end
+//////////////////////code above isn't needed
 
 // ===============================
 // EXECUTE STAGE CONTROL SIGNALS
@@ -118,16 +121,16 @@ wire is_u_type_x  = is_lui_x || is_auipc_x;
 
 // JAL/JALR always jump; conditional branches jump when their condition holds
 wire branch_taken = (is_branch_x && (
-    (funct3_dx_r == 'h0 && br_eq) ||               // BEQ
-    (funct3_dx_r == 'h1 && !br_eq) ||              // BNE
-    (funct3_dx_r == 'h4 && br_lt) ||               // BLT
-    (funct3_dx_r == 'h5 && !br_lt) ||              // BGE
-    (funct3_dx_r == 'h6 && br_lt) ||               // BLTU
-    (funct3_dx_r == 'h7 && !br_lt))                // BGEU
+    (funct3 == 'h0 && br_eq) ||               // BEQ
+    (funct3 == 'h1 && !br_eq) ||              // BNE
+    (funct3 == 'h4 && br_lt) ||               // BLT
+    (funct3 == 'h5 && !br_lt) ||              // BGE
+    (funct3 == 'h6 && br_lt) ||               // BLTU
+    (funct3 == 'h7 && !br_lt))                // BGEU
 ) || is_jal_x || is_jalr_x;
 
 // unsigned comparison for BLTU/BGEU
-assign br_un = is_branch_x && (funct3_dx_r == 'h6 || funct3_dx_r == 'h7);
+assign br_un = is_branch_x && (funct3 == 'h6 || funct3 == 'h7);
 
 // A sel definitions (ALU input 1)
 localparam REG = 2'b00;
@@ -187,18 +190,18 @@ assign pc_sel = branch_taken || is_jal_x || is_jalr_x;
 // LUI passes B (immediate) through unchanged; all other non-ALU ops use ADD for address/target computation
 assign alu_sel =    (is_lui_x) ? NOP :
                     (is_auipc_x || is_jal_x || is_jalr_x || is_load_x || is_store_x || is_branch_x) ? ADD :
-                    (is_alu_x && funct7_dx_r == 'h01) ? ((funct3_dx_r == 'h0) ? MUL : NOP) :
-                    (is_alu_x && funct7_dx_r == 'h20) ? ((funct3_dx_r == 'h0) ? SUB : SRA) :
+                    (is_alu_x && funct7 == 'h01) ? ((funct3 == 'h0) ? MUL : NOP) :
+                    (is_alu_x && funct7 == 'h20) ? ((funct3 == 'h0) ? SUB : SRA) :
                     (is_alu_x || is_alu_imm_x) ?
-                        ((funct3_dx_r == 'h0) ? ADD :
-                        (funct3_dx_r == 'h1) ? SLL :
-                        (funct3_dx_r == 'h2) ? SLT :
-                        (funct3_dx_r == 'h3) ? SLTU :
-                        (funct3_dx_r == 'h4) ? XOR :
-                        (funct3_dx_r == 'h5 && funct7_dx_r == 'h0) ? SRL :
-                        (funct3_dx_r == 'h5 && funct7_dx_r == 'h20) ? SRA :
-                        (funct3_dx_r == 'h6) ? OR :
-                        (funct3_dx_r == 'h7) ? AND :
+                        ((funct3 == 'h0) ? ADD :
+                        (funct3 == 'h1) ? SLL :
+                        (funct3 == 'h2) ? SLT :
+                        (funct3 == 'h3) ? SLTU :
+                        (funct3 == 'h4) ? XOR :
+                        (funct3 == 'h5 && funct7 == 'h0) ? SRL :
+                        (funct3 == 'h5 && funct7 == 'h20) ? SRA :
+                        (funct3 == 'h6) ? OR :
+                        (funct3 == 'h7) ? AND :
                         NOP) // invalid funct3 for ALU
                     : NOP;  // invalid opcode
 

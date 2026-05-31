@@ -72,12 +72,8 @@ always @(*) begin
         end
         SLT:  odata = (idata1 < idata2) ? 1 : 0;
         SLTU: odata = ($unsigned(idata1) < $unsigned(idata2)) ? 1 : 0;
-
-        /* RISC-V M-Extension: ALU */ 
-        // multicyc_sel=0: single-cycle multiply via * operator.
-        // multicyc_sel=1: multicycle selected; result comes from array_mult in pd.v,
-        //            ALU outputs 0 as a deterministic placeholder.
-        MUL:  odata = multicyc_sel ? 32'd0 : ($signed(idata1) * $signed(idata2));
+      /* RISC-V M-Extension Instructions */
+        MUL: odata = idata1 * idata2;
         DIV: begin // division by zero --> follow risc-v convention of setting to MAX_INT/-1
             if (idata2 == 32'h0) begin
                 odata = 32'hFFFFFFFF; // Division by zero --> set to -1

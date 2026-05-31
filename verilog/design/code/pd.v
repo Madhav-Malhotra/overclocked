@@ -30,21 +30,12 @@ module pd #(
   // INSTANTIATE SIGNALS
   // ===================
 
-  // enable signals for each pipeline stage (tied on for normal operation; tests
-  // may poke these nets via --public-flat-rw)
-  wire fetch_en;
-  wire fd_en;
-  wire dx_en;
-  wire xm_en;
-  wire mw_en;
-  
-  assign fetch_en = 1'b1;
-  assign fd_en    = 1'b1;
-  assign dx_en    = 1'b1;
-  assign xm_en    = 1'b1;
-  assign mw_en    = 1'b1;
-
-  localparam MUL_ALU = 4'd11;
+  // enable signals for each pipeline stage
+  wire fetch_en = 1;
+  wire fd_en = 1;
+  wire dx_en = 1;
+  wire xm_en = 1;
+  wire mw_en = 1;
 
   // Fetch unit
   reg [DATAW-1:0] pc_r;
@@ -115,6 +106,7 @@ module pd #(
   reg [ADDRW-1:0] addr_rs1_dx_r;
   reg [ADDRW-1:0] addr_rs2_dx_r;
   reg [ADDRW-1:0] addr_rd_dx_r;
+  reg [6:0] funct7_dx_r; 
   
   // Execute Memory
   reg [DATAW-1:0] pc_xm_r;   
@@ -216,11 +208,9 @@ module pd #(
       pc_r <= BASE_ADDR;
       imem_in_r <= 0;
     end
-    else if (br_taken) begin
-      // Control-flow redirects must beat data stalls so wrong-path instructions
-      // don't get held and later reissued.
-      pc_r <= alu_out_w;
-    end
+    else if (br_taken) begin          // ADD THIS BEFORE stall check
+    pc_r <= alu_out_w;
+  end
     else if (stall || !fetch_en ) begin
       pc_r <= pc_r;  // Hold PC value during stall
     end
@@ -251,7 +241,7 @@ module pd #(
     end
     else if (br_taken) begin
       pc_fd_r <= pc_r;
-      prev_instr <= NOP_INSTR;    // Insert NOP on branch/jump redirect
+      prev_instr <= NOP_INSTR;    // Insert NOP on branch taken
       stall_fd <= 1;
     end
     else if (stall) begin
@@ -279,6 +269,7 @@ module pd #(
       addr_rs1_dx_r <= 0;
       addr_rs2_dx_r <= 0;
       addr_rd_dx_r <= 0;
+      funct7_dx_r <= 0;
     end
     else if (!dx_en) begin
       pc_dx_r <= pc_dx_r;
@@ -289,6 +280,7 @@ module pd #(
       addr_rs1_dx_r <= addr_rs1_dx_r;
       addr_rs2_dx_r <= addr_rs2_dx_r;
       addr_rd_dx_r <= addr_rd_dx_r;
+      funct7_dx_r <= funct7_dx_r;
     end
     else if (mul_stall) begin
       // Hold MUL (or any insn) in EX while array multiplier runs
@@ -311,6 +303,8 @@ module pd #(
       addr_rs1_dx_r <= 0;
       addr_rs2_dx_r <= 0;
       addr_rd_dx_r <= 0;
+      funct7_dx_r <= 0;
+
     end
     else begin
       // Normal pipeline progression
@@ -322,6 +316,7 @@ module pd #(
       addr_rs1_dx_r <= addr_rs1_w;
       addr_rs2_dx_r <= addr_rs2_w;
       addr_rd_dx_r <= addr_rd_w;
+      funct7_dx_r <= funct7_w;
     end
   end
 
@@ -461,8 +456,8 @@ module pd #(
     .opcode_dx(opcode_dx_r),      // input
     .opcode_xm(opcode_xm_r),      // input
     .opcode_mw(opcode_mw_r),      // input
-    .funct3(funct3_dx_r),            // input
-    .funct7(funct7_dx_r),            // input
+    .funct3(funct3_dx_r),         // input
+    .funct7(funct7_dx_r),         // input
     .br_eq(br_eq),                // input
     .br_lt(br_lt),                // input
     .addr_rs1_dx(addr_rs1_dx_r),  // input

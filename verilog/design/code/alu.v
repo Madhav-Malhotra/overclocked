@@ -77,8 +77,14 @@ always @(*) begin
         MUL:  odata = multicyc_sel ? 32'd0 : ($signed(idata1) * $signed(idata2));
         // division by zero --> follow risc-v convention of setting to MAX_INT/-1
         DIV: begin
-            odata = (idata2 == 'h0) ? 32'hFFFFFFFF : idata1 / idata2;
-        end 
+            if (idata2 == 32'h0) begin
+                odata = 32'hFFFFFFFF; // Division by zero
+            end else if (idata1 == 32'h80000000 && idata2 == 32'hFFFFFFFF) begin
+                odata = 32'h80000000; // specifically handle INT_MIN / -1 overflow case (verilator triggers an overflow)
+            end else begin
+                odata = $signed($signed(idata1) / $signed(idata2)); // force cast to signed
+            end
+        end
         DIVU: begin
             odata = (idata2 == 'h0) ? 32'hFFFFFFFF : $unsigned(idata1) / $unsigned(idata2);
         end 

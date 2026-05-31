@@ -37,6 +37,7 @@ module pd #(
   wire dx_en;
   wire xm_en;
   wire mw_en;
+  
   assign fetch_en = 1'b1;
   assign fd_en    = 1'b1;
   assign dx_en    = 1'b1;

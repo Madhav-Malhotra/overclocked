@@ -195,7 +195,6 @@ assign alu_sel =    (is_lui_x) ? NOP :
                     (is_auipc_x || is_jal_x || is_jalr_x || is_load_x || is_store_x || is_branch_x) ? ADD :
                     (is_alu_x) ?
                         ((funct3 == 'h0 && funct7 == 'h20) ? SUB :
-                        (funct3 == 'h0 && funct7 == 'h01) ? MUL :
                         (funct3 == 'h0) ? ADD :
                         (funct3 == 'h1) ? SLL :
                         (funct3 == 'h2) ? SLT :

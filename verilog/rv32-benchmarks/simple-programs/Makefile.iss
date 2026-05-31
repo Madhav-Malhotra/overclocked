@@ -8,7 +8,7 @@ OBJCOPY = $(RISCV_PREFIX)objcopy
 OBJDUMP = $(RISCV_PREFIX)objdump
 
 # Compiler flags
-CFLAGS = -march=rv32i -mabi=ilp32 -nostdlib -O2
+CFLAGS = -march=rv32i -mabi=ilp32 -nostdlib -O2 -std=gnu99
 LDFLAGS = -T../riscv32.ld
 
 # Startup code

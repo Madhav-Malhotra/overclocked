@@ -1,8 +1,9 @@
 // =============================================================================
 // Module:      alu
-// Description: 10-operation arithmetic logic unit for RV32I.
+// Description: Arithmetic logic unit for RV32I.
 //              Supports ADD, SUB, shifts (SLL/SRL/SRA), logical (XOR/OR/AND),
-//              comparisons (SLT/SLTU), and NOP (pass-through idata2 for LUI).
+//              comparisons (SLT/SLTU), NOP (pass-through idata2 for LUI), and 
+//              MUL (low 32b product).
 // Inputs:      idata1, idata2 - 32-bit operands
 //              alu_sel        - 4-bit operation selector
 // Outputs:     odata          - 32-bit result
@@ -32,6 +33,7 @@ localparam OR   = 4'd8;
 localparam AND  = 4'd9;
 // Pass idata2 through unchanged; used by LUI which needs imm with no addend
 localparam NOP  = 4'd10;
+localparam MUL = 4'd11;
 
 reg [ODATAW-1:0] mask;
 
@@ -63,6 +65,7 @@ always @(*) begin
         end
         SLT:  odata = (idata1 < idata2) ? 1 : 0;
         SLTU: odata = ($unsigned(idata1) < $unsigned(idata2)) ? 1 : 0;
+        MUL: odata = idata1 * idata2;
         default: odata = 0;
     endcase
 end

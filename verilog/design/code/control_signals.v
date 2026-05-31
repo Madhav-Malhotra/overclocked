@@ -21,7 +21,9 @@
 // =============================================================================
 module control_signals #(
     parameter DATAW = 32,
-    parameter ADDRW = $clog2(DATAW)
+    parameter ADDRW = $clog2(DATAW),
+    // 1: bubble XM while array_mult runs; 0: single-cycle MUL, no extra stall
+    parameter USE_MULTICYCLE_MULT = 1'b1
 )
 (
     input clock,
@@ -39,6 +41,9 @@ module control_signals #(
     input [ADDRW-1:0] addr_rs2_dx,
     input [ADDRW-1:0] addr_rd_xm,
     input [ADDRW-1:0] addr_rd_mw,
+    // mul_stall from pd.v: high while array_mult is computing; used to inject
+    // a bubble into XM so instructions behind MUL don't re-enter the stage.
+    input stall,
     output [1:0] branch_comp_data1_sel,
     output [1:0] branch_comp_data2_sel,
     // br_taken exposed for use in test harness
@@ -190,20 +195,32 @@ assign alu_sel =    (is_lui_x) ? NOP :
 // Execute-Memory Pipeline
 always @(posedge clock) begin
     if (reset) begin
-        is_store_xm_r <= 1'b0;
-        is_load_xm_r <= 1'b0;
-        is_jal_xm_r <= 1'b0;
-        is_jalr_xm_r <= 1'b0;
+        is_store_xm_r  <= 1'b0;
+        is_load_xm_r   <= 1'b0;
+        is_jal_xm_r    <= 1'b0;
+        is_jalr_xm_r   <= 1'b0;
         is_branch_xm_r <= 1'b0;
-        is_ecall_xm_r <= 1'b0;
+        is_ecall_xm_r  <= 1'b0;
     end
-    else begin
-        is_store_xm_r <= is_store_x;
-        is_load_xm_r <= is_load_x;
-        is_jal_xm_r <= is_jal_x;
-        is_jalr_xm_r <= is_jalr_x;
-        is_branch_xm_r <= is_branch_x;
-        is_ecall_xm_r <= is_ecall_x;
+    else if (xm_en) begin
+        if (USE_MULTICYCLE_MULT && stall) begin
+            // While array_mult holds MUL in DX, inject a bubble into XM so
+            // instructions already past EX can drain through MW without being
+            // re-issued on every stall cycle.
+            is_store_xm_r  <= 1'b0;
+            is_load_xm_r   <= 1'b0;
+            is_jal_xm_r    <= 1'b0;
+            is_jalr_xm_r   <= 1'b0;
+            is_branch_xm_r <= 1'b0;
+            is_ecall_xm_r  <= 1'b0;
+        end else begin
+            is_store_xm_r  <= is_store_x;
+            is_load_xm_r   <= is_load_x;
+            is_jal_xm_r    <= is_jal_x;
+            is_jalr_xm_r   <= is_jalr_x;
+            is_branch_xm_r <= is_branch_x;
+            is_ecall_xm_r  <= is_ecall_x;
+        end
     end
 end
 

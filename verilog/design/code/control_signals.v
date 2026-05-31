@@ -187,9 +187,10 @@ assign pc_sel = branch_taken || is_jal_x || is_jalr_x;
 // LUI passes B (immediate) through unchanged; all other non-ALU ops use ADD for address/target computation
 assign alu_sel =    (is_lui_x) ? NOP :
                     (is_auipc_x || is_jal_x || is_jalr_x || is_load_x || is_store_x || is_branch_x) ? ADD :
+                    (is_alu_x && funct7_dx_r == 'h01) ? ((funct3_dx_r == 'h0) ? MUL : NOP) :
                     (is_alu_x && funct7_dx_r == 'h20) ? ((funct3_dx_r == 'h0) ? SUB : SRA) :
                     (is_alu_x || is_alu_imm_x) ?
-                        ((funct3_dx_r == 'h0) ? ((funct7_dx_r == 'h1) ? MUL : ADD) :
+                        ((funct3_dx_r == 'h0) ? ADD :
                         (funct3_dx_r == 'h1) ? SLL :
                         (funct3_dx_r == 'h2) ? SLT :
                         (funct3_dx_r == 'h3) ? SLTU :

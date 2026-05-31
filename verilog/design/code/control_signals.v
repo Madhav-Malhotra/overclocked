@@ -82,26 +82,6 @@ localparam WB_MEM = 2'd0;
 localparam WB_ALU = 2'd1;
 localparam WB_PC4 = 2'd2;
 
-// ====================
-// PIPELINE REGISTERS
-// ====================
-
-// Decode-Execute Pipeline registers
-
-////////////////////code below isn't needed
-// reg [2:0] funct3_dx_r;
-// reg [6:0] funct7_dx_r;
-// always @(posedge clock) begin
-//     if (reset) begin
-//         funct3_dx_r <= 3'd0;
-//         funct7_dx_r <= 7'd0;
-//     end
-//     else if (dx_en) begin
-//         funct3_dx_r <= funct3;
-//         funct7_dx_r <= funct7;
-//     end
-// end
-//////////////////////code above isn't needed
 
 // ===============================
 // EXECUTE STAGE CONTROL SIGNALS

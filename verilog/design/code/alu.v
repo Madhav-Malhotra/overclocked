@@ -2,13 +2,14 @@
 // Module:      alu
 // Description: Arithmetic logic unit for RV32I.
 //              Supports ADD, SUB, shifts (SLL/SRL/SRA), logical (XOR/OR/AND),
-//              comparisons (SLT/SLTU), NOP (pass-through idata2 for LUI),
-//              MUL (low 32b product), and DIV/DIVU (for division by zero, following
-//              risc-v conventions of setting output to MAX_INT/-1).
-// Inputs:      idata1, idata2 - 32-bit operands
-//              alu_sel        - 4-bit operation selector
-//              multicyc_sel        - 0: single-cycle multiply (* operator)
-// Outputs:     odata          - 32-bit result
+//              comparisons (SLT/SLTU), NOP (pass-through idata2 for LUI), and
+//              MUL (low 32b product).
+// Inputs:      idata1, idata2  - 32-bit operands
+//              alu_sel         - 4-bit operation selector
+//              multicyc_sel    - 0: single-cycle multiply via * operator
+//                                1: multicycle selected; MUL result comes from
+//                                   array_mult in pd.v, ALU outputs 0 as placeholder
+// Outputs:     odata           - 32-bit result
 // =============================================================================
 module alu #(
     parameter IDATAW = 32,
@@ -17,6 +18,7 @@ module alu #(
     input signed [IDATAW-1:0] idata1,
     input signed [IDATAW-1:0] idata2,
     input [3:0] alu_sel,
+    input        multicyc_sel,
     output reg signed [ODATAW-1:0] odata
 );
 
@@ -69,8 +71,8 @@ always @(*) begin
         end
         SLT:  odata = (idata1 < idata2) ? 1 : 0;
         SLTU: odata = ($unsigned(idata1) < $unsigned(idata2)) ? 1 : 0;
-      /* RISC-V M-Extension Instructions */
-        MUL: odata = idata1 * idata2;
+         /* RISC-V M-Extension Instructions */
+        MUL: odata = multicyc_sel ? 32'd0 : ($signed(idata1) * $signed(idata2));
         DIV: begin // division by zero --> follow risc-v convention of setting to MAX_INT/-1
             if (idata2 == 32'h0) begin
                 odata = 32'hFFFFFFFF; // Division by zero --> set to -1

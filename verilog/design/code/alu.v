@@ -2,8 +2,9 @@
 // Module:      alu
 // Description: Arithmetic logic unit for RV32I.
 //              Supports ADD, SUB, shifts (SLL/SRL/SRA), logical (XOR/OR/AND),
-//              comparisons (SLT/SLTU), NOP (pass-through idata2 for LUI), and 
-//              MUL (low 32b product).
+//              comparisons (SLT/SLTU), NOP (pass-through idata2 for LUI),
+//              MUL (low 32b product), and DIV/DIVU (for division by zero, following
+//              risc-v conventions of setting output to MAX_INT/-1).
 // Inputs:      idata1, idata2 - 32-bit operands
 //              alu_sel        - 4-bit operation selector
 //              multicyc_sel        - 0: single-cycle multiply (* operator)
@@ -71,22 +72,23 @@ always @(*) begin
         end
         SLT:  odata = (idata1 < idata2) ? 1 : 0;
         SLTU: odata = ($unsigned(idata1) < $unsigned(idata2)) ? 1 : 0;
+
+        /* RISC-V M-Extension: ALU */ 
         // multicyc_sel=0: single-cycle multiply via * operator.
         // multicyc_sel=1: multicycle selected; result comes from array_mult in pd.v,
         //            ALU outputs 0 as a deterministic placeholder.
         MUL:  odata = multicyc_sel ? 32'd0 : ($signed(idata1) * $signed(idata2));
-        // division by zero --> follow risc-v convention of setting to MAX_INT/-1
-        DIV: begin
+        DIV: begin // division by zero --> follow risc-v convention of setting to MAX_INT/-1
             if (idata2 == 32'h0) begin
-                odata = 32'hFFFFFFFF; // Division by zero
+                odata = 32'hFFFFFFFF; // Division by zero --> set to -1
             end else if (idata1 == 32'h80000000 && idata2 == 32'hFFFFFFFF) begin
-                odata = 32'h80000000; // specifically handle INT_MIN / -1 overflow case (verilator triggers an overflow)
+                odata = 32'h80000000; // specifically handle INT_MIN / -1 overflow case (by default verilator triggers an overflow)
             end else begin
-                odata = $signed($signed(idata1) / $signed(idata2)); // force cast to signed
+                odata = $signed($signed(idata1) / $signed(idata2)); // force cast division result to signed
             end
         end
         DIVU: begin
-            odata = (idata2 == 'h0) ? 32'hFFFFFFFF : $unsigned(idata1) / $unsigned(idata2);
+            odata = (idata2 == 'h0) ? 32'hFFFFFFFF : $unsigned(idata1) / $unsigned(idata2); // division by zero --> set to MAX_INT
         end 
         default: odata = 0;
     endcase

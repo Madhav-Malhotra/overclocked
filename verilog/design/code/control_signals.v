@@ -193,32 +193,25 @@ assign pc_sel = branch_taken || is_jal_x || is_jalr_x;
 // LUI passes B (immediate) through unchanged; all other non-ALU ops use ADD for address/target computation
 assign alu_sel =    (is_lui_x) ? NOP :
                     (is_auipc_x || is_jal_x || is_jalr_x || is_load_x || is_store_x || is_branch_x) ? ADD :
-                    (is_alu_x) ?
-                        ((funct3 == 'h0 && funct7 == 'h20) ? SUB :
-                        (funct3 == 'h0) ? ADD :
-                        (funct3 == 'h1) ? SLL :
-                        (funct3 == 'h2) ? SLT :
-                        (funct3 == 'h3) ? SLTU :
-                        (funct3 == 'h4 && funct7 == 'h01) ? DIV :
-                        (funct3 == 'h4) ? XOR :
-                        (funct3 == 'h5 && funct7 == 'h01) ? DIVU :
-                        (funct3 == 'h5 && funct7 == 'h20) ? SRA :
-                        (funct3 == 'h5) ? SRL :
-                        (funct3 == 'h6) ? OR :
-                        (funct3 == 'h7) ? AND :
-                        NOP) :
-                    (is_alu_imm_x) ?
+                    // RISC-V m-extension instructions:
+                    (is_alu_x && funct7 == 'h01) ? 
+                        ((funct3 == 'h0) ? MUL : 
+                        (funct3 == 'h4) ? DIV : 
+                        (funct3 == 'h5) ? DIVU : 
+                    NOP) :
+                    (is_alu_x && funct7 == 'h20) ? ((funct3 == 'h0) ? SUB : SRA) :
+                    (is_alu_x || is_alu_imm_x) ?
                         ((funct3 == 'h0) ? ADD :
                         (funct3 == 'h1) ? SLL :
                         (funct3 == 'h2) ? SLT :
                         (funct3 == 'h3) ? SLTU :
                         (funct3 == 'h4) ? XOR :
+                        (funct3 == 'h5 && funct7 == 'h0) ? SRL :
                         (funct3 == 'h5 && funct7 == 'h20) ? SRA :
-                        (funct3 == 'h5) ? SRL :
                         (funct3 == 'h6) ? OR :
                         (funct3 == 'h7) ? AND :
-                        NOP) :
-                    NOP;
+                        NOP) // invalid funct3 for ALU
+                    : NOP;  // invalid opcode
 
 // Execute-Memory Pipeline
 always @(posedge clock) begin

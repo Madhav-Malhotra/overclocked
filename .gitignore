@@ -22,5 +22,9 @@ verilog/verif/diffs/spike/*
 *.sln
 riscv-gnu-toolchain/
 
-#make wave tools gtkwave
+# to run makewaves
 gtkwave/
+
+# builded objects for makewaves/verilog testbenches
+verilog/design/simple_testbenches/*.vcd
+verilog/design/simple_testbenches/*_tb

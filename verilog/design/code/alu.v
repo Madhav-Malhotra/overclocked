@@ -19,7 +19,6 @@ module alu #(
     input signed [IDATAW-1:0] idata1,
     input signed [IDATAW-1:0] idata2,
     input [3:0] alu_sel,
-    input multicyc_sel,
     output reg signed [ODATAW-1:0] odata
 );
 

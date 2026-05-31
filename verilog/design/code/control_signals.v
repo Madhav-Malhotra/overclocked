@@ -22,8 +22,7 @@
 // =============================================================================
 module control_signals #(
     parameter DATAW = 32,
-    parameter ADDRW = $clog2(DATAW),
-    parameter USE_MULTICYCLE_MULT = 1'b0
+    parameter ADDRW = $clog2(DATAW)
 )
 (
     input clock,
@@ -45,7 +44,6 @@ module control_signals #(
     input [ADDRW-1:0] addr_rs2_dx,
     input [ADDRW-1:0] addr_rd_xm,
     input [ADDRW-1:0] addr_rd_mw,
-    input stall,
     output [1:0] branch_comp_data1_sel,
     output [1:0] branch_comp_data2_sel,
     // br_taken exposed for use in test harness
@@ -90,8 +88,6 @@ localparam WB_PC4 = 2'd2;
 // ===============================
 // EXECUTE STAGE CONTROL SIGNALS
 // ===============================
-
-wire branch_taken;
 
 wire is_branch_x  = (opcode_dx == 7'b1100011);
 wire is_alu_x     = (opcode_dx == 7'b0110011);
@@ -199,35 +195,20 @@ assign alu_sel =    (is_lui_x) ? NOP :
 // Execute-Memory Pipeline
 always @(posedge clock) begin
     if (reset) begin
-        is_store_xm_r  <= 1'b0;
-        is_load_xm_r   <= 1'b0;
-        is_jal_xm_r    <= 1'b0;
-        is_jalr_xm_r   <= 1'b0;
+        is_store_xm_r <= 1'b0;
+        is_load_xm_r <= 1'b0;
+        is_jal_xm_r <= 1'b0;
+        is_jalr_xm_r <= 1'b0;
         is_branch_xm_r <= 1'b0;
-        is_ecall_xm_r  <= 1'b0;
+        is_ecall_xm_r <= 1'b0;
     end
     else if (xm_en) begin
-        // While a multicycle MUL is held in EX, inject a bubble into XM so older
-        // instructions can drain through MW instead of being held and re-issued.
-        if (USE_MULTICYCLE_MULT && stall) begin
-            is_store_xm_r  <= 1'b0;
-            is_load_xm_r   <= 1'b0;
-            is_jal_xm_r    <= 1'b0;
-            is_jalr_xm_r   <= 1'b0;
-            is_branch_xm_r <= 1'b0;
-            is_ecall_xm_r  <= 1'b0;
-        end 
-        else begin
-            // Normal pipeline progression: Execute stage moves into Memory stage.
-            // (If pd.v injected a NOP opcode into Execute via hazard_stall, 
-            // these wires naturally read 0 on the next cycle anyway).
-            is_store_xm_r  <= is_store_x;
-            is_load_xm_r   <= is_load_x;
-            is_jal_xm_r    <= is_jal_x;
-            is_jalr_xm_r   <= is_jalr_x;
-            is_branch_xm_r <= is_branch_x;
-            is_ecall_xm_r  <= is_ecall_x;
-        end
+        is_store_xm_r <= is_store_x;
+        is_load_xm_r <= is_load_x;
+        is_jal_xm_r <= is_jal_x;
+        is_jalr_xm_r <= is_jalr_x;
+        is_branch_xm_r <= is_branch_x;
+        is_ecall_xm_r <= is_ecall_x;
     end
 end
 

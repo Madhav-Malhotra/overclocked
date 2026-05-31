@@ -168,17 +168,23 @@ module pd #(
   wire array_mult_busy;
   reg  array_mult_busy_d1;
   reg  prev_is_mul;
+  reg  [DATAW-1:0] prev_pc_dx_r;
   always @(posedge clock) begin
     if (reset) begin
       array_mult_busy_d1 <= 1'b0;
       prev_is_mul        <= 1'b0;
+      prev_pc_dx_r       <= {DATAW{1'b0}};
     end else begin
       array_mult_busy_d1 <= array_mult_busy;
       prev_is_mul        <= is_mul_exec;
+      prev_pc_dx_r       <= pc_dx_r;
     end
   end
   // One-cycle start pulse on the first cycle MUL enters EX.
-  wire mul_just_started = USE_MULTICYCLE_MULT && is_mul_exec && !prev_is_mul;
+  // Also fires when pc_dx_r changes so back-to-back MULs each get a start pulse
+  // (prev_is_mul stays 1 through the stall, so !prev_is_mul alone misses MUL#2+).
+  wire mul_just_started = USE_MULTICYCLE_MULT && is_mul_exec &&
+      (!prev_is_mul || (pc_dx_r != prev_pc_dx_r));
   wire array_mult_start = USE_MULTICYCLE_MULT && mul_just_started;
   // Stall while busy, one extra cycle after (so XM samples the stable result),
   // and during the start cycle so the pipeline freezes immediately.

@@ -36,6 +36,7 @@ TOP.top.dut.core.mw_en
 [color] 1
 TOP.top.dut.core.pc_r[31:0]
 TOP.top.dut.core.pc_fd_r[31:0]
+TOP.top.dut.core.stall
 @200
 -
 -Decoder

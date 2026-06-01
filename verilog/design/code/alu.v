@@ -8,8 +8,6 @@
 // Inputs:      idata1, idata2 - 32-bit operands
 //              alu_sel        - 4-bit operation selector
 //              multicyc_sel        - 0: single-cycle multiply (* operator)
-//                               1: multicycle selected; MUL result comes from
-//                                  array_mult in pd.v, so ALU outputs 0 as placeholder
 // Outputs:     odata          - 32-bit result
 // =============================================================================
 module alu #(

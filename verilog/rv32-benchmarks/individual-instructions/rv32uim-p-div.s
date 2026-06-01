@@ -244,10 +244,114 @@ test_18:
     bne     x7,x29,fail
 
 # ------------------------------------------------------------
-# x0 destination test
+# WAW: DIV then ADDI write same register
+# Younger write must win
 # ------------------------------------------------------------
 
 test_19:
+    addi    x1,x0,100
+    addi    x2,x0,10
+
+    div     x5,x1,x2      # 10
+    addi    x5,x0,99      # younger write
+
+    addi    x29,x0,99
+    addi    x3,x0,19
+    bne     x5,x29,fail
+
+# ------------------------------------------------------------
+# WAW: two DIVs write same destination
+# Younger write must win
+# ------------------------------------------------------------
+
+test_20:
+    addi    x1,x0,100
+    addi    x2,x0,10
+    addi    x4,x0,2
+
+    div     x5,x1,x2      # 10
+    div     x5,x1,x4      # 50
+
+    addi    x29,x0,50
+    addi    x3,x0,20
+    bne     x5,x29,fail
+
+# ------------------------------------------------------------
+# WAR: older DIV must read x1 before younger write
+# ------------------------------------------------------------
+
+test_21:
+    addi    x1,x0,100
+    addi    x2,x0,10
+
+    div     x5,x1,x2
+    addi    x1,x0,77
+
+    addi    x29,x0,10
+    addi    x3,x0,21
+    bne     x5,x29,fail
+
+# ------------------------------------------------------------
+# WAR: overwrite both source operands
+# ------------------------------------------------------------
+
+test_22:
+    addi    x1,x0,100
+    addi    x2,x0,10
+
+    div     x5,x1,x2
+
+    addi    x1,x0,1
+    addi    x2,x0,1
+
+    addi    x29,x0,10
+    addi    x3,x0,22
+    bne     x5,x29,fail
+
+# ------------------------------------------------------------
+# WAR + WAW combined stress
+# ------------------------------------------------------------
+
+test_23:
+    addi    x1,x0,120
+    addi    x2,x0,10
+
+    div     x5,x1,x2      # 12
+
+    addi    x1,x0,7
+    addi    x5,x0,99
+
+    addi    x29,x0,99
+    addi    x3,x0,23
+    bne     x5,x29,fail
+
+# ------------------------------------------------------------
+# Multiple writes around long-latency DIV
+# ------------------------------------------------------------
+
+test_24:
+    addi    x1,x0,144
+    addi    x2,x0,12
+
+    div     x5,x1,x2      # 12
+    addi    x6,x0,42
+    addi    x7,x0,99
+
+    addi    x29,x0,12
+    addi    x3,x0,24
+    bne     x5,x29,fail
+
+    addi    x29,x0,42
+    bne     x6,x29,fail
+
+    addi    x29,x0,99
+    bne     x7,x29,fail
+
+# ------------------------------------------------------------
+# x0 destination test
+# ------------------------------------------------------------
+
+test_25:
     addi    x1,x0,50
     addi    x2,x0,5
 

@@ -76,6 +76,8 @@ localparam OR = 4'd8;
 localparam AND = 4'd9;
 localparam NOP = 4'd10;
 localparam MUL = 4'd11;
+localparam DIV = 4'd12;
+localparam DIVU = 4'd13;
 
 // wb_sel encoding
 localparam WB_MEM = 2'd0;
@@ -170,7 +172,12 @@ assign pc_sel = branch_taken || is_jal_x || is_jalr_x;
 // LUI passes B (immediate) through unchanged; all other non-ALU ops use ADD for address/target computation
 assign alu_sel =    (is_lui_x) ? NOP :
                     (is_auipc_x || is_jal_x || is_jalr_x || is_load_x || is_store_x || is_branch_x) ? ADD :
-                    (is_alu_x && funct7 == 'h01) ? ((funct3 == 'h0) ? MUL : NOP) :
+                    // RISC-V m-extension instructions:
+                    (is_alu_x && funct7 == 'h01) ? 
+                        ((funct3 == 'h0) ? MUL : 
+                        (funct3 == 'h4) ? DIV : 
+                        (funct3 == 'h5) ? DIVU : 
+                    NOP) :
                     (is_alu_x && funct7 == 'h20) ? ((funct3 == 'h0) ? SUB : SRA) :
                     (is_alu_x || is_alu_imm_x) ?
                         ((funct3 == 'h0) ? ADD :
@@ -215,23 +222,22 @@ assign mem_rw = is_store_xm_r && !reset;
 // Memory-Writeback Pipeline registers
 always @(posedge clock) begin
     if (reset) begin
-        is_store_mw_r <= 1'b0;
+        is_store_mw_r  <= 1'b0;
         is_branch_mw_r <= 1'b0;
-        is_ecall_mw_r <= 1'b0;
-        is_load_mw_r <= 1'b0;
-        is_jal_mw_r <= 1'b0;
-        is_jalr_mw_r <= 1'b0;
+        is_ecall_mw_r  <= 1'b0;
+        is_load_mw_r   <= 1'b0;
+        is_jal_mw_r    <= 1'b0;
+        is_jalr_mw_r   <= 1'b0;
     end
     else if (mw_en) begin
-        is_store_mw_r <= is_store_xm_r;
+        is_store_mw_r  <= is_store_xm_r;
         is_branch_mw_r <= is_branch_xm_r;
-        is_ecall_mw_r <= is_ecall_xm_r;
-        is_load_mw_r <= is_load_xm_r;
-        is_jal_mw_r <= is_jal_xm_r;
-        is_jalr_mw_r <= is_jalr_xm_r;
+        is_ecall_mw_r  <= is_ecall_xm_r;
+        is_load_mw_r   <= is_load_xm_r;
+        is_jal_mw_r    <= is_jal_xm_r;
+        is_jalr_mw_r   <= is_jalr_xm_r;
     end
 end
-
 // ===================================
 // WRITEBACK STAGE CONTROL SIGNALS
 // ===================================

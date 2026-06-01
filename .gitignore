@@ -21,3 +21,6 @@ verilog/verif/diffs/spike/*
 # C# stuff
 *.sln
 riscv-gnu-toolchain/
+
+#make wave tools gtkwave
+gtkwave/

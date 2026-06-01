@@ -2,10 +2,12 @@
 // Module:      alu
 // Description: Arithmetic logic unit for RV32I.
 //              Supports ADD, SUB, shifts (SLL/SRL/SRA), logical (XOR/OR/AND),
-//              comparisons (SLT/SLTU), NOP (pass-through idata2 for LUI), and 
-//              MUL (low 32b product).
+//              comparisons (SLT/SLTU), NOP (pass-through idata2 for LUI),
+//              MUL (low 32b product), and DIV/DIVU (for division by zero, following
+//              risc-v conventions of setting output to MAX_INT/-1).
 // Inputs:      idata1, idata2 - 32-bit operands
 //              alu_sel        - 4-bit operation selector
+//              multicyc_sel        - 0: single-cycle multiply (* operator)
 // Outputs:     odata          - 32-bit result
 // =============================================================================
 module alu #(
@@ -33,7 +35,9 @@ localparam OR   = 4'd8;
 localparam AND  = 4'd9;
 // Pass idata2 through unchanged; used by LUI which needs imm with no addend
 localparam NOP  = 4'd10;
-localparam MUL = 4'd11;
+localparam MUL  = 4'd11;
+localparam DIV = 4'd12;
+localparam DIVU = 4'd13;
 
 reg [ODATAW-1:0] mask;
 
@@ -65,7 +69,20 @@ always @(*) begin
         end
         SLT:  odata = (idata1 < idata2) ? 1 : 0;
         SLTU: odata = ($unsigned(idata1) < $unsigned(idata2)) ? 1 : 0;
+      /* RISC-V M-Extension Instructions */
         MUL: odata = idata1 * idata2;
+        DIV: begin // division by zero --> follow risc-v convention of setting to MAX_INT/-1
+            if (idata2 == 32'h0) begin
+                odata = 32'hFFFFFFFF; // Division by zero --> set to -1
+            end else if (idata1 == 32'h80000000 && idata2 == 32'hFFFFFFFF) begin
+                odata = 32'h80000000; // specifically handle INT_MIN / -1 overflow case (by default verilator triggers an overflow)
+            end else begin
+                odata = $signed($signed(idata1) / $signed(idata2)); // force cast division result to signed
+            end
+        end
+        DIVU: begin
+            odata = (idata2 == 'h0) ? 32'hFFFFFFFF : $unsigned(idata1) / $unsigned(idata2); // division by zero --> set to MAX_INT
+        end 
         default: odata = 0;
     endcase
 end

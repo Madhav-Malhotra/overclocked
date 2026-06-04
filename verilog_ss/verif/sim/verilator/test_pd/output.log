@@ -1,0 +1,7 @@
+%Error: /home/peri/Desktop/CAPSTONE/overclocked/verilog_ss/design/code/dmemory.v:47:21: syntax error, unexpected ';', expecting TYPE-IDENTIFIER
+   47 |     for (i = 0; i < ; i = i + 1) begin
+      |                     ^
+%Error: /home/peri/Desktop/CAPSTONE/overclocked/verilog_ss/design/code/dmemory.v:47:32: syntax error, unexpected ')', expecting ';'
+   47 |     for (i = 0; i < ; i = i + 1) begin
+      |                                ^
+%Error: Cannot continue

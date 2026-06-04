@@ -80,6 +80,20 @@ module pd #(
   wire br_lt;
   wire br_taken;                  // Not needed for CPU. Just for test file
 
+    // Control Signals
+  wire reg_wen_2;
+  wire pc_sel_2;
+  wire br_un_2;
+  wire [1:0] a_sel_2;
+  wire [1:0] b_sel_2;
+  wire [1:0] branch_comp_data1_sel_2;
+  wire [1:0] branch_comp_data2_sel_2;
+  wire [3:0] alu_sel_2;
+  wire [1:0] wb_sel_2;
+  wire br_eq_2;
+  wire br_lt_2;
+  wire br_taken_2;                  // Not needed for CPU. Just for test file
+
   // Register file unit
   wire [DATAW-1:0] data_rs1_w;     // wire - register file output
   wire [DATAW-1:0] data_rs2_w;     // wire - register file output
@@ -191,6 +205,11 @@ module pd #(
   // Doesn't involve x0 + is an opcode that writes to an rd
   wire instr_mw_writes_reg = (addr_rd_mw_r != 0) && 
     !(opcode_mw_r == STORE_OPCODE || opcode_mw_r == BRANCH_OPCODE || opcode_mw_r == ECALL_OPCODE); 
+
+  //way 2
+  wire instr_mw_writes_reg_2 = (addr_rd_mw_r_2 != 0) && 
+  !(opcode_mw_r_2 == STORE_OPCODE ||opcode_mw_r_2 == BRANCH_OPCODE || opcode_mw_r_2 == ECALL_OPCODE); 
+  
   // + is an opcode that uses rs1/2
   wire wd_stall = !is_nop_mw && (addr_rd_mw_r != addr_rd_xm_r) && (addr_rd_mw_r != addr_rd_dx_r) && instr_mw_writes_reg && (
     (addr_rd_mw_r == addr_rs1_w && addr_rs1_w != 0 && !is_u_type && !is_j_type) || 
@@ -481,19 +500,19 @@ module pd #(
     end 
     else if (!mw_en_2) begin
       // pc_mw_r <= pc_mw_r;
-      opcode_mw_r_2 <= opcode_mw_r;
-      addr_rd_mw_r_2 <= addr_rd_mw_r;
-      pc_mw_r_2 <= pc_mw_r;
-      alu_mw_r_2 <= alu_mw_r;
-      funct3_mw_r_2 <= funct3_mw_r;
+      opcode_mw_r_2 <= opcode_mw_r_2;
+      addr_rd_mw_r_2 <= addr_rd_mw_r_2;
+      pc_mw_r_2 <= pc_mw_r_2;
+      alu_mw_r_2 <= alu_mw_r_2;
+      funct3_mw_r_2 <= funct3_mw_r_2;
     end
     else begin
       // pc_mw_r <= pc_xm_r;
-      opcode_mw_r_2 <= opcode_xm_r;
-      addr_rd_mw_r_2 <= addr_rd_xm_r;
-      pc4_mw_r_2 <= pc4_xm_w;
-      alu_mw_r_2 <= alu_xm_r;
-      funct3_mw_r_2 <= funct3_xm_r;
+      opcode_mw_r_2 <= opcode_xm_r_2;
+      addr_rd_mw_r_2 <= addr_rd_xm_r_2;
+      pc4_mw_r_2 <= pc4_xm_w_2;
+      alu_mw_r_2 <= alu_xm_r_2;
+      funct3_mw_r_2 <= funct3_xm_r_2;
     end
   end
 
@@ -551,7 +570,7 @@ module pd #(
     .addr_rd(addr_rd_mw_r), // input
     .data_rd(data_rd_w),    // input
     .data_rs1(data_rs1_w),  // output
-    .data_rs2(data_rs2_w)   // output
+    .data_rs2(data_rs2_w),   // output
 
     //2-way
     .write_enable_2(reg_wen_2), // input
@@ -645,6 +664,14 @@ module pd #(
                                 (branch_comp_data2_sel == MX_BYPASS) ? alu_xm_r :
                                                                      data_rs2_w;
 
+  wire [DATAW-1:0] idata1_in_2 =  (branch_comp_data1_sel == WX_BYPASS) ? data_rd_w :
+                                (branch_comp_data1_sel == MX_BYPASS) ? alu_xm_r :
+                                                                     data_rs1_w;
+
+  wire [DATAW-1:0] idata2_in_2 =  (branch_comp_data2_sel == WX_BYPASS) ? data_rd_w :
+                                (branch_comp_data2_sel == MX_BYPASS) ? alu_xm_r :
+                                                                     data_rs2_w;
+
   branch_comp bc1(
     .idata1(idata1_in),
     .idata2(idata2_in),
@@ -692,16 +719,25 @@ module pd #(
 
   wire [1:0] mem_write_access_size = funct3_xm_r[1:0];     // For testbench
 
+  // way 2
+  wire [1:0] mem_write_access_size_2 = funct3_xm_r_2[1:0];     // For testbench
+
   // WM bypass logic
   wire is_store_xm = (opcode_xm_r == STORE_OPCODE);  // Store instruction in XM stage
 
   wire wm_forward = is_store_xm && 
-                    (addr_rs2_xm_r == addr_rd_mw_r) && 
-                    (addr_rd_mw_r != 0) && 
-                    instr_mw_writes_reg;
+                    (addr_rs2_xm_r_2 == addr_rd_mw_r_2) && 
+                    (addr_rd_mw_r_2 != 0) && 
+                    instr_mw_writes_reg_2;
 
+  wire wm_forward_2 = is_store_xm && 
+                    (addr_rs2_xm_r == addr_rd_mw_r_2) && 
+                    (addr_rd_mw_r_2 != 0) && 
+                    instr_mw_writes_reg_2;
   // Data memory instantiation based on forwarding logic
   wire [DATAW-1:0] dmem_data_in = (wm_forward) ? data_rd_w : data_rs2_xm_r;
+  wire [DATAW-1:0] dmem_data_in_2 = (wm_forward_2) ? data_rd_w_2 : data_rs2_xm_r_2;
+
 
   dmemory dmem1(
     .clock(clock),               // input
@@ -709,7 +745,7 @@ module pd #(
     .access_size(mem_write_access_size),   // input
     .address(alu_xm_r),          // input
     .data_in(dmem_data_in),      // input
-    .data_out(data_mem_w)        // output
+    .data_out(data_mem_w),        // output
 
     //way 2
     .read_write_2(data_mem_rw_2),    // input
@@ -721,11 +757,14 @@ module pd #(
 
   // Mem read access size logic
   wire [1:0] mem_read_access_size = funct3_mw_r[1:0];  // For testbench
+  wire [1:0] mem_read_access_size_2 = funct3_mw_r_2[1:0];  // For testbench
 
   localparam BYTE_OP = 2'b00;
   localparam HALF_OP = 2'b01;
   localparam WORD_OP = 2'b10;
   wire is_unsigned = funct3_mw_r[2];
+  wire is_unsigned_2 = funct3_mw_r_2[2];
+
 
   wire [DATAW-1:0] data_mem_w_sized = 
     (mem_read_access_size == BYTE_OP) ? 
@@ -736,13 +775,22 @@ module pd #(
       {{16{data_mem_w[15]}}, data_mem_w[15:0]} :                             // LH
     (mem_read_access_size == WORD_OP) ? data_mem_w : data_mem_w;             // LW
 
+  wire [DATAW-1:0] data_mem_w_sized_2 = 
+    (mem_read_access_size_2 == BYTE_OP) ? 
+      (is_unsigned_2) ? {24'b0, data_mem_w_2[7:0]} :                             // LBU
+      {{24{data_mem_w_2[7]}}, data_mem_w_2[7:0]} :                               // LB
+    (mem_read_access_size_2 == HALF_OP) ? 
+      (is_unsigned_2) ? {16'b0, data_mem_w_2[15:0]} :                            // LHU
+      {{16{data_mem_w_2[15]}}, data_mem_w[15:0]} :                             // LH
+    (mem_read_access_size_2 == WORD_OP) ? data_mem_w_2 : data_mem_w_2;             // LW
+
   // According to lecture slides, this should be in the memory stage
   writeback wb1(
     .alu(alu_mw_r),                 // input
     .mem(data_mem_w_sized),         // input
     .pc4(pc4_mw_r),                 // input
     .wb_sel(wb_sel),                // input
-    .wb_data(data_rd_w)             // output
+    .wb_data(data_rd_w),             // output
 
     //2-way
     .alu_2(alu_mw_r_2),                 // input

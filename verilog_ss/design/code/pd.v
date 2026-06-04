@@ -1,10 +1,10 @@
 // =============================================================================
 // Module:      pd
-// Description: Top-level 5-stage pipelined RV32I processor.
+// Description: Top-level 5-stage pipelined 2-way superscalar RV32Im processor.
 //              Stages: Fetch (F) -> Decode (D) -> Execute (X) -> Memory (M) -> Writeback (W).
 //              Implements hazard detection (load, write-data, load-store, store-rs2 stalls),
 //              MX/WX/WM data forwarding, and branch resolution in the execute stage
-//              (predict not-taken, 1-cycle penalty on taken branch).
+//              (predict not-taken, 1-cycle penalty on taken branch) Same-cycle reads, 1-cycle writes. 
 // Inputs:      clock - processor clock
 //              reset - synchronous reset; returns PC to BASE_ADDR
 // Outputs:     (none - all state is internal; testbench probes internal signals)
@@ -28,12 +28,16 @@ module pd #(
   wire fetch_en = 1;
   wire fd_en = 1;
   wire dx_en = 1;
+  wire dx_en_2 = 1;
   wire xm_en = 1;
+  wire xm_en_2 = 1;
   wire mw_en = 1;
+  wire mw_en_2 = 1;
+
 
   // Fetch unit
   reg [DATAW-1:0] pc_r;
-  wire [DATAW-1:0] instr_w;       // output line into pipeline register
+  wire [63:0] instr_w;       // output line into pipeline register
   reg [DATAW-1:0] imem_in_r;      // unused input to imem
   wire imem_rw_w = 0;             // always 0 (read-only)
 
@@ -49,6 +53,18 @@ module pd #(
   wire is_u_type;
   wire is_j_type;
   wire is_i_type;
+
+  wire [6:0] opcode_w_2;
+  wire [ADDRW-1:0] addr_rd_w_2;
+  wire [ADDRW-1:0] addr_rs1_w_2;
+  wire [ADDRW-1:0] addr_rs2_w_2;
+  wire [2:0] funct3_w_2;
+  wire [6:0] funct7_w_2;
+  wire [DATAW-1:0] imm_w_2;
+  wire [N_BITS-1:0] shamt_w_2;
+  wire is_u_type_2;
+  wire is_j_type_2;
+  wire is_i_type_2;
 
   // Control Signals
   wire reg_wen;
@@ -67,21 +83,31 @@ module pd #(
   // Register file unit
   wire [DATAW-1:0] data_rs1_w;     // wire - register file output
   wire [DATAW-1:0] data_rs2_w;     // wire - register file output
+  wire [DATAW-1:0] data_rs1_w_2;     // wire - register file output
+  wire [DATAW-1:0] data_rs2_w_2;     // wire - register file output
 
   // ALU inputs
   wire [DATAW-1:0] alu_in1_w;
   wire [DATAW-1:0] alu_in2_w;
   wire [DATAW-1:0] alu_out_w;
 
+  wire [DATAW-1:0] alu_in1_w_2;
+  wire [DATAW-1:0] alu_in2_w_2;
+  wire [DATAW-1:0] alu_out_w_2;
+
   // Data memory unit
   wire [DATAW-1:0] data_mem_w;
   wire data_mem_rw;
+  
+  wire [DATAW-1:0] data_mem_w_2;
+  wire data_mem_rw_2;
 
   // Writeback unit
   wire [DATAW-1:0] data_rd_w;
+  wire [DATAW-1:0] data_rd_w_2;
 
-  // PC + 4
-  wire [DATAW-1:0] pc4_f_w = pc_r + 4;
+  // PC + 8
+  wire [DATAW-1:0] pc4_f_w = pc_r + 8;    // NEED ADD MUX TO SELECT PC+4 FOR STALLING LOGIC
 
 
   // ====================
@@ -99,6 +125,14 @@ module pd #(
   reg [ADDRW-1:0] addr_rs2_dx_r;
   reg [ADDRW-1:0] addr_rd_dx_r;
   reg [6:0] funct7_dx_r; 
+
+  reg [6:0] opcode_dx_r_2;
+  reg [2:0] funct3_dx_r_2;
+  reg [DATAW-1:0] imm_dx_r_2;
+  reg [ADDRW-1:0] addr_rs1_dx_r_2;
+  reg [ADDRW-1:0] addr_rs2_dx_r_2;
+  reg [ADDRW-1:0] addr_rd_dx_r_2;
+  reg [6:0] funct7_dx_r_2; 
   
   // Execute Memory
   reg [DATAW-1:0] pc_xm_r;   
@@ -110,10 +144,23 @@ module pd #(
   reg [ADDRW-1:0] addr_rs2_xm_r;        // Need for forwarding logic
   reg [ADDRW-1:0] addr_rd_xm_r;         // Need to determine WB location
 
+  reg [DATAW-1:0] pc_xm_r_2;   
+  reg [DATAW-1:0] imm_xm_r_2;
+  reg [2:0] funct3_xm_r_2;
+  reg [DATAW-1:0] alu_xm_r_2;
+  reg [DATAW-1:0] data_rs2_xm_r_2;        // P.S. Class slides don't need rs1_xm
+  reg [6:0] opcode_xm_r_2;                // Need for stalling logic
+  reg [ADDRW-1:0] addr_rs2_xm_r_2;        // Need for forwarding logic
+  reg [ADDRW-1:0] addr_rd_xm_r_2;         // Need to determine WB location
+
   // Memory Writeback
   reg [DATAW-1:0] pc_mw_r;            // Need for signals.h test
   reg [6:0] opcode_mw_r;              // Need for stalling logic
   reg [ADDRW-1:0] addr_rd_mw_r;       // Need to determine WB location
+
+  reg [DATAW-1:0] pc_mw_r_2;            // Need for signals.h test
+  reg [6:0] opcode_mw_r_2;              // Need for stalling logic
+  reg [ADDRW-1:0] addr_rd_mw_r_2;       // Need to determine WB location
 
   // ====================
   // STALL LOGIC
@@ -193,7 +240,7 @@ module pd #(
   
   // Fetch-Decode stage
   reg stall_fd; 
-  reg [DATAW-1:0] prev_instr;
+  reg [63:0] prev_instr;
 
   always @(posedge clock) begin
     if (reset) begin
@@ -223,9 +270,10 @@ module pd #(
     end
   end
 
-  wire [DATAW-1:0] instr_fd_w = (stall_fd) ? prev_instr : instr_w; 
+  wire [63:0] instr_fd_w = (stall_fd) ? prev_instr : instr_w; 
 
-  // Decode-Execute stage
+  // Decode-Execute stage 
+// way 1
   always @(posedge clock) begin
     if (reset) begin
       pc_dx_r <= 0;
@@ -257,7 +305,6 @@ module pd #(
       addr_rs2_dx_r <= 0;
       addr_rd_dx_r <= 0;
       funct7_dx_r <= 0;
-
     end
     else begin
       // Normal pipeline progression
@@ -272,7 +319,54 @@ module pd #(
     end
   end
 
+// way 2
+  always @(posedge clock) begin
+    if (reset) begin
+      pc_dx_r <= 0;
+      opcode_dx_r_2 <= 0;
+      funct3_dx_r_2 <= 0;
+      imm_dx_r_2 <= 0;
+      addr_rs1_dx_r_2 <= 0;
+      addr_rs2_dx_r_2 <= 0;
+      addr_rd_dx_r_2 <= 0;
+      funct7_dx_r_2 <= 0;
+    end
+    else if (!dx_en_2) begin
+      // pc_dx_r <= pc_dx_r;
+      opcode_dx_r_2 <= opcode_dx_r_2;
+      funct3_dx_r_2 <= funct3_dx_r_2;
+      imm_dx_r_2 <= imm_dx_r_2;
+      addr_rs1_dx_r_2 <= addr_rs1_dx_r_2;
+      addr_rs2_dx_r_2 <= addr_rs2_dx_r_2;
+      addr_rd_dx_r_2 <= addr_rd_dx_r_2;
+      funct7_dx_r_2 <= funct7_dx_r_2;
+    end
+    else if (stall || br_taken) begin
+      // Insert NOP only on branch taken
+      // pc_dx_r <= pc_fd_r;
+      opcode_dx_r_2 <= NOP_OPCODE;
+      funct3_dx_r_2 <= 0;
+      imm_dx_r_2 <= 0;
+      addr_rs1_dx_r_2 <= 0;
+      addr_rs2_dx_r_2 <= 0;
+      addr_rd_dx_r_2 <= 0;
+      funct7_dx_r_2 <= 0;
+    end
+    else begin
+      // Normal pipeline progression
+      // pc_dx_r <= pc_fd_r;
+      opcode_dx_r_2 <= opcode_w_2;
+      funct3_dx_r_2 <= funct3_w_2;
+      imm_dx_r_2 <= imm_w_2;
+      addr_rs1_dx_r_2 <= addr_rs1_w_2;
+      addr_rs2_dx_r_2 <= addr_rs2_w_2;
+      addr_rd_dx_r_2 <= addr_rd_w_2;
+      funct7_dx_r_2 <= funct7_w_2;
+    end
+  end
+
   // Execute-Memory stage
+// way 1
   always @(posedge clock) begin
     if (reset) begin
       pc_xm_r <= 0;
@@ -306,6 +400,40 @@ module pd #(
     end
   end
 
+// way 2
+    always @(posedge clock) begin
+    if (reset) begin
+      // pc_xm_r <= 0;
+      imm_xm_r_2 <= 0;
+      funct3_xm_r_2 <= 0;
+      data_rs2_xm_r_2 <= 0;
+      alu_xm_r_2 <= 0;
+      opcode_xm_r_2 <= 0;
+      addr_rs2_xm_r_2 <= 0;
+      addr_rd_xm_r_2 <= 0;
+    end
+    else if (!xm_en_2) begin
+      // pc_xm_r <= pc_xm_r;
+      imm_xm_r_2 <= imm_xm_r_2;
+      funct3_xm_r_2 <= funct3_xm_r_2;
+      data_rs2_xm_r_2 <= data_rs2_xm_r_2;
+      alu_xm_r_2 <= 0;
+      opcode_xm_r_2 <= 0;
+      addr_rs2_xm_r_2 <= 0;
+      addr_rd_xm_r_2 <= 0;
+    end
+    else begin
+      pc_xm_r_2 <= pc_dx_r_2_2;             // Pipeline PC, rs2 data from last stage
+      imm_xm_r_2 <= imm_dx_r_2; 
+      funct3_xm_r_2 <= funct3_dx_r_2;
+      data_rs2_xm_r_2 <= data_rs2_w_2; 
+      alu_xm_r_2 <= alu_out_w_2;          // Pipeline ALU output
+      opcode_xm_r_2 <= opcode_dx_r_2;     // Pipeline decoded instruction from last stage
+      addr_rs2_xm_r_2 <= addr_rs2_dx_r_2;
+      addr_rd_xm_r_2 <= addr_rd_dx_r_2;
+    end
+  end
+
   // PC + 4 in MEM stage
   wire [DATAW-1:0] pc4_xm_w = pc_xm_r + 4;
   reg [DATAW-1:0] pc4_mw_r;
@@ -313,7 +441,8 @@ module pd #(
   reg [2:0] funct3_mw_r;
 
   // Memory-Writeback stage
-  always @(posedge clock) begin
+// way 1
+    always @(posedge clock) begin
     if (reset) begin
       pc_mw_r <= 0;
       opcode_mw_r <= 0;
@@ -340,6 +469,34 @@ module pd #(
     end
   end
 
+// way 2
+  always @(posedge clock) begin
+    if (reset) begin
+      // pc_mw_r <= 0;
+      opcode_mw_r_2 <= 0;
+      addr_rd_mw_r_2 <= 0;
+      pc_mw_r_2 <= 0;
+      alu_mw_r_2 <= 0;
+      funct3_mw_r_2 <= 0;
+    end 
+    else if (!mw_en_2) begin
+      // pc_mw_r <= pc_mw_r;
+      opcode_mw_r_2 <= opcode_mw_r;
+      addr_rd_mw_r_2 <= addr_rd_mw_r;
+      pc_mw_r_2 <= pc_mw_r;
+      alu_mw_r_2 <= alu_mw_r;
+      funct3_mw_r_2 <= funct3_mw_r;
+    end
+    else begin
+      // pc_mw_r <= pc_xm_r;
+      opcode_mw_r_2 <= opcode_xm_r;
+      addr_rd_mw_r_2 <= addr_rd_xm_r;
+      pc4_mw_r_2 <= pc4_xm_w;
+      alu_mw_r_2 <= alu_xm_r;
+      funct3_mw_r_2 <= funct3_xm_r;
+    end
+  end
+
 
   // ===================
   // INSTANTIATE MODULES
@@ -353,8 +510,9 @@ module pd #(
     .data_out(instr_w)       // output
   );
 
-  decoder dec1(
-    .instr(instr_fd_w),         // input
+  // way 1
+  decoder dec1( 
+    .instr(instr_fd_w [63:32]),         // input
     .opcode(opcode_w),          // output
     .addr_rd(addr_rd_w),        // output
     .addr_rs1(addr_rs1_w),      // output
@@ -368,6 +526,23 @@ module pd #(
     .is_i_type_w(is_i_type)     // output
   );
 
+  // way 2
+  decoder dec2(
+    .instr(instr_fd_w [31:0]),         // input
+    .opcode(opcode_w_2),          // output
+    .addr_rd(addr_rd_w_2),        // output
+    .addr_rs1(addr_rs1_w_2),      // output
+    .addr_rs2(addr_rs2_w_2),      // output
+    .funct3(funct3_w_2),          // output
+    .funct7(funct7_w_2),          // output
+    .imm(imm_w_2),                // output
+    .shamt(shamt_w_2),            // output
+    .is_u_type_w(is_u_type_2),    // output
+    .is_j_type_w(is_j_type_2),    // output
+    .is_i_type_w(is_i_type_2)     // output
+  );
+
+
   register_file rf1(
     .clock(clock),          // input
     .write_enable(reg_wen), // input
@@ -377,6 +552,15 @@ module pd #(
     .data_rd(data_rd_w),    // input
     .data_rs1(data_rs1_w),  // output
     .data_rs2(data_rs2_w)   // output
+
+    //2-way
+    .write_enable_2(reg_wen_2), // input
+    .addr_rs1_2(addr_rs1_w_2),  // input
+    .addr_rs2_2(addr_rs2_w_2),  // input
+    .addr_rd_2(addr_rd_mw_r_2), // input
+    .data_rd_2(data_rd_w_2),    // input
+    .data_rs1_2(data_rs1_w_2),  // output
+    .data_rs2_2(data_rs2_w_2)   // output
   );
   // wire [DATAW-1:0] data_rs1_stall_w = !(stall_fd || reset) ? data_rs1_w : 0;
   // wire [DATAW-1:0] data_rs2_stall_w = !(stall_fd || reset) ? data_rs2_w : 0;
@@ -413,6 +597,38 @@ module pd #(
     .wb_sel(wb_sel)               // output
   );
 
+  //2-way
+  control_signals cs2(
+    .clock(clock),
+    .reset(reset),
+    .dx_en(dx_en_2),
+    .xm_en(xm_en_2),
+    .mw_en(mw_en_2),
+    .opcode_dx(opcode_dx_r_2),      // input
+    .opcode_xm(opcode_xm_r_2),      // input
+    .opcode_mw(opcode_mw_r_2),      // input
+    .funct3(funct3_dx_r_2),         // input
+    .funct7(funct7_dx_r_2),         // input
+    .br_eq(br_eq_2),                // input
+    .br_lt(br_lt_2),                // input
+    .addr_rs1_dx(addr_rs1_dx_r_2),  // input
+    .addr_rs2_dx(addr_rs2_dx_r_2),  // input
+    .addr_rd_xm(addr_rd_xm_r_2),    // input
+    .addr_rd_mw(addr_rd_mw_r_2),    // input
+    .br_taken(br_taken_2),          // output
+    .branch_comp_data1_sel(branch_comp_data1_sel_2), // output
+    .branch_comp_data2_sel(branch_comp_data2_sel_2), // output
+    .pc_sel(pc_sel_2),              // output
+    .br_un(br_un_2),                // output
+    .a_sel(a_sel_2),                // output
+    .b_sel(b_sel_2),                // output
+    .alu_sel(alu_sel_2),            // output
+    .mem_rw(data_mem_rw_2),         // output
+    .reg_wen(reg_wen_2),            // output
+    .wb_sel(wb_sel_2)               // output
+
+  );
+
   // Forwarding logic values
   localparam REG = 2'b00;
   localparam PC  = 2'b01;
@@ -437,6 +653,15 @@ module pd #(
     .br_lt(br_lt)
   );
 
+  //2-way
+  branch_comp bc2(
+    .idata1(idata1_in_2),
+    .idata2(idata2_in_2),
+    .br_un(br_un_2),
+    .br_eq(br_eq_2),
+    .br_lt(br_lt_2)
+  );
+  
   // A sel definitions (determines ALU input 1)
   assign alu_in1_w = (a_sel == REG) ? data_rs1_w :
                      (a_sel == PC) ? pc_dx_r :
@@ -455,6 +680,14 @@ module pd #(
     .idata2(alu_in2_w),
     .alu_sel(alu_sel),
     .odata(alu_out_w)
+  );
+
+  //way 2
+  alu al2(
+    .idata1(alu_in1_w_2),
+    .idata2(alu_in2_w_2),
+    .alu_sel(alu_sel_2),
+    .odata(alu_out_w_2)
   );
 
   wire [1:0] mem_write_access_size = funct3_xm_r[1:0];     // For testbench
@@ -477,6 +710,13 @@ module pd #(
     .address(alu_xm_r),          // input
     .data_in(dmem_data_in),      // input
     .data_out(data_mem_w)        // output
+
+    //way 2
+    .read_write_2(data_mem_rw_2),    // input
+    .access_size_2(mem_write_access_size_2),   // input
+    .address_2(alu_xm_r_2),          // input
+    .data_in_2(dmem_data_in_2),      // input
+    .data_out_2(data_mem_w_2)        // output
   );
 
   // Mem read access size logic
@@ -503,6 +743,13 @@ module pd #(
     .pc4(pc4_mw_r),                 // input
     .wb_sel(wb_sel),                // input
     .wb_data(data_rd_w)             // output
+
+    //2-way
+    .alu_2(alu_mw_r_2),                 // input
+    .mem_2(data_mem_w_sized_2),         // input
+    .pc4_2(pc4_mw_r_2),                 // input
+    .wb_sel_2(wb_sel_2),                // input
+    .wb_data_2(data_rd_w_2)             // output
   );
 
 endmodule

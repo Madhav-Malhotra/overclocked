@@ -17,7 +17,7 @@ module imemory(
     input      [31:0] data_in,
     input             read_write,
     input             enable,
-    output reg [31:0] data_out
+    output reg [63:0] data_out
 );
 
 // ====================

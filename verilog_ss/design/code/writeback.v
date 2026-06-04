@@ -16,7 +16,14 @@ module writeback #(
     input [DATAW-1:0] pc4,
     input [DATAW-1:0] mem,
     input [1:0] wb_sel,
-    output [DATAW-1:0] wb_data
+    output [DATAW-1:0] wb_data,
+
+    //way 2
+    input [DATAW-1:0] alu_2,
+    input [DATAW-1:0] pc4_2,
+    input [DATAW-1:0] mem_2,
+    input [1:0] wb_sel_2,
+    output [DATAW-1:0] wb_data_2
 );
 
 // WB sel definitions (taken from control_signals.v)
@@ -24,9 +31,16 @@ localparam WB_MEM = 2'd0;
 localparam WB_ALU = 2'd1;
 localparam WB_PC4 = 2'd2;
 
+// way 1
 assign wb_data = (wb_sel == WB_MEM) ? mem :
                  (wb_sel == WB_ALU) ? alu :
                  (wb_sel == WB_PC4) ? pc4 :
+                 32'b0;
+
+// way 2 
+assign wb_data_2 = (wb_sel_2 == WB_MEM) ? mem_2 :
+                 (wb_sel_2 == WB_ALU) ? alu_2 :
+                 (wb_sel_2 == WB_PC4) ? pc4_2 :
                  32'b0;
 
 endmodule

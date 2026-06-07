@@ -27,6 +27,7 @@ module pd #(
   // enable signals for each pipeline stage
   wire fetch_en = 1;
   wire fd_en = 1;
+  wire fd_en_2 = 1;
   wire dx_en = 1;
   wire dx_en_2 = 1;
   wire xm_en = 1;
@@ -259,8 +260,12 @@ module pd #(
   
   // Fetch-Decode stage
   reg stall_fd; 
-  reg [63:0] prev_instr;
+  reg stall_fd_2; 
+  reg [31:0] prev_instr;
+  reg [31:0] prev_instr_2;
 
+
+// way 1
   always @(posedge clock) begin
     if (reset) begin
       pc_fd_r <= 0;
@@ -284,12 +289,43 @@ module pd #(
     end
     else begin
       pc_fd_r <= pc_r;
-      prev_instr <= instr_w;
+      prev_instr <= instr_w[63:32];
       stall_fd <= 0;
     end
   end
 
-  wire [63:0] instr_fd_w = (stall_fd) ? prev_instr : instr_w; 
+// way 2
+    always @(posedge clock) begin
+    if (reset) begin
+      // pc_fd_r <= 0;
+      prev_instr_2 <= 0;
+      stall_fd_2 <= 1;
+    end
+    else if (!fd_en_2) begin
+        // pc_fd_r <= pc_fd_r;
+        prev_instr_2 <= prev_instr_2;
+        stall_fd_2 <= stall_fd_2;
+    end
+    else if (br_taken) begin
+      // pc_fd_r <= pc_r;
+      prev_instr_2 <= NOP_INSTR;    // Insert NOP on branch taken
+      stall_fd_2 <= 1;
+    end
+    else if (stall) begin
+      // pc_fd_r <= pc_fd_r;          // Hold FD pipeline registers during stall
+      prev_instr <= (!stall_fd_2) ? instr_w : prev_instr;
+      stall_fd_2 <= 1;
+    end
+    else begin
+      // pc_fd_r <= pc_r;
+      prev_instr_2 <= instr_w[31:0];
+      stall_fd_2 <= 0;
+    end
+  end
+
+  wire [31:0] instr_fd_w = (stall_fd) ? prev_instr : instr_w[63:32]; 
+  wire [31:0] instr_fd_w_2 = (stall_fd_2) ? prev_instr_2 : instr_w[31:0]; 
+
 
   // Decode-Execute stage 
 // way 1
@@ -531,7 +567,7 @@ module pd #(
 
   // way 1
   decoder dec1( 
-    .instr(instr_fd_w [63:32]),         // input
+    .instr(instr_fd_w),         // input
     .opcode(opcode_w),          // output
     .addr_rd(addr_rd_w),        // output
     .addr_rs1(addr_rs1_w),      // output
@@ -547,7 +583,7 @@ module pd #(
 
   // way 2
   decoder dec2(
-    .instr(instr_fd_w [31:0]),         // input
+    .instr(instr_fd_w_2),         // input
     .opcode(opcode_w_2),          // output
     .addr_rd(addr_rd_w_2),        // output
     .addr_rs1(addr_rs1_w_2),      // output

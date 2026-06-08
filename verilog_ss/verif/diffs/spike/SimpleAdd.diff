@@ -1,12 +1,11 @@
 Benchmark: SimpleAdd
-Compared: 6 commits  Mismatches: 0
-Proc commits: 6  Spike commits: 6
+Compared: 5 commits  Mismatches: 4
+Proc commits: 5  Spike commits: 6
 
    #            PROC_PC    RD  PROC_VAL    SPIKE_PC   RD  SPIKE_VAL
 --------------------------------------------------------------------
-   0  OK        01000000    2  01100000    01000000    2  01100000
+   0  MISMATCH  00000000    2  01100000    01000000    2  01100000
    1  OK        01000004    2  01100000    01000004    2  01100000
-   2  OK        01000008    1  0100000c    01000008    1  0100000c
-   3  OK        0100003c   10  00000001    0100003c   10  00000001
-   4  OK        0100000c    5  0100000c    0100000c    5  0100000c
-   5  OK        01000010    5  01000048    01000010    5  01000048
+   2  MISMATCH  00000000    1  0100000c    01000008    1  0100000c
+   3  MISMATCH  0100000c    5  0100000c    0100003c   10  00000001
+   4  MISMATCH  00000000   10  00000001    0100000c    5  0100000c

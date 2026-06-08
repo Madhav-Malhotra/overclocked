@@ -22,11 +22,11 @@ module dmemory #(
     output reg [31:0] data_out,
     
     //way 2
-    input         read_write_2,
-    input  [1:0]  access_size_2,
-    input  [31:0] address_2,
-    input  [31:0] data_in_2,
-    output reg [31:0] data_out_2
+    input         read_write_1,
+    input  [1:0]  access_size_1,
+    input  [31:0] address_1,
+    input  [31:0] data_in_1,
+    output reg [31:0] data_out_1
 
 );
 
@@ -37,7 +37,7 @@ reg  [31:0] temp [0:`LINE_COUNT-1];
 reg  [7:0]  mem  [0:`MEM_DEPTH-1];
 // Convert absolute byte address to memory-relative offset
 wire [31:0] addr = address - BASE;
-wire [31:0] addr_2 = address_2 - BASE;
+wire [31:0] addr_2 = address_1 - BASE;
 
 integer i;
 
@@ -69,17 +69,17 @@ end
 
 // way 2
 always @(posedge clock) begin
-    if (read_write_2 == 1'b1) begin
-        if (access_size_2 == 2'd0) begin
-            mem[addr_2] <= data_in_2[7:0];
-        end else if (access_size_2 == 2'd1) begin
-            {mem[addr_2+1], mem[addr_2]} <= data_in_2[15:0];
+    if (read_write_1 == 1'b1) begin
+        if (access_size_1 == 2'd0) begin
+            mem[addr_2] <= data_in_1[7:0];
+        end else if (access_size_1 == 2'd1) begin
+            {mem[addr_2+1], mem[addr_2]} <= data_in_1[15:0];
         end else begin
-            {mem[addr_2+3], mem[addr_2+2], mem[addr_2+1], mem[addr_2]} <= data_in_2;
+            {mem[addr_2+3], mem[addr_2+2], mem[addr_2+1], mem[addr_2]} <= data_in_1;
         end
     end
     // Read always occurs; caller ignores data_out on writes
-    data_out_2 <= {mem[addr_2+3], mem[addr_2+2], mem[addr_2+1], mem[addr_2]};
+    data_out_1 <= {mem[addr_2+3], mem[addr_2+2], mem[addr_2+1], mem[addr_2]};
 end
 
 endmodule

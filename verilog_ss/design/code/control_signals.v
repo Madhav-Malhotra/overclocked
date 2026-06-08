@@ -28,35 +28,66 @@ module control_signals #(
     input clock,
     input reset,
     // active high pipeline enables — freezes the corresponding pipeline reg
-    input dx_en,
-    input xm_en,
-    input mw_en,
-    input [6:0] opcode_dx,
-    input [6:0] opcode_xm,
-    input [6:0] opcode_mw,
+    input dx_en_0,
+    input xm_en_0,
+    input mw_en_0,
+    input [6:0] opcode_dx_0,
+    input [6:0] opcode_xm_0,
+    input [6:0] opcode_mw_0,
     // funct3/funct7 are sampled from the DX pipeline register
-    input [2:0] funct3,
-    input [6:0] funct7,
+    input [2:0] funct3_0,
+    input [6:0] funct7_0,
     // branch comparator results arrive in the Execute stage
-    input br_eq,
-    input br_lt,
-    input [ADDRW-1:0] addr_rs1_dx,
-    input [ADDRW-1:0] addr_rs2_dx,
-    input [ADDRW-1:0] addr_rd_xm,
-    input [ADDRW-1:0] addr_rd_mw,
-    output [1:0] branch_comp_data1_sel,
-    output [1:0] branch_comp_data2_sel,
+    input br_eq_0,
+    input br_lt_0,
+    input [ADDRW-1:0] addr_rs1_dx_0,
+    input [ADDRW-1:0] addr_rs2_dx_0,
+    input [ADDRW-1:0] addr_rd_xm_0,
+    input [ADDRW-1:0] addr_rd_mw_0,
+    output [1:0] branch_comp_data1_sel_0,
+    output [1:0] branch_comp_data2_sel_0,
     // br_taken exposed for use in test harness
-    output br_taken,
-    output pc_sel,
-    output br_un,
-    output [1:0] a_sel,
-    output [1:0] b_sel,
-    output [3:0] alu_sel,
-    output mem_rw,
-    output reg_wen,
-    output [1:0] wb_sel
+    output br_taken_0,
+    output pc_sel_0,
+    output br_un_0,
+    output [1:0] a_sel_0,
+    output [1:0] b_sel_0,
+    output [3:0] alu_sel_0,
+    output mem_rw_0,
+    output reg_wen_0,
+    output [1:0] wb_sel_0,
     // immediate select is handled inside decoder.v
+
+
+    //way 1
+    input dx_en_1,
+    input xm_en_1,
+    input mw_en_1,
+    input [6:0] opcode_dx_1,
+    input [6:0] opcode_xm_1,
+    input [6:0] opcode_mw_1,
+    // funct3/funct7 are sampled from the DX pipeline register
+    input [2:0] funct3_1,
+    input [6:0] funct7_1,
+    // branch comparator results arrive in the Execute stage
+    input br_eq_1,
+    input br_lt_1,
+    input [ADDRW-1:0] addr_rs1_dx_1,
+    input [ADDRW-1:0] addr_rs2_dx_1,
+    input [ADDRW-1:0] addr_rd_xm_1,
+    input [ADDRW-1:0] addr_rd_mw_1,
+    output [1:0] branch_comp_data1_sel_1,
+    output [1:0] branch_comp_data2_sel_1,
+    // br_taken exposed for use in test harness
+    output br_taken_1,
+    output pc_sel_1,
+    output br_un_1,
+    output [1:0] a_sel_1,
+    output [1:0] b_sel_1,
+    output [3:0] alu_sel_1,
+    output mem_rw_1,
+    output reg_wen_1,
+    output [1:0] wb_sel_1
 );
 
 // ====================
@@ -89,30 +120,64 @@ localparam WB_PC4 = 2'd2;
 // EXECUTE STAGE CONTROL SIGNALS
 // ===============================
 
-wire is_branch_x  = (opcode_dx == 7'b1100011);
-wire is_alu_x     = (opcode_dx == 7'b0110011);
-wire is_alu_imm_x = (opcode_dx == 7'b0010011);
-wire is_jal_x     = (opcode_dx == 7'b1101111);
-wire is_auipc_x   = (opcode_dx == 7'b0010111);
-wire is_lui_x     = (opcode_dx == 7'b0110111);
-wire is_load_x    = (opcode_dx == 7'b0000011);
-wire is_store_x   = (opcode_dx == 7'b0100011);
-wire is_jalr_x    = (opcode_dx == 7'b1100111);
-wire is_ecall_x   = (opcode_dx == 7'b1110011);
-wire is_u_type_x  = is_lui_x || is_auipc_x;
+ /* Determine instruction type */
+    // way 0
+wire is_branch_x_0  = (opcode_dx_0 == 7'b1100011);
+wire is_alu_x_0     = (opcode_dx_0 == 7'b0110011);
+wire is_alu_imm_x_0 = (opcode_dx_0 == 7'b0010011);
+wire is_jal_x_0     = (opcode_dx_0 == 7'b1101111);
+wire is_auipc_x_0   = (opcode_dx_0 == 7'b0010111);
+wire is_lui_x_0     = (opcode_dx_0 == 7'b0110111);
+wire is_load_x_0    = (opcode_dx_0 == 7'b0000011);
+wire is_store_x_0   = (opcode_dx_0 == 7'b0100011);
+wire is_jalr_x_0    = (opcode_dx_0 == 7'b1100111);
+wire is_ecall_x_0   = (opcode_dx_0 == 7'b1110011);
+wire is_u_type_x_0  = is_lui_x_0 || is_auipc_x_0;
 
+    // way 1
+wire is_branch_x_1  = (opcode_dx_1 == 7'b1100011);
+wire is_alu_x_1     = (opcode_dx_1 == 7'b0110011);
+wire is_alu_imm_x_1 = (opcode_dx_1 == 7'b0010011);
+wire is_jal_x_1     = (opcode_dx_1 == 7'b1101111);
+wire is_auipc_x_1   = (opcode_dx_1 == 7'b0010111);
+wire is_lui_x_1     = (opcode_dx_1 == 7'b0110111);
+wire is_load_x_1    = (opcode_dx_1 == 7'b0000011);
+wire is_store_x_1   = (opcode_dx_1 == 7'b0100011);
+wire is_jalr_x_1    = (opcode_dx_1 == 7'b1100111);
+wire is_ecall_x_1   = (opcode_dx_1 == 7'b1110011);
+wire is_u_type_x_1  = is_lui_x_1 || is_auipc_x_1;
+
+
+/* Determine if branch is taken */
 // JAL/JALR always jump; conditional branches jump when their condition holds
-wire branch_taken = (is_branch_x && (
-    (funct3 == 'h0 && br_eq) ||               // BEQ
-    (funct3 == 'h1 && !br_eq) ||              // BNE
-    (funct3 == 'h4 && br_lt) ||               // BLT
-    (funct3 == 'h5 && !br_lt) ||              // BGE
-    (funct3 == 'h6 && br_lt) ||               // BLTU
-    (funct3 == 'h7 && !br_lt))                // BGEU
-) || is_jal_x || is_jalr_x;
+
+    // way 0
+wire branch_taken_0 = (is_branch_x_0 && (
+    (funct3_0 == 'h0 && br_eq_0) ||               // BEQ
+    (funct3_0 == 'h1 && !br_eq_0) ||              // BNE
+    (funct3_0 == 'h4 && br_lt_0) ||               // BLT
+    (funct3_0 == 'h5 && !br_lt_0) ||              // BGE
+    (funct3_0 == 'h6 && br_lt_0) ||               // BLTU
+    (funct3_0 == 'h7 && !br_lt_0))                // BGEU
+) || is_jal_x_0 || is_jalr_x_0;
 
 // unsigned comparison for BLTU/BGEU
-assign br_un = is_branch_x && (funct3 == 'h6 || funct3 == 'h7);
+assign br_un_0 = is_branch_x_0 && (funct3_0 == 'h6 || funct3_0 == 'h7);
+
+    // way 1
+wire branch_taken_1 = (is_branch_x_1 && (
+    (funct3_1 == 'h0 && br_eq_1) ||               // BEQ
+    (funct3_1 == 'h1 && !br_eq_1) ||              // BNE
+    (funct3_1 == 'h4 && br_lt_1) ||               // BLT
+    (funct3_1 == 'h5 && !br_lt_1) ||              // BGE
+    (funct3_1 == 'h6 && br_lt_1) ||               // BLTU
+    (funct3_1 == 'h7 && !br_lt_1))                // BGEU
+) || is_jal_x_1 || is_jalr_x_1;
+
+// unsigned comparison for BLTU/BGEU
+assign br_un_1 = is_branch_x_1 && (funct3_1 == 'h6 || funct3_1 == 'h7);
+
+/* Determine if bypass required */
 
 // A sel definitions (ALU input 1)
 localparam REG = 2'b00;
@@ -124,91 +189,186 @@ localparam MX_BYPASS = 2'b11;
 localparam IMM  = 2'b01;
 
 // XM stage pipeline registers
-reg is_store_xm_r;
-reg is_load_xm_r;
-reg is_jal_xm_r;
-reg is_jalr_xm_r;
-reg is_branch_xm_r;
-reg is_ecall_xm_r;
+    // way 0
+reg is_store_xm_r_0;
+reg is_load_xm_r_0;
+reg is_jal_xm_r_0;
+reg is_jalr_xm_r_0;
+reg is_branch_xm_r_0;
+reg is_ecall_xm_r_0;
+
+    // way 1
+reg is_store_xm_r_1;
+reg is_load_xm_r_1;
+reg is_jal_xm_r_1;
+reg is_jalr_xm_r_1;
+reg is_branch_xm_r_1;
+reg is_ecall_xm_r_1;
 
 // MW stage pipeline registers
-reg is_store_mw_r;
-reg is_branch_mw_r;
-reg is_ecall_mw_r;
-reg is_load_mw_r;
-reg is_jal_mw_r;
-reg is_jalr_mw_r;
+    // way 0
+reg is_store_mw_r_0;
+reg is_branch_mw_r_0;
+reg is_ecall_mw_r_0;
+reg is_load_mw_r_0;
+reg is_jal_mw_r_0;
+reg is_jalr_mw_r_0;
 
+    // way 1
+reg is_store_mw_r_1;
+reg is_branch_mw_r_1;
+reg is_ecall_mw_r_1;
+reg is_load_mw_r_1;
+reg is_jal_mw_r_1;
+reg is_jalr_mw_r_1;
+
+
+//way 0
 // stores, branches, and ecalls never produce a register result; x0 writes are also suppressed
-wire insn_xm_writes_reg = !(is_store_xm_r || is_branch_xm_r || is_ecall_xm_r) && (addr_rd_xm != 0);
-wire insn_mw_writes_reg = !(is_store_mw_r || is_branch_mw_r || is_ecall_mw_r) && (addr_rd_mw != 0);
+wire insn_xm_writes_reg_0 = !(is_store_xm_r_0 || is_branch_xm_r_0 || is_ecall_xm_r_0) && (addr_rd_xm_0 != 0);
+wire insn_mw_writes_reg_0 = !(is_store_mw_r_0 || is_branch_mw_r_0 || is_ecall_mw_r_0) && (addr_rd_mw_0 != 0);
+
+//way 1
+// stores, branches, and ecalls never produce a register result; x0 writes are also suppressed
+wire insn_xm_writes_reg_1 = !(is_store_xm_r_1 || is_branch_xm_r_1 || is_ecall_xm_r_1) && (addr_rd_xm_1 != 0);
+wire insn_mw_writes_reg_1 = !(is_store_mw_r_1 || is_branch_mw_r_1 || is_ecall_mw_r_1) && (addr_rd_mw_1 != 0);
 
 // ==========================
 // FORWARDING / MUX SELECTS
 // ==========================
 
-// U-type and JAL use PC, not rs1; bypass only applies when rs1 is actually read
-assign a_sel = (is_branch_x || is_auipc_x || is_jal_x) ? PC :
-               (!(is_u_type_x || is_jal_x) && addr_rs1_dx == addr_rd_xm && addr_rd_xm != 0 && insn_xm_writes_reg) ? MX_BYPASS :
-               (!(is_u_type_x || is_jal_x) && addr_rs1_dx == addr_rd_mw && addr_rd_mw != 0 && insn_mw_writes_reg) ? WX_BYPASS :
+// way 0
+    // U-type and JAL use PC, not rs1; bypass only applies when rs1 is actually read
+assign a_sel_0 = (is_branch_x_0 || is_auipc_x_0 || is_jal_x_0) ? PC :
+               (!(is_u_type_x_0 || is_jal_x_0) && addr_rs1_dx_0 == addr_rd_xm_0 && addr_rd_xm_0 != 0 && insn_xm_writes_reg_0) ? MX_BYPASS :
+               (!(is_u_type_x_0 || is_jal_x_0) && addr_rs1_dx_0 == addr_rd_mw_0 && addr_rd_mw_0 != 0 && insn_mw_writes_reg_0) ? WX_BYPASS :
                 REG;
-// bypass on b_sel only applies to R-type (ALU reg-reg); all others use an immediate
-assign b_sel = (is_alu_x && addr_rs2_dx == addr_rd_xm && addr_rd_xm != 0 && insn_xm_writes_reg) ? MX_BYPASS :
-               (is_alu_x && addr_rs2_dx == addr_rd_mw && addr_rd_mw != 0 && insn_mw_writes_reg) ? WX_BYPASS :
-               (!is_alu_x) ? IMM :
+    // bypass on b_sel only applies to R-type (ALU reg-reg); all others use an immediate
+assign b_sel_0 = (is_alu_x_0 && addr_rs2_dx_0 == addr_rd_xm_0 && addr_rd_xm_0 != 0 && insn_xm_writes_reg_0) ? MX_BYPASS :
+               (is_alu_x_0 && addr_rs2_dx_0 == addr_rd_mw_0 && addr_rd_mw_0 != 0 && insn_mw_writes_reg_0) ? WX_BYPASS :
+               (!is_alu_x_0) ? IMM :
                              REG;
 
-assign branch_comp_data1_sel =  (addr_rs1_dx == addr_rd_xm && addr_rd_xm != 0 && insn_xm_writes_reg) ? MX_BYPASS :
-                                (addr_rs1_dx == addr_rd_mw && addr_rd_mw != 0 && insn_mw_writes_reg) ? WX_BYPASS :
+// way 1
+assign a_sel_1 = (is_branch_x_1 || is_auipc_x_1 || is_jal_x_1) ? PC :
+               (!(is_u_type_x_1 || is_jal_x_1) && addr_rs1_dx_1 == addr_rd_xm_1 && addr_rd_xm_1 != 0 && insn_xm_writes_reg_1) ? MX_BYPASS :
+               (!(is_u_type_x_1 || is_jal_x_1) && addr_rs1_dx_1 == addr_rd_mw_1 && addr_rd_mw_1 != 0 && insn_mw_writes_reg_1) ? WX_BYPASS :
+                REG;
+// bypass on b_sel only applies to R-type (ALU reg-reg); all others use an immediate
+assign b_sel_1 = (is_alu_x_1 && addr_rs2_dx_1 == addr_rd_xm_1 && addr_rd_xm_1 != 0 && insn_xm_writes_reg_1) ? MX_BYPASS :
+               (is_alu_x_1 && addr_rs2_dx_1 == addr_rd_mw_1 && addr_rd_mw_1 != 0 && insn_mw_writes_reg_1) ? WX_BYPASS :
+               (!is_alu_x_1) ? IMM :
+                             REG;
+
+
+//way 0
+assign branch_comp_data1_sel_0 =  (addr_rs1_dx_0 == addr_rd_xm_0 && addr_rd_xm_0 != 0 && insn_xm_writes_reg_0) ? MX_BYPASS :
+                                (addr_rs1_dx_0 == addr_rd_mw_0 && addr_rd_mw_0 != 0 && insn_mw_writes_reg_0) ? WX_BYPASS :
                                                                                                         REG;
-assign branch_comp_data2_sel =  (addr_rs2_dx == addr_rd_xm && addr_rd_xm != 0 && insn_xm_writes_reg) ? MX_BYPASS :
-                                (addr_rs2_dx == addr_rd_mw && addr_rd_mw != 0 && insn_mw_writes_reg) ? WX_BYPASS :
+assign branch_comp_data2_sel_0 =  (addr_rs2_dx_0 == addr_rd_xm_0 && addr_rd_xm_0 != 0 && insn_xm_writes_reg_0) ? MX_BYPASS :
+                                (addr_rs2_dx_0 == addr_rd_mw_0 && addr_rd_mw_0 != 0 && insn_mw_writes_reg_0) ? WX_BYPASS :
+                                                                                                        REG;
+//way 1
+assign branch_comp_data1_sel_1 =  (addr_rs1_dx_1 == addr_rd_xm_1 && addr_rd_xm_1 != 0 && insn_xm_writes_reg_1) ? MX_BYPASS :
+                                (addr_rs1_dx_1 == addr_rd_mw_1 && addr_rd_mw_1 != 0 && insn_mw_writes_reg_1) ? WX_BYPASS :
+                                                                                                        REG;
+assign branch_comp_data2_sel_1 =  (addr_rs2_dx_1 == addr_rd_xm_1 && addr_rd_xm_1 != 0 && insn_xm_writes_reg_1) ? MX_BYPASS :
+                                (addr_rs2_dx_1 == addr_rd_mw_1 && addr_rd_mw_1 != 0 && insn_mw_writes_reg_1) ? WX_BYPASS :
                                                                                                         REG;
 
 // Just used via test harness
-assign br_taken = branch_taken;
-assign pc_sel = branch_taken || is_jal_x || is_jalr_x;
+assign br_taken_0 = branch_taken_0;
+assign pc_sel_0 = branch_taken_0 || is_jal_x_0 || is_jalr_x_0;
+
+assign br_taken_1 = branch_taken_1;
+assign pc_sel_1 = branch_taken_1 || is_jal_x_1 || is_jalr_x_1;
 
 // LUI passes B (immediate) through unchanged; all other non-ALU ops use ADD for address/target computation
-assign alu_sel =    (is_lui_x) ? NOP :
-                    (is_auipc_x || is_jal_x || is_jalr_x || is_load_x || is_store_x || is_branch_x) ? ADD :
+    // way 0
+assign alu_sel_0 =    (is_lui_x_0) ? NOP :
+                    (is_auipc_x_0 || is_jal_x_0 || is_jalr_x_0 || is_load_x_0 || is_store_x_0 || is_branch_x_0) ? ADD :
                     // RISC-V m-extension instructions:
-                    (is_alu_x && funct7 == 'h01) ? 
-                        ((funct3 == 'h0) ? MUL : 
-                        (funct3 == 'h4) ? DIV : 
-                        (funct3 == 'h5) ? DIVU : 
+                    (is_alu_x_0 && funct7_0 == 'h01) ? 
+                        ((funct3_0 == 'h0) ? MUL : 
+                        (funct3_0 == 'h4) ? DIV : 
+                        (funct3_0 == 'h5) ? DIVU : 
                     NOP) :
-                    (is_alu_x && funct7 == 'h20) ? ((funct3 == 'h0) ? SUB : SRA) :
-                    (is_alu_x || is_alu_imm_x) ?
-                        ((funct3 == 'h0) ? ADD :
-                        (funct3 == 'h1) ? SLL :
-                        (funct3 == 'h2) ? SLT :
-                        (funct3 == 'h3) ? SLTU :
-                        (funct3 == 'h4) ? XOR :
-                        (funct3 == 'h5 && funct7 == 'h0) ? SRL :
-                        (funct3 == 'h5 && funct7 == 'h20) ? SRA :
-                        (funct3 == 'h6) ? OR :
-                        (funct3 == 'h7) ? AND :
+                    (is_alu_x_0 && funct7_0 == 'h20) ? ((funct3_0 == 'h0) ? SUB : SRA) :
+                    (is_alu_x_0 || is_alu_imm_x_0) ?
+                        ((funct3_0 == 'h0) ? ADD :
+                        (funct3_0 == 'h1) ? SLL :
+                        (funct3_0 == 'h2) ? SLT :
+                        (funct3_0 == 'h3) ? SLTU :
+                        (funct3_0 == 'h4) ? XOR :
+                        (funct3_0 == 'h5 && funct7_0 == 'h0) ? SRL :
+                        (funct3_0 == 'h5 && funct7_0 == 'h20) ? SRA :
+                        (funct3_0 == 'h6) ? OR :
+                        (funct3_0 == 'h7) ? AND :
+                        NOP) // invalid funct3 for ALU
+                    : NOP;  // invalid opcode
+
+    // way 1
+assign alu_sel_1 =    (is_lui_x_1) ? NOP :
+                    (is_auipc_x_1 || is_jal_x_1 || is_jalr_x_1 || is_load_x_1 || is_store_x_1 || is_branch_x_1) ? ADD :
+                    // RISC-V m-extension instructions:
+                    (is_alu_x_1 && funct7_1 == 'h01) ? 
+                        ((funct3_1 == 'h0) ? MUL : 
+                        (funct3_1 == 'h4) ? DIV : 
+                        (funct3_1 == 'h5) ? DIVU : 
+                    NOP) :
+                    (is_alu_x_1 && funct7_1 == 'h20) ? ((funct3_1 == 'h0) ? SUB : SRA) :
+                    (is_alu_x_1 || is_alu_imm_x_1) ?
+                        ((funct3_1 == 'h0) ? ADD :
+                        (funct3_1 == 'h1) ? SLL :
+                        (funct3_1 == 'h2) ? SLT :
+                        (funct3_1 == 'h3) ? SLTU :
+                        (funct3_1 == 'h4) ? XOR :
+                        (funct3_1 == 'h5 && funct7_1 == 'h0) ? SRL :
+                        (funct3_1 == 'h5 && funct7_1 == 'h20) ? SRA :
+                        (funct3_1 == 'h6) ? OR :
+                        (funct3_1 == 'h7) ? AND :
                         NOP) // invalid funct3 for ALU
                     : NOP;  // invalid opcode
 
 // Execute-Memory Pipeline
 always @(posedge clock) begin
     if (reset) begin
-        is_store_xm_r <= 1'b0;
-        is_load_xm_r <= 1'b0;
-        is_jal_xm_r <= 1'b0;
-        is_jalr_xm_r <= 1'b0;
-        is_branch_xm_r <= 1'b0;
-        is_ecall_xm_r <= 1'b0;
+         // way 0
+        is_store_xm_r_0 <= 1'b0;
+        is_load_xm_r_0 <= 1'b0;
+        is_jal_xm_r_0 <= 1'b0;
+        is_jalr_xm_r_0 <= 1'b0;
+        is_branch_xm_r_0 <= 1'b0;
+        is_ecall_xm_r_0 <= 1'b0;
     end
-    else if (xm_en) begin
-        is_store_xm_r <= is_store_x;
-        is_load_xm_r <= is_load_x;
-        is_jal_xm_r <= is_jal_x;
-        is_jalr_xm_r <= is_jalr_x;
-        is_branch_xm_r <= is_branch_x;
-        is_ecall_xm_r <= is_ecall_x;
+    else if (xm_en_0) begin
+        is_store_xm_r_0 <= is_store_x_0;
+        is_load_xm_r_0 <= is_load_x_0;
+        is_jal_xm_r_0 <= is_jal_x_0;
+        is_jalr_xm_r_0 <= is_jalr_x_0;
+        is_branch_xm_r_0 <= is_branch_x_0;
+        is_ecall_xm_r_0 <= is_ecall_x_0;
+    end
+end
+
+
+// way 1
+always @(posedge clock) begin
+    if (reset) begin
+        is_store_xm_r_1 <= 1'b0;
+        is_load_xm_r_1 <= 1'b0;
+        is_jal_xm_r_1 <= 1'b0;
+        is_jalr_xm_r_1 <= 1'b0;
+        is_branch_xm_r_1 <= 1'b0;
+        is_ecall_xm_r_1 <= 1'b0;
+    end
+    else if (xm_en_1) begin
+        is_store_xm_r_1 <= is_store_x_1;
+        is_load_xm_r_1 <= is_load_x_1;
+        is_jal_xm_r_1 <= is_jal_x_1;
+        is_jalr_xm_r_1 <= is_jalr_x_1;
+        is_branch_xm_r_1 <= is_branch_x_1;
+        is_ecall_xm_r_1 <= is_ecall_x_1;
     end
 end
 
@@ -217,40 +377,80 @@ end
 // ==============================
 
 // gate with reset so no spurious writes occur during pipeline flush
-assign mem_rw = is_store_xm_r && !reset;
+//way 0
+assign mem_rw_0 = is_store_xm_r_0 && !reset;
 
+//way 1
+assign mem_rw_1 = is_store_xm_r_1 && !reset;
+
+//way 0
 // Memory-Writeback Pipeline registers
 always @(posedge clock) begin
     if (reset) begin
-        is_store_mw_r  <= 1'b0;
-        is_branch_mw_r <= 1'b0;
-        is_ecall_mw_r  <= 1'b0;
-        is_load_mw_r   <= 1'b0;
-        is_jal_mw_r    <= 1'b0;
-        is_jalr_mw_r   <= 1'b0;
+        is_store_mw_r_0  <= 1'b0;
+        is_branch_mw_r_0 <= 1'b0;
+        is_ecall_mw_r_0  <= 1'b0;
+        is_load_mw_r_0   <= 1'b0;
+        is_jal_mw_r_0    <= 1'b0;
+        is_jalr_mw_r_0   <= 1'b0;
     end
-    else if (mw_en) begin
-        is_store_mw_r  <= is_store_xm_r;
-        is_branch_mw_r <= is_branch_xm_r;
-        is_ecall_mw_r  <= is_ecall_xm_r;
-        is_load_mw_r   <= is_load_xm_r;
-        is_jal_mw_r    <= is_jal_xm_r;
-        is_jalr_mw_r   <= is_jalr_xm_r;
+    else if (mw_en_0) begin
+        is_store_mw_r_0  <= is_store_xm_r_0;
+        is_branch_mw_r_0 <= is_branch_xm_r_0;
+        is_ecall_mw_r_0  <= is_ecall_xm_r_0;
+        is_load_mw_r_0  <= is_load_xm_r_0;
+        is_jal_mw_r_0    <= is_jal_xm_r_0;
+        is_jalr_mw_r_0   <= is_jalr_xm_r_0;
     end
 end
+
+//way 1 
+always @(posedge clock) begin
+    if (reset) begin
+        is_store_mw_r_1  <= 1'b0;
+        is_branch_mw_r_1 <= 1'b0;
+        is_ecall_mw_r_1  <= 1'b0;
+        is_load_mw_r_1   <= 1'b0;
+        is_jal_mw_r_1    <= 1'b0;
+        is_jalr_mw_r_1   <= 1'b0;
+    end
+    else if (mw_en_1) begin
+        is_store_mw_r_1  <= is_store_xm_r_1;
+        is_branch_mw_r_1 <= is_branch_xm_r_1;
+        is_ecall_mw_r_1  <= is_ecall_xm_r_1;
+        is_load_mw_r_1   <= is_load_xm_r_1;
+        is_jal_mw_r_1    <= is_jal_xm_r_1;
+        is_jalr_mw_r_1   <= is_jalr_xm_r_1;
+    end
+end
+
+
 // ===================================
 // WRITEBACK STAGE CONTROL SIGNALS
 // ===================================
 
-// re-decode from opcode_mw rather than relying on is_ecall_mw_r to avoid propagating stale state
-wire is_ecall_wb = (opcode_mw == 7'b1110011);
-wire is_nop = (opcode_mw == 7'b0);
-// stores, branches, ecalls, NOPs, reset, and writes to x0 all suppress the register write
-assign reg_wen = !(is_store_mw_r || is_branch_mw_r || is_ecall_wb || is_nop || reset || addr_rd_mw == 0);
+// way 0
+    // re-decode from opcode_mw rather than relying on is_ecall_mw_r to avoid propagating stale state
+wire is_ecall_wb_0 = (opcode_mw_0 == 7'b1110011);
+wire is_nop_0 = (opcode_mw_0 == 7'b0);
+    // stores, branches, ecalls, NOPs, reset, and writes to x0 all suppress the register write
+assign reg_wen_0 = !(is_store_mw_r_0 || is_branch_mw_r_0 || is_ecall_wb_0 || is_nop_0 || reset || addr_rd_mw_0 == 0);
 
-// loads read from memory; JAL/JALR write PC+4; everything else writes the ALU result
-assign wb_sel = (is_load_mw_r) ? WB_MEM :
-                (is_jal_mw_r || is_jalr_mw_r) ? WB_PC4 :
+    // loads read from memory; JAL/JALR write PC+4; everything else writes the ALU result
+assign wb_sel_0 = (is_load_mw_r_0) ? WB_MEM :
+                (is_jal_mw_r_0 || is_jalr_mw_r_0) ? WB_PC4 :
+                WB_ALU;
+
+// way 1
+    // re-decode from opcode_mw rather than relying on is_ecall_mw_r to avoid propagating stale state
+wire is_ecall_wb_1 = (opcode_mw_1 == 7'b1110011);
+wire is_nop_1 = (opcode_mw_1 == 7'b0);
+    // stores, branches, ecalls, NOPs, reset, and writes to x0 all suppress the register write
+assign reg_wen_1 = !(is_store_mw_r_1 || is_branch_mw_r_1 || is_ecall_wb_1 || is_nop_1 || reset || addr_rd_mw_1 == 0);
+
+    // loads read from memory; JAL/JALR write PC+4; everything else writes the ALU result
+assign wb_sel_1 = (is_load_mw_r_1) ? WB_MEM :
+                (is_jal_mw_r_1 || is_jalr_mw_r_1) ? WB_PC4 :
                 WB_ALU;
 
 endmodule

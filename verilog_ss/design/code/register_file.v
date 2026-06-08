@@ -31,13 +31,13 @@ module register_file #(
     output [DATAW-1:0] data_rs2,
     
     // way 2
-    input write_enable_2,
-    input  [ADDRW-1:0] addr_rs1_2,
-    input  [ADDRW-1:0] addr_rs2_2,
-    input  [ADDRW-1:0] addr_rd_2,
-    input  [DATAW-1:0] data_rd_2,
-    output [DATAW-1:0] data_rs1_2,
-    output [DATAW-1:0] data_rs2_2
+    input write_enable_1,
+    input  [ADDRW-1:0] addr_rs1_1,
+    input  [ADDRW-1:0] addr_rs2_1,
+    input  [ADDRW-1:0] addr_rd_1,
+    input  [DATAW-1:0] data_rd_1,
+    output [DATAW-1:0] data_rs1_1,
+    output [DATAW-1:0] data_rs2_1
 );
 
 // ====================
@@ -75,11 +75,11 @@ always @(posedge clock) begin
     data_rs2_r <= regs[addr_rs2];
 
     // way 2
-    if (write_enable_2) begin
-        regs[addr_rd_2] <= data_rd_2;
+    if (write_enable_1) begin
+        regs[addr_rd_1] <= data_rd_1;
     end
-    data_rs1_r_2 <= regs[addr_rs1_2];
-    data_rs2_r_2 <= regs[addr_rs2_2];
+    data_rs1_r_2 <= regs[addr_rs1_1];
+    data_rs2_r_2 <= regs[addr_rs2_1];
 
 
 end
@@ -89,7 +89,7 @@ assign data_rs1 = data_rs1_r;
 assign data_rs2 = data_rs2_r;
 
 // way 2
-assign data_rs1_2 = data_rs1_r_2;
-assign data_rs2_2 = data_rs2_r_2;
+assign data_rs1_1 = data_rs1_r_2;
+assign data_rs2_1 = data_rs2_r_2;
 
 endmodule

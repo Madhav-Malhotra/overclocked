@@ -26,156 +26,183 @@ module pd #(
 
   // enable signals for each pipeline stage
   wire fetch_en = 1;
-  wire fd_en = 1;
-  wire fd_en_2 = 1;
-  wire dx_en = 1;
-  wire dx_en_2 = 1;
-  wire xm_en = 1;
-  wire xm_en_2 = 1;
-  wire mw_en = 1;
-  wire mw_en_2 = 1;
+  wire fd_en_0 = 1;
+  wire fd_en_1 = 1;
+  wire dx_en_0 = 1;
+  wire dx_en_1 = 1;
+  wire xm_en_0 = 1;
+  wire xm_en_1 = 1;
+  wire mw_en_0 = 1;
+  wire mw_en_1 = 1;
 
 
-  // Fetch unit
-  reg [DATAW-1:0] pc_r;
+// ================================ 
+// INPUTS/OUTPUTS TO MODULES: 
+// ================================
+  // IMEMORY INPUTS
+  reg [DATAW-1:0] pc_r_0; // each way has own pc value (to reflect instruction being processed)
+  reg [DATAW-1:0] pc_r_1;
+
   wire [63:0] instr_w;       // output line into pipeline register
+  wire [31:0] instr_w_upper = instr_w[63:32];
+  wire [31:0] instr_w_lower = instr_w[31:0];
+
   reg [DATAW-1:0] imem_in_r;      // unused input to imem
   wire imem_rw_w = 0;             // always 0 (read-only)
+  
+  // Decoder unit
+    // way0
+  wire [6:0] opcode_w_0;
+  wire [ADDRW-1:0] addr_rd_w_0;
+  wire [ADDRW-1:0] addr_rs1_w_0;
+  wire [ADDRW-1:0] addr_rs2_w_0;
+  wire [2:0] funct3_w_0;
+  wire [6:0] funct7_w_0;
+  wire [DATAW-1:0] imm_w_0;
+  wire [N_BITS-1:0] shamt_w_0;
+  wire is_u_type_0;
+  wire is_j_type_0;
+  wire is_i_type_0;
 
-  // Decode unit
-  wire [6:0] opcode_w;
-  wire [ADDRW-1:0] addr_rd_w;
-  wire [ADDRW-1:0] addr_rs1_w;
-  wire [ADDRW-1:0] addr_rs2_w;
-  wire [2:0] funct3_w;
-  wire [6:0] funct7_w;
-  wire [DATAW-1:0] imm_w;
-  wire [N_BITS-1:0] shamt_w;
-  wire is_u_type;
-  wire is_j_type;
-  wire is_i_type;
-
-  wire [6:0] opcode_w_2;
-  wire [ADDRW-1:0] addr_rd_w_2;
-  wire [ADDRW-1:0] addr_rs1_w_2;
-  wire [ADDRW-1:0] addr_rs2_w_2;
-  wire [2:0] funct3_w_2;
-  wire [6:0] funct7_w_2;
-  wire [DATAW-1:0] imm_w_2;
-  wire [N_BITS-1:0] shamt_w_2;
-  wire is_u_type_2;
-  wire is_j_type_2;
-  wire is_i_type_2;
+  // way1
+  wire [6:0] opcode_w_1;
+  wire [ADDRW-1:0] addr_rd_w_1;
+  wire [ADDRW-1:0] addr_rs1_w_1;
+  wire [ADDRW-1:0] addr_rs2_w_1;
+  wire [2:0] funct3_w_1;
+  wire [6:0] funct7_w_1;
+  wire [DATAW-1:0] imm_w_1;
+  wire [N_BITS-1:0] shamt_w_1;
+  wire is_u_type_1;
+  wire is_j_type_1;
+  wire is_i_type_1;
 
   // Control Signals
-  wire reg_wen;
-  wire pc_sel;
-  wire br_un;
-  wire [1:0] a_sel;
-  wire [1:0] b_sel;
-  wire [1:0] branch_comp_data1_sel;
-  wire [1:0] branch_comp_data2_sel;
-  wire [3:0] alu_sel;
-  wire [1:0] wb_sel;
-  wire br_eq;
-  wire br_lt;
-  wire br_taken;                  // Not needed for CPU. Just for test file
+  wire reg_wen_0;
+  wire pc_sel_0;
+  wire br_un_0;
+  wire [1:0] a_sel_0;
+  wire [1:0] b_sel_0;
+  wire [1:0] branch_comp_data1_sel_0;
+  wire [1:0] branch_comp_data2_sel_0;
+  wire [3:0] alu_sel_0;
+  wire [1:0] wb_sel_0;
+  wire br_eq_0;
+  wire br_lt_0;
+  wire br_taken_0;                  // Not needed for CPU. Just for test file
 
     // Control Signals
-  wire reg_wen_2;
-  wire pc_sel_2;
-  wire br_un_2;
-  wire [1:0] a_sel_2;
-  wire [1:0] b_sel_2;
-  wire [1:0] branch_comp_data1_sel_2;
-  wire [1:0] branch_comp_data2_sel_2;
-  wire [3:0] alu_sel_2;
-  wire [1:0] wb_sel_2;
-  wire br_eq_2;
-  wire br_lt_2;
-  wire br_taken_2;                  // Not needed for CPU. Just for test file
+  wire reg_wen_1;
+  wire pc_sel_1;
+  wire br_un_1;
+  wire [1:0] a_sel_1;
+  wire [1:0] b_sel_1;
+  wire [1:0] branch_comp_data1_sel_1;
+  wire [1:0] branch_comp_data2_sel_1;
+  wire [3:0] alu_sel_1;
+  wire [1:0] wb_sel_1;
+  wire br_eq_1;
+  wire br_lt_1;
+  wire br_taken_1;                  // Not needed for CPU. Just for test file
 
   // Register file unit
-  wire [DATAW-1:0] data_rs1_w;     // wire - register file output
-  wire [DATAW-1:0] data_rs2_w;     // wire - register file output
-  wire [DATAW-1:0] data_rs1_w_2;     // wire - register file output
-  wire [DATAW-1:0] data_rs2_w_2;     // wire - register file output
+  wire [DATAW-1:0] data_rs1_w_0;     // wire - register file output
+  wire [DATAW-1:0] data_rs2_w_0;     // wire - register file output
+  wire [DATAW-1:0] data_rs1_w_1;     // wire - register file output
+  wire [DATAW-1:0] data_rs2_w_1;     // wire - register file output
 
   // ALU inputs
-  wire [DATAW-1:0] alu_in1_w;
-  wire [DATAW-1:0] alu_in2_w;
-  wire [DATAW-1:0] alu_out_w;
+    // way 0
+  wire [DATAW-1:0] alu_in1_w_0;
+  wire [DATAW-1:0] alu_in2_w_0;
+  wire [DATAW-1:0] alu_out_w_0;
 
-  wire [DATAW-1:0] alu_in1_w_2;
-  wire [DATAW-1:0] alu_in2_w_2;
-  wire [DATAW-1:0] alu_out_w_2;
+  // way 1
+  wire [DATAW-1:0] alu_in1_w_1;
+  wire [DATAW-1:0] alu_in2_w_1;
+  wire [DATAW-1:0] alu_out_w_1;
 
   // Data memory unit
-  wire [DATAW-1:0] data_mem_w;
-  wire data_mem_rw;
+    // way 0
+  wire [DATAW-1:0] data_mem_w_0;
+  wire data_mem_rw_0;
   
-  wire [DATAW-1:0] data_mem_w_2;
-  wire data_mem_rw_2;
+    // way 1
+  wire [DATAW-1:0] data_mem_w_1;
+  wire data_mem_rw_1;
 
   // Writeback unit
-  wire [DATAW-1:0] data_rd_w;
-  wire [DATAW-1:0] data_rd_w_2;
+  wire [DATAW-1:0] data_rd_w_0; 
+  wire [DATAW-1:0] data_rd_w_1;
 
   // PC + 8
-  wire [DATAW-1:0] pc4_f_w = pc_r + 8;    // NEED ADD MUX TO SELECT PC+4 FOR STALLING LOGIC
+  wire [DATAW-1:0] pc4_f_w_0 = pc_r_0 + 8;    // NEED ADD MUX TO SELECT PC+4 FOR STALLING LOGIC
+  wire [DATAW-1:0] pc4_f_w_1 = pc_r_1 + 8;    // NEED ADD MUX TO SELECT PC+4 FOR STALLING LOGIC
 
 
   // ====================
   // PIPELINE REGSITERS
   // ====================
   // Fetch Decode
-  reg [DATAW-1:0] pc_fd_r;
-  reg [DATAW-1:0] pc_dx_r;
+    // way 0
+  reg [DATAW-1:0] pc_fd_r_0;
+  reg [DATAW-1:0] pc_dx_r_0;
+
+    // way 1
+  reg [DATAW-1:0] pc_fd_r_1;
+  reg [DATAW-1:0] pc_dx_r_1;
+
 
   // Decode Execute
-  reg [6:0] opcode_dx_r;
-  reg [2:0] funct3_dx_r;
-  reg [DATAW-1:0] imm_dx_r;
-  reg [ADDRW-1:0] addr_rs1_dx_r;
-  reg [ADDRW-1:0] addr_rs2_dx_r;
-  reg [ADDRW-1:0] addr_rd_dx_r;
-  reg [6:0] funct7_dx_r; 
+    // way 0
+  reg [6:0] opcode_dx_r_0;
+  reg [2:0] funct3_dx_r_0;
+  reg [DATAW-1:0] imm_dx_r_0;
+  reg [ADDRW-1:0] addr_rs1_dx_r_0;
+  reg [ADDRW-1:0] addr_rs2_dx_r_0;
+  reg [ADDRW-1:0] addr_rd_dx_r_0;
+  reg [6:0] funct7_dx_r_0; 
 
-  reg [6:0] opcode_dx_r_2;
-  reg [2:0] funct3_dx_r_2;
-  reg [DATAW-1:0] imm_dx_r_2;
-  reg [ADDRW-1:0] addr_rs1_dx_r_2;
-  reg [ADDRW-1:0] addr_rs2_dx_r_2;
-  reg [ADDRW-1:0] addr_rd_dx_r_2;
-  reg [6:0] funct7_dx_r_2; 
+  // way 1
+  reg [6:0] opcode_dx_r_1;
+  reg [2:0] funct3_dx_r_1;
+  reg [DATAW-1:0] imm_dx_r_1;
+  reg [ADDRW-1:0] addr_rs1_dx_r_1;
+  reg [ADDRW-1:0] addr_rs2_dx_r_1;
+  reg [ADDRW-1:0] addr_rd_dx_r_1;
+  reg [6:0] funct7_dx_r_1; 
   
   // Execute Memory
-  reg [DATAW-1:0] pc_xm_r;   
-  reg [DATAW-1:0] imm_xm_r;
-  reg [2:0] funct3_xm_r;
-  reg [DATAW-1:0] alu_xm_r;
-  reg [DATAW-1:0] data_rs2_xm_r;        // P.S. Class slides don't need rs1_xm
-  reg [6:0] opcode_xm_r;                // Need for stalling logic
-  reg [ADDRW-1:0] addr_rs2_xm_r;        // Need for forwarding logic
-  reg [ADDRW-1:0] addr_rd_xm_r;         // Need to determine WB location
+    // way 0
+  reg [DATAW-1:0] pc_xm_r_0;   
+  reg [DATAW-1:0] imm_xm_r_0;
+  reg [2:0] funct3_xm_r_0;
+  reg [DATAW-1:0] alu_xm_r_0;
+  reg [DATAW-1:0] data_rs2_xm_r_0;        // P.S. Class slides don't need rs1_xm
+  reg [6:0] opcode_xm_r_0;                // Need for stalling logic
+  reg [ADDRW-1:0] addr_rs2_xm_r_0;        // Need for forwarding logic
+  reg [ADDRW-1:0] addr_rd_xm_r_0;         // Need to determine WB location
 
-  reg [DATAW-1:0] pc_xm_r_2;   
-  reg [DATAW-1:0] imm_xm_r_2;
-  reg [2:0] funct3_xm_r_2;
-  reg [DATAW-1:0] alu_xm_r_2;
-  reg [DATAW-1:0] data_rs2_xm_r_2;        // P.S. Class slides don't need rs1_xm
-  reg [6:0] opcode_xm_r_2;                // Need for stalling logic
-  reg [ADDRW-1:0] addr_rs2_xm_r_2;        // Need for forwarding logic
-  reg [ADDRW-1:0] addr_rd_xm_r_2;         // Need to determine WB location
+  // way 1
+  reg [DATAW-1:0] pc_xm_r_1;   
+  reg [DATAW-1:0] imm_xm_r_1;
+  reg [2:0] funct3_xm_r_1;
+  reg [DATAW-1:0] alu_xm_r_1;
+  reg [DATAW-1:0] data_rs2_xm_r_1;        // P.S. Class slides don't need rs1_xm
+  reg [6:0] opcode_xm_r_1;                // Need for stalling logic
+  reg [ADDRW-1:0] addr_rs2_xm_r_1;        // Need for forwarding logic
+  reg [ADDRW-1:0] addr_rd_xm_r_1;         // Need to determine WB location
 
   // Memory Writeback
-  reg [DATAW-1:0] pc_mw_r;            // Need for signals.h test
-  reg [6:0] opcode_mw_r;              // Need for stalling logic
-  reg [ADDRW-1:0] addr_rd_mw_r;       // Need to determine WB location
+    // way 0
+  reg [DATAW-1:0] pc_mw_r_0;            // Need for signals.h test
+  reg [6:0] opcode_mw_r_0;              // Need for stalling logic
+  reg [ADDRW-1:0] addr_rd_mw_r_0;       // Need to determine WB location
 
-  reg [DATAW-1:0] pc_mw_r_2;            // Need for signals.h test
-  reg [6:0] opcode_mw_r_2;              // Need for stalling logic
-  reg [ADDRW-1:0] addr_rd_mw_r_2;       // Need to determine WB location
+  // way 1
+  reg [DATAW-1:0] pc_mw_r_1;            // Need for signals.h test
+  reg [6:0] opcode_mw_r_1;              // Need for stalling logic
+  reg [ADDRW-1:0] addr_rd_mw_r_1;       // Need to determine WB location
 
   // ====================
   // STALL LOGIC
@@ -189,47 +216,47 @@ module pd #(
 
 
   // this logic happens during the decode stage so the _w signals represent the FD instruction that is currently being decoded
-  wire is_load_dx = (opcode_dx_r == LOAD_OPCODE); // DX instruction is load
-  wire is_store_fd = (opcode_w == STORE_OPCODE);  // FD instruction is store
-  wire is_load_xm = (opcode_xm_r == LOAD_OPCODE);
+  wire is_load_dx_0 = (opcode_dx_r_0 == LOAD_OPCODE); // DX instruction is load
+  wire is_store_fd_0 = (opcode_w_0 == STORE_OPCODE);  // FD instruction is store
+  wire is_load_xm_0 = (opcode_xm_r_0 == LOAD_OPCODE);
 
-  wire is_nop_mw = (opcode_mw_r == NOP_OPCODE && addr_rd_mw_r == 0);
-  wire is_nop_xm = (opcode_xm_r == NOP_OPCODE && addr_rd_xm_r == 0);
+  wire is_nop_mw_0 = (opcode_mw_r_0 == NOP_OPCODE && addr_rd_mw_r_0 == 0);
+  wire is_nop_xm_0 = (opcode_xm_r_0 == NOP_OPCODE && addr_rd_xm_r_0 == 0);
 
 
   // stalls due to load hazard - load in X to rd, read rd in D
-  wire load_stall = is_load_dx && 
-               ((addr_rd_dx_r == addr_rs1_w && !is_u_type && !is_j_type) || 
-                (addr_rd_dx_r == addr_rs2_w && !is_u_type && !is_j_type && !is_store_fd && !is_i_type));
+  wire load_stall_0 = is_load_dx_0 && 
+               ((addr_rd_dx_r_0 == addr_rs1_w_0 && !is_u_type_0 && !is_j_type_0) || 
+                (addr_rd_dx_r_0 == addr_rs2_w_0 && !is_u_type_0 && !is_j_type_0 && !is_store_fd_0 && !is_i_type_0));
 
   // stalls due to write data hazard (no WD forward path)
   // Doesn't involve x0 + is an opcode that writes to an rd
-  wire instr_mw_writes_reg = (addr_rd_mw_r != 0) && 
-    !(opcode_mw_r == STORE_OPCODE || opcode_mw_r == BRANCH_OPCODE || opcode_mw_r == ECALL_OPCODE); 
+  wire instr_mw_writes_reg_0 = (addr_rd_mw_r_0 != 0) && 
+    !(opcode_mw_r_0 == STORE_OPCODE || opcode_mw_r_0 == BRANCH_OPCODE || opcode_mw_r_0 == ECALL_OPCODE); 
 
   //way 2
-  wire instr_mw_writes_reg_2 = (addr_rd_mw_r_2 != 0) && 
-  !(opcode_mw_r_2 == STORE_OPCODE ||opcode_mw_r_2 == BRANCH_OPCODE || opcode_mw_r_2 == ECALL_OPCODE); 
+  wire instr_mw_writes_reg_1 = (addr_rd_mw_r_1!= 0) && 
+  !(opcode_mw_r_1 == STORE_OPCODE ||opcode_mw_r_1 == BRANCH_OPCODE || opcode_mw_r_1 == ECALL_OPCODE); 
   
   // + is an opcode that uses rs1/2
-  wire wd_stall = !is_nop_mw && (addr_rd_mw_r != addr_rd_xm_r) && (addr_rd_mw_r != addr_rd_dx_r) && instr_mw_writes_reg && (
-    (addr_rd_mw_r == addr_rs1_w && addr_rs1_w != 0 && !is_u_type && !is_j_type) || 
-    (addr_rd_mw_r == addr_rs2_w && addr_rs2_w != 0 && !is_u_type && !is_j_type && !is_i_type) 
+  wire wd_stall_0 = !is_nop_mw_0 && ( addr_rd_mw_r_0!= addr_rd_xm_r_0) && ( addr_rd_mw_r_0 != addr_rd_dx_r_0) && instr_mw_writes_reg_0 && (
+    (addr_rd_mw_r_0 == addr_rs1_w_0 && addr_rs1_w_0 != 0 && !is_u_type_0 && !is_j_type_0) || 
+    (addr_rd_mw_r_0 == addr_rs2_w_0 && addr_rs2_w_0 != 0 && !is_u_type_0 && !is_j_type_0 && !is_i_type_0) 
   );
 
   // stalls for load-store extreme dependency
-  wire load_store_stall = is_load_xm && is_store_fd &&
-    (addr_rd_xm_r == addr_rs1_w) && (addr_rd_xm_r == addr_rs2_w);
+  wire load_store_stall_0 = is_load_xm_0 && is_store_fd_0 &&
+    (addr_rd_xm_r_0 == addr_rs1_w_0) && (addr_rd_xm_r_0 == addr_rs2_w_0);
 
   // Some instruction in mem stage writing to rs2 of store
-  wire instr_xm_writes_reg = (addr_rd_xm_r != 0) && 
-    !(opcode_xm_r == STORE_OPCODE || opcode_xm_r == BRANCH_OPCODE || opcode_xm_r == ECALL_OPCODE);   
-  wire store_rs2_stall = is_store_fd && (addr_rd_xm_r == addr_rs2_w) 
-    && instr_xm_writes_reg && !is_nop_xm;
+  wire instr_xm_writes_reg_0 = (addr_rd_xm_r_0 != 0) && 
+    !(opcode_xm_r_0 == STORE_OPCODE || opcode_xm_r_0 == BRANCH_OPCODE || opcode_xm_r_0 == ECALL_OPCODE);   
+  wire store_rs2_stall_0 = is_store_fd_0 && (addr_rd_xm_r_0 == addr_rs2_w_0) 
+    && instr_xm_writes_reg_0 && !is_nop_xm_0;
 
 
   // Combine stalls
-  wire stall = load_stall || wd_stall || load_store_stall || store_rs2_stall;
+  wire stall = load_stall_0 || wd_stall_0 || load_store_stall_0 || store_rs2_stall_0;
   wire imem_enable = !stall;
 
   // ===================
@@ -239,17 +266,18 @@ module pd #(
   // Fetch unit reset and increment
   always @(posedge clock) begin
     if (reset) begin
-      pc_r <= BASE_ADDR;
+      pc_r_0 <= BASE_ADDR;
+      pc_r_1 <= BASE_ADDR + 4;
       imem_in_r <= 0;
-    end
-    else if (br_taken) begin          // ADD THIS BEFORE stall check
-    pc_r <= alu_out_w;
-  end
-    else if (stall || !fetch_en ) begin
-      pc_r <= pc_r;  // Hold PC value during stall
-    end
-    else begin
-      pc_r <= (pc_sel == 1) ? alu_out_w : pc4_f_w;
+    end else if (br_taken_0) begin          // NEED TO FIX THIS LOGIC
+      pc_r_0 <= alu_out_w_0;
+      pc_r_1 <= alu_out_w_1;
+    end else if (stall || !fetch_en) begin // FIX THIS LOGIC
+      pc_r_0 <= pc_r_0;  
+      pc_r_1 <= pc_r_1;  
+    end else begin
+      pc_r_0 <= (pc_sel_0 == 1) ? alu_out_w_0 : pc4_f_w_0;
+      pc_r_1 <= (pc_sel_1 == 1) ? alu_out_w_1 : pc4_f_w_1;
     end
   end 
 
@@ -259,164 +287,164 @@ module pd #(
   // ===================
   
   // Fetch-Decode stage
-  reg stall_fd; 
-  reg stall_fd_2; 
-  reg [31:0] prev_instr;
-  reg [31:0] prev_instr_2;
+  reg stall_fd_0; 
+  reg stall_fd_1; 
+  reg [31:0] prev_instr_0;
+  reg [31:0] prev_instr_1;
 
 
 // way 1
   always @(posedge clock) begin
     if (reset) begin
-      pc_fd_r <= 0;
-      prev_instr <= 0;
-      stall_fd <= 1;
+      pc_fd_r_0 <= 0;
+      prev_instr_0 <= 0;
+      stall_fd_0 <= 1;
     end
-    else if (!fd_en) begin
-        pc_fd_r <= pc_fd_r;
-        prev_instr <= prev_instr;
-        stall_fd <= stall_fd;
+    else if (!fd_en_0) begin
+        pc_fd_r_0 <= pc_fd_r_0;
+        prev_instr_0 <= prev_instr_0;
+        stall_fd_0 <= stall_fd_0;
     end
-    else if (br_taken) begin
-      pc_fd_r <= pc_r;
-      prev_instr <= NOP_INSTR;    // Insert NOP on branch taken
-      stall_fd <= 1;
+    else if (br_taken_0) begin
+      pc_fd_r_0 <= pc_r_0;
+      prev_instr_0 <= NOP_INSTR;    // Insert NOP on branch taken
+      stall_fd_0 <= 1;
     end
     else if (stall) begin
-      pc_fd_r <= pc_fd_r;          // Hold FD pipeline registers during stall
-      prev_instr <= (!stall_fd) ? instr_w : prev_instr;
-      stall_fd <= 1;
+      pc_fd_r_0 <= pc_fd_r_0;          // Hold FD pipeline registers during stall
+      prev_instr_0 <= (!stall_fd_0) ? instr_w_upper : prev_instr_0;
+      stall_fd_0 <= 1;
     end
     else begin
-      pc_fd_r <= pc_r;
-      prev_instr <= instr_w[63:32];
-      stall_fd <= 0;
+      pc_fd_r_0 <= pc_r_0;
+      prev_instr_0 <= instr_w_upper;
+      stall_fd_0 <= 0;
     end
   end
 
 // way 2
     always @(posedge clock) begin
     if (reset) begin
-      // pc_fd_r <= 0;
-      prev_instr_2 <= 0;
-      stall_fd_2 <= 1;
+      pc_fd_r_1 <= 0;
+      prev_instr_1 <= 0;
+      stall_fd_1 <= 1;
     end
-    else if (!fd_en_2) begin
-        // pc_fd_r <= pc_fd_r;
-        prev_instr_2 <= prev_instr_2;
-        stall_fd_2 <= stall_fd_2;
+    else if (!fd_en_0) begin
+        pc_fd_r_1 <= pc_fd_r_1;
+        prev_instr_1 <= prev_instr_1;
+        stall_fd_1 <= stall_fd_1;
     end
-    else if (br_taken) begin
-      // pc_fd_r <= pc_r;
-      prev_instr_2 <= NOP_INSTR;    // Insert NOP on branch taken
-      stall_fd_2 <= 1;
+    else if (br_taken_1) begin
+      pc_fd_r_1 <= pc_r_1;
+      prev_instr_1 <= NOP_INSTR;    // Insert NOP on branch taken
+      stall_fd_1 <= 1;
     end
     else if (stall) begin
-      // pc_fd_r <= pc_fd_r;          // Hold FD pipeline registers during stall
-      prev_instr <= (!stall_fd_2) ? instr_w : prev_instr;
-      stall_fd_2 <= 1;
+      pc_fd_r_1 <= pc_fd_r_1;          // Hold FD pipeline registers during stall
+      prev_instr_1 <= (!stall_fd_1) ? instr_w_lower : prev_instr_1;
+      stall_fd_1 <= 1;
     end
     else begin
-      // pc_fd_r <= pc_r;
-      prev_instr_2 <= instr_w[31:0];
-      stall_fd_2 <= 0;
+      pc_fd_r_1 <= pc_r_1;
+      prev_instr_1 <= instr_w_lower;
+      stall_fd_1 <= 0;
     end
   end
 
-  wire [31:0] instr_fd_w = (stall_fd) ? prev_instr : instr_w[63:32]; 
-  wire [31:0] instr_fd_w_2 = (stall_fd_2) ? prev_instr_2 : instr_w[31:0]; 
+  wire [31:0] instr_fd_w_0 = (stall_fd_0) ? prev_instr_0 : instr_w_upper; 
+  wire [31:0] instr_fd_w_1 = (stall_fd_1) ? prev_instr_1 : instr_w_lower; 
 
 
   // Decode-Execute stage 
-// way 1
+// way 0
   always @(posedge clock) begin
     if (reset) begin
-      pc_dx_r <= 0;
-      opcode_dx_r <= 0;
-      funct3_dx_r <= 0;
-      imm_dx_r <= 0;
-      addr_rs1_dx_r <= 0;
-      addr_rs2_dx_r <= 0;
-      addr_rd_dx_r <= 0;
-      funct7_dx_r <= 0;
+      pc_dx_r_0 <= 0;
+      opcode_dx_r_0 <= 0;
+      funct3_dx_r_0 <= 0;
+      imm_dx_r_0 <= 0;
+      addr_rs1_dx_r_0 <= 0;
+      addr_rs2_dx_r_0 <= 0;
+      addr_rd_dx_r_0 <= 0;
+      funct7_dx_r_0 <= 0;
     end
-    else if (!dx_en) begin
-      pc_dx_r <= pc_dx_r;
-      opcode_dx_r <= opcode_dx_r;
-      funct3_dx_r <= funct3_dx_r;
-      imm_dx_r <= imm_dx_r;
-      addr_rs1_dx_r <= addr_rs1_dx_r;
-      addr_rs2_dx_r <= addr_rs2_dx_r;
-      addr_rd_dx_r <= addr_rd_dx_r;
-      funct7_dx_r <= funct7_dx_r;
+    else if (!dx_en_0) begin
+      pc_dx_r_0 <= pc_dx_r_0;
+      opcode_dx_r_0 <= opcode_dx_r_0;
+      funct3_dx_r_0 <= funct3_dx_r_0;
+      imm_dx_r_0 <= imm_dx_r_0;
+      addr_rs1_dx_r_0 <= addr_rs1_dx_r_0;
+      addr_rs2_dx_r_0 <= addr_rs2_dx_r_0;
+      addr_rd_dx_r_0 <= addr_rd_dx_r_0;
+      funct7_dx_r_0 <= funct7_dx_r_0;
     end
-    else if (stall || br_taken) begin
+    else if (stall || br_taken_0) begin
       // Insert NOP only on branch taken
-      pc_dx_r <= pc_fd_r;
-      opcode_dx_r <= NOP_OPCODE;
-      funct3_dx_r <= 0;
-      imm_dx_r <= 0;
-      addr_rs1_dx_r <= 0;
-      addr_rs2_dx_r <= 0;
-      addr_rd_dx_r <= 0;
-      funct7_dx_r <= 0;
+      pc_dx_r_0 <= pc_fd_r_0;
+      opcode_dx_r_0 <= NOP_OPCODE;
+      funct3_dx_r_0 <= 0;
+      imm_dx_r_0 <= 0;
+      addr_rs1_dx_r_0 <= 0;
+      addr_rs2_dx_r_0 <= 0;
+      addr_rd_dx_r_0 <= 0;
+      funct7_dx_r_0 <= 0;
     end
     else begin
       // Normal pipeline progression
-      pc_dx_r <= pc_fd_r;
-      opcode_dx_r <= opcode_w;
-      funct3_dx_r <= funct3_w;
-      imm_dx_r <= imm_w;
-      addr_rs1_dx_r <= addr_rs1_w;
-      addr_rs2_dx_r <= addr_rs2_w;
-      addr_rd_dx_r <= addr_rd_w;
-      funct7_dx_r <= funct7_w;
+      pc_dx_r_0 <= pc_fd_r_0;
+      opcode_dx_r_0 <= opcode_w_0;
+      funct3_dx_r_0 <= funct3_w_0;
+      imm_dx_r_0 <= imm_w_0;
+      addr_rs1_dx_r_0 <= addr_rs1_w_0;
+      addr_rs2_dx_r_0 <= addr_rs2_w_0;
+      addr_rd_dx_r_0 <= addr_rd_w_0;
+      funct7_dx_r_0 <= funct7_w_0;
     end
   end
 
-// way 2
+// way 1
   always @(posedge clock) begin
     if (reset) begin
-      pc_dx_r <= 0;
-      opcode_dx_r_2 <= 0;
-      funct3_dx_r_2 <= 0;
-      imm_dx_r_2 <= 0;
-      addr_rs1_dx_r_2 <= 0;
-      addr_rs2_dx_r_2 <= 0;
-      addr_rd_dx_r_2 <= 0;
-      funct7_dx_r_2 <= 0;
+      pc_dx_r_1 <= 0;
+      opcode_dx_r_1 <= 0;
+      funct3_dx_r_1 <= 0;
+      imm_dx_r_1 <= 0;
+      addr_rs1_dx_r_1 <= 0;
+      addr_rs2_dx_r_1 <= 0;
+      addr_rd_dx_r_1 <= 0;
+      funct7_dx_r_1 <= 0;
     end
-    else if (!dx_en_2) begin
-      // pc_dx_r <= pc_dx_r;
-      opcode_dx_r_2 <= opcode_dx_r_2;
-      funct3_dx_r_2 <= funct3_dx_r_2;
-      imm_dx_r_2 <= imm_dx_r_2;
-      addr_rs1_dx_r_2 <= addr_rs1_dx_r_2;
-      addr_rs2_dx_r_2 <= addr_rs2_dx_r_2;
-      addr_rd_dx_r_2 <= addr_rd_dx_r_2;
-      funct7_dx_r_2 <= funct7_dx_r_2;
+    else if (!dx_en_1) begin
+      pc_dx_r_1 <= pc_dx_r_1;
+      opcode_dx_r_1 <= opcode_dx_r_1;
+      funct3_dx_r_1 <= funct3_dx_r_1;
+      imm_dx_r_1 <= imm_dx_r_1;
+      addr_rs1_dx_r_1 <= addr_rs1_dx_r_1;
+      addr_rs2_dx_r_1 <= addr_rs2_dx_r_1;
+      addr_rd_dx_r_1 <= addr_rd_dx_r_1;
+      funct7_dx_r_1 <= funct7_dx_r_1;
     end
-    else if (stall || br_taken) begin
+    else if (stall || br_taken_1) begin
       // Insert NOP only on branch taken
-      // pc_dx_r <= pc_fd_r;
-      opcode_dx_r_2 <= NOP_OPCODE;
-      funct3_dx_r_2 <= 0;
-      imm_dx_r_2 <= 0;
-      addr_rs1_dx_r_2 <= 0;
-      addr_rs2_dx_r_2 <= 0;
-      addr_rd_dx_r_2 <= 0;
-      funct7_dx_r_2 <= 0;
+      pc_dx_r_1 <= pc_fd_r_1;
+      opcode_dx_r_1 <= NOP_OPCODE;
+      funct3_dx_r_1 <= 0;
+      imm_dx_r_1 <= 0;
+      addr_rs1_dx_r_1 <= 0;
+      addr_rs2_dx_r_1 <= 0;
+      addr_rd_dx_r_1 <= 0;
+      funct7_dx_r_1 <= 0;
     end
     else begin
       // Normal pipeline progression
-      // pc_dx_r <= pc_fd_r;
-      opcode_dx_r_2 <= opcode_w_2;
-      funct3_dx_r_2 <= funct3_w_2;
-      imm_dx_r_2 <= imm_w_2;
-      addr_rs1_dx_r_2 <= addr_rs1_w_2;
-      addr_rs2_dx_r_2 <= addr_rs2_w_2;
-      addr_rd_dx_r_2 <= addr_rd_w_2;
-      funct7_dx_r_2 <= funct7_w_2;
+      pc_dx_r_1 <= pc_fd_r_1;
+      opcode_dx_r_1 <= opcode_w_1;
+      funct3_dx_r_1 <= funct3_w_1;
+      imm_dx_r_1 <= imm_w_1;
+      addr_rs1_dx_r_1 <= addr_rs1_w_1;
+      addr_rs2_dx_r_1 <= addr_rs2_w_1;
+      addr_rd_dx_r_1 <= addr_rd_w_1;
+      funct7_dx_r_1 <= funct7_w_1;
     end
   end
 
@@ -424,265 +452,266 @@ module pd #(
 // way 1
   always @(posedge clock) begin
     if (reset) begin
-      pc_xm_r <= 0;
-      imm_xm_r <= 0;
-      funct3_xm_r <= 0;
-      data_rs2_xm_r <= 0;
-      alu_xm_r <= 0;
-      opcode_xm_r <= 0;
-      addr_rs2_xm_r <= 0;
-      addr_rd_xm_r <= 0;
+      pc_xm_r_0 <= 0;
+      imm_xm_r_0 <= 0;
+      funct3_xm_r_0 <= 0;
+      data_rs2_xm_r_0 <= 0;
+      alu_xm_r_0 <= 0;
+      opcode_xm_r_0 <= 0;
+      addr_rs2_xm_r_0 <= 0;
+      addr_rd_xm_r_0 <= 0;
     end
-    else if (!xm_en) begin
-      pc_xm_r <= pc_xm_r;
-      imm_xm_r <= imm_xm_r;
-      funct3_xm_r <= funct3_xm_r;
-      data_rs2_xm_r <= data_rs2_xm_r;
-      alu_xm_r <= 0;
-      opcode_xm_r <= 0;
-      addr_rs2_xm_r <= 0;
-      addr_rd_xm_r <= 0;
+    else if (!xm_en_0) begin
+      pc_xm_r_0 <= pc_xm_r_0;
+      imm_xm_r_0 <= imm_xm_r_0;
+      funct3_xm_r_0 <= funct3_xm_r_0;
+      data_rs2_xm_r_0 <= data_rs2_xm_r_0;
+      alu_xm_r_0 <= 0;
+      opcode_xm_r_0 <= 0;
+      addr_rs2_xm_r_0 <= 0;
+      addr_rd_xm_r_0 <= 0;
     end
     else begin
-      pc_xm_r <= pc_dx_r;             // Pipeline PC, rs2 data from last stage
-      imm_xm_r <= imm_dx_r; 
-      funct3_xm_r <= funct3_dx_r;
-      data_rs2_xm_r <= data_rs2_w; 
-      alu_xm_r <= alu_out_w;          // Pipeline ALU output
-      opcode_xm_r <= opcode_dx_r;     // Pipeline decoded instruction from last stage
-      addr_rs2_xm_r <= addr_rs2_dx_r;
-      addr_rd_xm_r <= addr_rd_dx_r;
+      pc_xm_r_0 <= pc_dx_r_0;             // Pipeline PC, rs2 data from last stage
+      imm_xm_r_0 <= imm_dx_r_0; 
+      funct3_xm_r_0 <= funct3_dx_r_0;
+      data_rs2_xm_r_0 <= data_rs2_w_0; 
+      alu_xm_r_0 <= alu_out_w_0;          // Pipeline ALU output
+      opcode_xm_r_0 <= opcode_dx_r_0;     // Pipeline decoded instruction from last stage
+      addr_rs2_xm_r_0 <= addr_rs2_dx_r_0;
+      addr_rd_xm_r_0 <= addr_rd_dx_r_0;
     end
   end
 
 // way 2
     always @(posedge clock) begin
     if (reset) begin
-      // pc_xm_r <= 0;
-      imm_xm_r_2 <= 0;
-      funct3_xm_r_2 <= 0;
-      data_rs2_xm_r_2 <= 0;
-      alu_xm_r_2 <= 0;
-      opcode_xm_r_2 <= 0;
-      addr_rs2_xm_r_2 <= 0;
-      addr_rd_xm_r_2 <= 0;
+      pc_xm_r_1 <= 0;
+      imm_xm_r_1 <= 0;
+      funct3_xm_r_1 <= 0;
+      data_rs2_xm_r_1 <= 0;
+      alu_xm_r_1 <= 0;
+      opcode_xm_r_1 <= 0;
+      addr_rs2_xm_r_1 <= 0;
+      addr_rd_xm_r_1 <= 0;
     end
-    else if (!xm_en_2) begin
-      // pc_xm_r <= pc_xm_r;
-      imm_xm_r_2 <= imm_xm_r_2;
-      funct3_xm_r_2 <= funct3_xm_r_2;
-      data_rs2_xm_r_2 <= data_rs2_xm_r_2;
-      alu_xm_r_2 <= 0;
-      opcode_xm_r_2 <= 0;
-      addr_rs2_xm_r_2 <= 0;
-      addr_rd_xm_r_2 <= 0;
+    else if (!xm_en_1) begin
+      pc_xm_r_1 <= pc_xm_r_1;
+      imm_xm_r_1 <= imm_xm_r_1;
+      funct3_xm_r_1 <= funct3_xm_r_1;
+      data_rs2_xm_r_1 <= data_rs2_xm_r_1;
+      alu_xm_r_1 <= 0;
+      opcode_xm_r_1 <= 0;
+      addr_rs2_xm_r_1 <= 0;
+      addr_rd_xm_r_1 <= 0;
     end
     else begin
-      pc_xm_r_2 <= pc_dx_r_2_2;             // Pipeline PC, rs2 data from last stage
-      imm_xm_r_2 <= imm_dx_r_2; 
-      funct3_xm_r_2 <= funct3_dx_r_2;
-      data_rs2_xm_r_2 <= data_rs2_w_2; 
-      alu_xm_r_2 <= alu_out_w_2;          // Pipeline ALU output
-      opcode_xm_r_2 <= opcode_dx_r_2;     // Pipeline decoded instruction from last stage
-      addr_rs2_xm_r_2 <= addr_rs2_dx_r_2;
-      addr_rd_xm_r_2 <= addr_rd_dx_r_2;
+      pc_xm_r_1 <= pc_dx_r_1;             // Pipeline PC, rs2 data from last stage
+      imm_xm_r_1 <= imm_dx_r_1; 
+      funct3_xm_r_1 <= funct3_dx_r_1;
+      data_rs2_xm_r_1 <= data_rs2_w_1; 
+      alu_xm_r_1 <= alu_out_w_1;          // Pipeline ALU output
+      opcode_xm_r_1 <= opcode_dx_r_1;     // Pipeline decoded instruction from last stage
+      addr_rs2_xm_r_1 <= addr_rs2_dx_r_1;
+      addr_rd_xm_r_1 <= addr_rd_dx_r_1;
     end
   end
 
   // PC + 4 in MEM stage
-  wire [DATAW-1:0] pc4_xm_w = pc_xm_r + 4;
-  reg [DATAW-1:0] pc4_mw_r;
-  reg [DATAW-1:0] alu_mw_r;
-  reg [2:0] funct3_mw_r;
+  wire [DATAW-1:0] pc4_xm_w_0 = pc_xm_r_0 + 4;
+  wire [DATAW-1:0] pc4_xm_w_1 = pc_xm_r_1 + 4;
+
+  reg [DATAW-1:0] pc4_mw_r_0;
+  reg [DATAW-1:0] alu_mw_r_0;
+  reg [2:0] funct3_mw_r_0;
+
+  reg [DATAW-1:0] pc4_mw_r_1;
+  reg [DATAW-1:0] alu_mw_r_1;
+  reg [2:0] funct3_mw_r_1;
 
   // Memory-Writeback stage
-// way 1
+// way 0
     always @(posedge clock) begin
     if (reset) begin
-      pc_mw_r <= 0;
-      opcode_mw_r <= 0;
-      addr_rd_mw_r <= 0;
-      pc_mw_r <= 0;
-      alu_mw_r <= 0;
-      funct3_mw_r <= 0;
+      pc_mw_r_0 <= 0;
+      opcode_mw_r_0 <= 0;
+      addr_rd_mw_r_0 <= 0;
+      alu_mw_r_0 <= 0;
+      funct3_mw_r_0 <= 0;
     end 
-    else if (!mw_en) begin
-      pc_mw_r <= pc_mw_r;
-      opcode_mw_r <= opcode_mw_r;
-      addr_rd_mw_r <= addr_rd_mw_r;
-      pc_mw_r <= pc_mw_r;
-      alu_mw_r <= alu_mw_r;
-      funct3_mw_r <= funct3_mw_r;
+    else if (!mw_en_0) begin
+      pc_mw_r_0 <= pc_mw_r_0;
+      opcode_mw_r_0 <= opcode_mw_r_0;
+      addr_rd_mw_r_0 <= addr_rd_mw_r_0;
+      alu_mw_r_0 <= alu_mw_r_0;
+      funct3_mw_r_0 <= funct3_mw_r_0;
     end
     else begin
-      pc_mw_r <= pc_xm_r;
-      opcode_mw_r <= opcode_xm_r;
-      addr_rd_mw_r <= addr_rd_xm_r;
-      pc4_mw_r <= pc4_xm_w;
-      alu_mw_r <= alu_xm_r;
-      funct3_mw_r <= funct3_xm_r;
+      pc_mw_r_0 <= pc_mw_r_0;
+      opcode_mw_r_0 <= opcode_xm_r_0;
+      addr_rd_mw_r_0 <= addr_rd_xm_r_0;
+      pc4_mw_r_0 <= pc4_xm_w_0;
+      alu_mw_r_0 <= alu_xm_r_0;
+      funct3_mw_r_0 <= funct3_xm_r_0;
     end
   end
 
-// way 2
+// way 1
   always @(posedge clock) begin
     if (reset) begin
-      // pc_mw_r <= 0;
-      opcode_mw_r_2 <= 0;
-      addr_rd_mw_r_2 <= 0;
-      pc_mw_r_2 <= 0;
-      alu_mw_r_2 <= 0;
-      funct3_mw_r_2 <= 0;
+      pc_mw_r_1 <= 0;
+      opcode_mw_r_1 <= 0;
+      addr_rd_mw_r_1 <= 0;
+      pc_mw_r_1 <= 0;
+      alu_mw_r_1 <= 0;
+      funct3_mw_r_1 <= 0;
     end 
-    else if (!mw_en_2) begin
-      // pc_mw_r <= pc_mw_r;
-      opcode_mw_r_2 <= opcode_mw_r_2;
-      addr_rd_mw_r_2 <= addr_rd_mw_r_2;
-      pc_mw_r_2 <= pc_mw_r_2;
-      alu_mw_r_2 <= alu_mw_r_2;
-      funct3_mw_r_2 <= funct3_mw_r_2;
+    else if (!mw_en_1) begin
+      pc_mw_r_1 <= pc_mw_r_1;
+      opcode_mw_r_1 <= opcode_mw_r_1;
+      addr_rd_mw_r_1 <= addr_rd_mw_r_1;
+      pc_mw_r_1 <= pc_mw_r_1;
+      alu_mw_r_1 <= alu_mw_r_1;
+      funct3_mw_r_1 <= funct3_mw_r_1;
     end
     else begin
-      // pc_mw_r <= pc_xm_r;
-      opcode_mw_r_2 <= opcode_xm_r_2;
-      addr_rd_mw_r_2 <= addr_rd_xm_r_2;
-      pc4_mw_r_2 <= pc4_xm_w_2;
-      alu_mw_r_2 <= alu_xm_r_2;
-      funct3_mw_r_2 <= funct3_xm_r_2;
+      pc_mw_r_1 <= pc_xm_r_1;
+      opcode_mw_r_1 <= opcode_xm_r_1;
+      addr_rd_mw_r_1 <= addr_rd_xm_r_1;
+      pc4_mw_r_1 <= pc4_xm_w_1;
+      alu_mw_r_1 <= alu_xm_r_1;
+      funct3_mw_r_1 <= funct3_xm_r_1;
     end
   end
 
 
-  // ===================
+  // ===================================
   // INSTANTIATE MODULES
-  // ===================
+  // ===================================
   imemory imem1(
     .clock(clock),           // input
-    .address(pc_r),          // input
+    .address(pc_r_0),        // input
     .data_in(imem_in_r),     // input
     .read_write(imem_rw_w),  // input (hardcoded to 0)
     .enable(imem_enable),    // input 
     .data_out(instr_w)       // output
   );
 
-  // way 1
+  // way 0
   decoder dec1( 
-    .instr(instr_fd_w),         // input
-    .opcode(opcode_w),          // output
-    .addr_rd(addr_rd_w),        // output
-    .addr_rs1(addr_rs1_w),      // output
-    .addr_rs2(addr_rs2_w),      // output
-    .funct3(funct3_w),          // output
-    .funct7(funct7_w),          // output
-    .imm(imm_w),                // output
-    .shamt(shamt_w),            // output
-    .is_u_type_w(is_u_type),    // output
-    .is_j_type_w(is_j_type),    // output
-    .is_i_type_w(is_i_type)     // output
+    .instr(instr_fd_w_0),         // input
+    .opcode(opcode_w_0),          // output
+    .addr_rd(addr_rd_w_0),        // output
+    .addr_rs1(addr_rs1_w_0),      // output
+    .addr_rs2(addr_rs2_w_0),      // output
+    .funct3(funct3_w_0),          // output
+    .funct7(funct7_w_0),          // output
+    .imm(imm_w_0),                // output
+    .shamt(shamt_w_0),            // output
+    .is_u_type_w(is_u_type_0),    // output
+    .is_j_type_w(is_j_type_0),    // output
+    .is_i_type_w(is_i_type_0)     // output
   );
 
-  // way 2
+  // way 1
   decoder dec2(
-    .instr(instr_fd_w_2),         // input
-    .opcode(opcode_w_2),          // output
-    .addr_rd(addr_rd_w_2),        // output
-    .addr_rs1(addr_rs1_w_2),      // output
-    .addr_rs2(addr_rs2_w_2),      // output
-    .funct3(funct3_w_2),          // output
-    .funct7(funct7_w_2),          // output
-    .imm(imm_w_2),                // output
-    .shamt(shamt_w_2),            // output
-    .is_u_type_w(is_u_type_2),    // output
-    .is_j_type_w(is_j_type_2),    // output
-    .is_i_type_w(is_i_type_2)     // output
+    .instr(instr_fd_w_1),         // input
+    .opcode(opcode_w_1),          // output
+    .addr_rd(addr_rd_w_1),        // output
+    .addr_rs1(addr_rs1_w_1),      // output
+    .addr_rs2(addr_rs2_w_1),      // output
+    .funct3(funct3_w_1),          // output
+    .funct7(funct7_w_1),          // output
+    .imm(imm_w_1),                // output
+    .shamt(shamt_w_1),            // output
+    .is_u_type_w(is_u_type_1),    // output
+    .is_j_type_w(is_j_type_1),    // output
+    .is_i_type_w(is_i_type_1)     // output
   );
 
 
   register_file rf1(
     .clock(clock),          // input
-    .write_enable(reg_wen), // input
-    .addr_rs1(addr_rs1_w),  // input
-    .addr_rs2(addr_rs2_w),  // input
-    .addr_rd(addr_rd_mw_r), // input
-    .data_rd(data_rd_w),    // input
-    .data_rs1(data_rs1_w),  // output
-    .data_rs2(data_rs2_w),   // output
+    // way 0
+    .write_enable(reg_wen_0), // input
+    .addr_rs1(addr_rs1_w_0),  // input
+    .addr_rs2(addr_rs2_w_0),  // input
+    .addr_rd(addr_rd_mw_r_0), // input
+    .data_rd(data_rd_w_0),    // input
+    .data_rs1(data_rs1_w_0),  // output
+    .data_rs2(data_rs2_w_0),   // output
 
-    //2-way
-    .write_enable_2(reg_wen_2), // input
-    .addr_rs1_2(addr_rs1_w_2),  // input
-    .addr_rs2_2(addr_rs2_w_2),  // input
-    .addr_rd_2(addr_rd_mw_r_2), // input
-    .data_rd_2(data_rd_w_2),    // input
-    .data_rs1_2(data_rs1_w_2),  // output
-    .data_rs2_2(data_rs2_w_2)   // output
+    //way 1
+    .write_enable_1(reg_wen_1), // input
+    .addr_rs1_1(addr_rs1_w_1),  // input
+    .addr_rs2_1(addr_rs2_w_1),  // input
+    .addr_rd_1(addr_rd_mw_r_1), // input
+    .data_rd_1(data_rd_w_1),    // input
+    .data_rs1_1(data_rs1_w_1),  // output
+    .data_rs2_1(data_rs2_w_1)   // output
   );
-  // wire [DATAW-1:0] data_rs1_stall_w = !(stall_fd || reset) ? data_rs1_w : 0;
-  // wire [DATAW-1:0] data_rs2_stall_w = !(stall_fd || reset) ? data_rs2_w : 0;
-  wire [DATAW-1:0] data_rs1_stall_w = data_rs1_w;
-  wire [DATAW-1:0] data_rs2_stall_w =  data_rs2_w;
+
+  wire [DATAW-1:0] data_rs1_stall_w = data_rs1_w_0;
+  wire [DATAW-1:0] data_rs2_stall_w =  data_rs2_w_0;
 
   control_signals cs1(
     .clock(clock),
     .reset(reset),
-    .dx_en(dx_en),
-    .xm_en(xm_en),
-    .mw_en(mw_en),
-    .opcode_dx(opcode_dx_r),      // input
-    .opcode_xm(opcode_xm_r),      // input
-    .opcode_mw(opcode_mw_r),      // input
-    .funct3(funct3_dx_r),         // input
-    .funct7(funct7_dx_r),         // input
-    .br_eq(br_eq),                // input
-    .br_lt(br_lt),                // input
-    .addr_rs1_dx(addr_rs1_dx_r),  // input
-    .addr_rs2_dx(addr_rs2_dx_r),  // input
-    .addr_rd_xm(addr_rd_xm_r),    // input
-    .addr_rd_mw(addr_rd_mw_r),    // input
-    .br_taken(br_taken),          // output
-    .branch_comp_data1_sel(branch_comp_data1_sel), // output
-    .branch_comp_data2_sel(branch_comp_data2_sel), // output
-    .pc_sel(pc_sel),              // output
-    .br_un(br_un),                // output
-    .a_sel(a_sel),                // output
-    .b_sel(b_sel),                // output
-    .alu_sel(alu_sel),            // output
-    .mem_rw(data_mem_rw),         // output
-    .reg_wen(reg_wen),            // output
-    .wb_sel(wb_sel)               // output
+    .dx_en_0(dx_en_0),
+    .xm_en_0(xm_en_0),
+    .mw_en_0(mw_en_0),
+    .opcode_dx_0(opcode_dx_r_0),      // input
+    .opcode_xm_0(opcode_xm_r_0),      // input
+    .opcode_mw_0(opcode_mw_r_0),      // input
+    .funct3_0(funct3_dx_r_0),         // input
+    .funct7_0(funct7_dx_r_0),         // input
+    .br_eq_0(br_eq_0),                // input
+    .br_lt_0(br_lt_0),                // input
+    .addr_rs1_dx_0(addr_rs1_dx_r_0),  // input
+    .addr_rs2_dx_0(addr_rs2_dx_r_0),  // input
+    .addr_rd_xm_0(addr_rd_xm_r_0),    // input
+    .addr_rd_mw_0(addr_rd_mw_r_0),    // input
+    .br_taken_0(br_taken_0),          // output
+    .branch_comp_data1_sel_0(branch_comp_data1_sel_0), // output
+    .branch_comp_data2_sel_0(branch_comp_data2_sel_0), // output
+    .pc_sel_0(pc_sel_0),              // output
+    .br_un_0(br_un_0),                // output
+    .a_sel_0(a_sel_0),                // output
+    .b_sel_0(b_sel_0),                // output
+    .alu_sel_0(alu_sel_0),            // output
+    .mem_rw_0(data_mem_rw_0),         // output
+    .reg_wen_0(reg_wen_0),            // output
+    .wb_sel_0(wb_sel_0),              // output
+
+// way 1
+    .dx_en_1(dx_en_1),
+    .xm_en_1(xm_en_1),
+    .mw_en_1(mw_en_1),
+    .opcode_dx_1(opcode_dx_r_1),      // input
+    .opcode_xm_1(opcode_xm_r_1),      // input
+    .opcode_mw_1(opcode_mw_r_1),      // input
+    .funct3_1(funct3_dx_r_1),         // input
+    .funct7_1(funct7_dx_r_1),         // input
+    .br_eq_1(br_eq_1),                // input
+    .br_lt_1(br_lt_1),                // input
+    .addr_rs1_dx_1(addr_rs1_dx_r_1),  // input
+    .addr_rs2_dx_1(addr_rs2_dx_r_1),  // input
+    .addr_rd_xm_1(addr_rd_xm_r_1),    // input
+    .addr_rd_mw_1(addr_rd_mw_r_1),    // input
+    .br_taken_1(br_taken_1),          // output
+    .branch_comp_data1_sel_1(branch_comp_data1_sel_1), // output
+    .branch_comp_data2_sel_1(branch_comp_data2_sel_1), // output
+    .pc_sel_1(pc_sel_1),              // output
+    .br_un_1(br_un_1),                // output
+    .a_sel_1(a_sel_1),                // output
+    .b_sel_1(b_sel_1),                // output
+    .alu_sel_1(alu_sel_1),            // output
+    .mem_rw_1(data_mem_rw_1),         // output
+    .reg_wen_1(reg_wen_1),            // output
+    .wb_sel_1(wb_sel_1)              // output
   );
 
-  //2-way
-  control_signals cs2(
-    .clock(clock),
-    .reset(reset),
-    .dx_en(dx_en_2),
-    .xm_en(xm_en_2),
-    .mw_en(mw_en_2),
-    .opcode_dx(opcode_dx_r_2),      // input
-    .opcode_xm(opcode_xm_r_2),      // input
-    .opcode_mw(opcode_mw_r_2),      // input
-    .funct3(funct3_dx_r_2),         // input
-    .funct7(funct7_dx_r_2),         // input
-    .br_eq(br_eq_2),                // input
-    .br_lt(br_lt_2),                // input
-    .addr_rs1_dx(addr_rs1_dx_r_2),  // input
-    .addr_rs2_dx(addr_rs2_dx_r_2),  // input
-    .addr_rd_xm(addr_rd_xm_r_2),    // input
-    .addr_rd_mw(addr_rd_mw_r_2),    // input
-    .br_taken(br_taken_2),          // output
-    .branch_comp_data1_sel(branch_comp_data1_sel_2), // output
-    .branch_comp_data2_sel(branch_comp_data2_sel_2), // output
-    .pc_sel(pc_sel_2),              // output
-    .br_un(br_un_2),                // output
-    .a_sel(a_sel_2),                // output
-    .b_sel(b_sel_2),                // output
-    .alu_sel(alu_sel_2),            // output
-    .mem_rw(data_mem_rw_2),         // output
-    .reg_wen(reg_wen_2),            // output
-    .wb_sel(wb_sel_2)               // output
 
-  );
 
   // Forwarding logic values
   localparam REG = 2'b00;
@@ -692,148 +721,172 @@ module pd #(
 
   // branch forwarding logic (cases for WX and MX bypassing)
 
-  wire [DATAW-1:0] idata1_in =  (branch_comp_data1_sel == WX_BYPASS) ? data_rd_w :
-                                (branch_comp_data1_sel == MX_BYPASS) ? alu_xm_r :
-                                                                     data_rs1_w;
+//way 0
+  wire [DATAW-1:0] idata1_in_0 =  (branch_comp_data1_sel_0 == WX_BYPASS) ? data_rd_w_0:
+                                (branch_comp_data1_sel_0 == MX_BYPASS) ? alu_xm_r_0 :
+                                                                     data_rs1_w_0;
 
-  wire [DATAW-1:0] idata2_in =  (branch_comp_data2_sel == WX_BYPASS) ? data_rd_w :
-                                (branch_comp_data2_sel == MX_BYPASS) ? alu_xm_r :
-                                                                     data_rs2_w;
+  wire [DATAW-1:0] idata2_in_0 =  (branch_comp_data2_sel_0 == WX_BYPASS) ? data_rd_w_0 :
+                                (branch_comp_data2_sel_0 == MX_BYPASS) ? alu_xm_r_0 :
+                                                                     data_rs2_w_0;
 
-  wire [DATAW-1:0] idata1_in_2 =  (branch_comp_data1_sel == WX_BYPASS) ? data_rd_w :
-                                (branch_comp_data1_sel == MX_BYPASS) ? alu_xm_r :
-                                                                     data_rs1_w;
+  // way 1
 
-  wire [DATAW-1:0] idata2_in_2 =  (branch_comp_data2_sel == WX_BYPASS) ? data_rd_w :
-                                (branch_comp_data2_sel == MX_BYPASS) ? alu_xm_r :
-                                                                     data_rs2_w;
+  wire [DATAW-1:0] idata1_in_1 =  (branch_comp_data1_sel_1 == WX_BYPASS) ? data_rd_w_1 :
+                                (branch_comp_data1_sel_1 == MX_BYPASS) ? alu_xm_r_1 :
+                                                                     data_rs1_w_0;
 
+  wire [DATAW-1:0] idata2_in_1 =  (branch_comp_data2_sel_1 == WX_BYPASS) ? data_rd_w_1 :
+                                (branch_comp_data2_sel_1 == MX_BYPASS) ? alu_xm_r_1 :
+                                                                     data_rs2_w_1;
+//way 0
   branch_comp bc1(
-    .idata1(idata1_in),
-    .idata2(idata2_in),
-    .br_un(br_un),
-    .br_eq(br_eq),
-    .br_lt(br_lt)
+    .idata1(idata1_in_0),
+    .idata2(idata2_in_0),
+    .br_un(br_un_0),
+    .br_eq(br_eq_0),
+    .br_lt(br_lt_0)
   );
 
-  //2-way
+  //way 1
   branch_comp bc2(
-    .idata1(idata1_in_2),
-    .idata2(idata2_in_2),
-    .br_un(br_un_2),
-    .br_eq(br_eq_2),
-    .br_lt(br_lt_2)
+    .idata1(idata1_in_1),
+    .idata2(idata2_in_1),
+    .br_un(br_un_1),
+    .br_eq(br_eq_1),
+    .br_lt(br_lt_1)
   );
   
   // A sel definitions (determines ALU input 1)
-  assign alu_in1_w = (a_sel == REG) ? data_rs1_w :
-                     (a_sel == PC) ? pc_dx_r :
-                     (a_sel == WX_BYPASS) ? data_rd_w :
-                                            alu_xm_r;
+  assign alu_in1_w_0 = (a_sel_0 == REG) ? data_rs1_w_0 :
+                     (a_sel_0 == PC) ? pc_dx_r_0 :
+                     (a_sel_0 == WX_BYPASS) ? data_rd_w_0 :
+                                            alu_xm_r_0;
 
   // B sel definitions (determines ALU input 2)
   localparam IMM  = 2'b01;
-  assign alu_in2_w = (b_sel == REG) ? data_rs2_w :
-                     (b_sel == IMM) ? imm_dx_r :
-                     (b_sel == WX_BYPASS) ? data_rd_w :
-                                            alu_xm_r;
+  assign alu_in2_w_0 = (b_sel_0 == REG) ? data_rs2_w_0 :
+                     (b_sel_0 == IMM) ? imm_dx_r_0 :
+                     (b_sel_0 == WX_BYPASS) ? data_rd_w_0 :
+                                             alu_xm_r_0;
 
+  // A sel definitions (determines ALU input 1)
+  assign alu_in1_w_1 = (a_sel_1 == REG) ? data_rs1_w_1 :
+                     (a_sel_1 == PC) ? pc_dx_r_1 :
+                     (a_sel_1 == WX_BYPASS) ? data_rd_w_1 :
+                                            alu_xm_r_1;
+
+  // B sel definitions (determines ALU input 2)
+  assign alu_in2_w_1 = (b_sel_1 == REG) ? data_rs2_w_1 :
+                     (b_sel_1 == IMM) ? imm_dx_r_1 :
+                     (b_sel_1 == WX_BYPASS) ? data_rd_w_1 :
+                                             alu_xm_r_1;
+  // way 0
   alu al1(
-    .idata1(alu_in1_w),
-    .idata2(alu_in2_w),
-    .alu_sel(alu_sel),
-    .odata(alu_out_w)
+    .idata1(alu_in1_w_0),
+    .idata2(alu_in2_w_0),
+    .alu_sel(alu_sel_0),
+    .odata(alu_out_w_0)
   );
 
   //way 2
   alu al2(
-    .idata1(alu_in1_w_2),
-    .idata2(alu_in2_w_2),
-    .alu_sel(alu_sel_2),
-    .odata(alu_out_w_2)
+    .idata1(alu_in1_w_1),
+    .idata2(alu_in2_w_1),
+    .alu_sel(alu_sel_1),
+    .odata(alu_out_w_1)
   );
 
-  wire [1:0] mem_write_access_size = funct3_xm_r[1:0];     // For testbench
+  wire [1:0] mem_write_access_size_0 = funct3_xm_r_0[1:0];     // For testbench
 
   // way 2
-  wire [1:0] mem_write_access_size_2 = funct3_xm_r_2[1:0];     // For testbench
+  wire [1:0] mem_write_access_size_1 = funct3_xm_r_1[1:0];     // For testbench
 
   // WM bypass logic
-  wire is_store_xm = (opcode_xm_r == STORE_OPCODE);  // Store instruction in XM stage
+  wire is_store_xm_0 = (opcode_xm_r_0 == STORE_OPCODE);  // Store instruction in XM stage
+  wire is_store_xm_1 = (opcode_xm_r_1 == STORE_OPCODE);  // Store instruction in XM stage
 
-  wire wm_forward = is_store_xm && 
-                    (addr_rs2_xm_r_2 == addr_rd_mw_r_2) && 
-                    (addr_rd_mw_r_2 != 0) && 
-                    instr_mw_writes_reg_2;
 
-  wire wm_forward_2 = is_store_xm && 
-                    (addr_rs2_xm_r == addr_rd_mw_r_2) && 
-                    (addr_rd_mw_r_2 != 0) && 
-                    instr_mw_writes_reg_2;
+  wire wm_forward_0 = is_store_xm_0 && 
+                    (addr_rs2_xm_r_0 == addr_rd_mw_r_0) && 
+                    (addr_rd_mw_r_0 != 0) && 
+                    instr_mw_writes_reg_0;
+
+  wire wm_forward_1 = is_store_xm_1 && 
+                    (addr_rs2_xm_r_1 == addr_rd_mw_r_1) && 
+                    (addr_rd_mw_r_1 != 0) && 
+                    instr_mw_writes_reg_1;
   // Data memory instantiation based on forwarding logic
-  wire [DATAW-1:0] dmem_data_in = (wm_forward) ? data_rd_w : data_rs2_xm_r;
-  wire [DATAW-1:0] dmem_data_in_2 = (wm_forward_2) ? data_rd_w_2 : data_rs2_xm_r_2;
+  wire [DATAW-1:0] dmem_data_in_0 = (wm_forward_0) ? data_rd_w_0 : data_rs2_xm_r_0;
+  wire [DATAW-1:0] dmem_data_in_1 = (wm_forward_1) ? data_rd_w_1 : data_rs2_xm_r_1;
 
 
   dmemory dmem1(
     .clock(clock),               // input
-    .read_write(data_mem_rw),    // input
-    .access_size(mem_write_access_size),   // input
-    .address(alu_xm_r),          // input
-    .data_in(dmem_data_in),      // input
-    .data_out(data_mem_w),        // output
+    // way 0
+    .read_write(data_mem_rw_0),   // input
+    .access_size(mem_write_access_size_0),   // input
+    .address(alu_xm_r_0),          // input
+    .data_in(dmem_data_in_0),      // input
+    .data_out(data_mem_w_0),        // output
 
-    //way 2
-    .read_write_2(data_mem_rw_2),    // input
-    .access_size_2(mem_write_access_size_2),   // input
-    .address_2(alu_xm_r_2),          // input
-    .data_in_2(dmem_data_in_2),      // input
-    .data_out_2(data_mem_w_2)        // output
+    //way 1
+    .read_write_1(data_mem_rw_1),    // input
+    .access_size_1(mem_write_access_size_1),   // input
+    .address_1(alu_xm_r_1),          // input
+    .data_in_1(dmem_data_in_1),      // input
+    .data_out_1(data_mem_w_1)        // output
   );
 
   // Mem read access size logic
-  wire [1:0] mem_read_access_size = funct3_mw_r[1:0];  // For testbench
-  wire [1:0] mem_read_access_size_2 = funct3_mw_r_2[1:0];  // For testbench
+  wire [1:0] mem_read_access_size_0 = funct3_mw_r_0[1:0];  // For testbench
+
+  //way 1
+  wire [1:0] mem_read_access_size_1 = funct3_mw_r_1[1:0];  // For testbench
 
   localparam BYTE_OP = 2'b00;
   localparam HALF_OP = 2'b01;
   localparam WORD_OP = 2'b10;
-  wire is_unsigned = funct3_mw_r[2];
-  wire is_unsigned_2 = funct3_mw_r_2[2];
+
+  wire is_unsigned_0 = funct3_mw_r_0[2];
+  wire is_unsigned_1 = funct3_mw_r_1[2];
 
 
-  wire [DATAW-1:0] data_mem_w_sized = 
-    (mem_read_access_size == BYTE_OP) ? 
-      (is_unsigned) ? {24'b0, data_mem_w[7:0]} :                             // LBU
-      {{24{data_mem_w[7]}}, data_mem_w[7:0]} :                               // LB
-    (mem_read_access_size == HALF_OP) ? 
-      (is_unsigned) ? {16'b0, data_mem_w[15:0]} :                            // LHU
-      {{16{data_mem_w[15]}}, data_mem_w[15:0]} :                             // LH
-    (mem_read_access_size == WORD_OP) ? data_mem_w : data_mem_w;             // LW
+  wire [DATAW-1:0] data_mem_w_sized_0 = 
+    (mem_read_access_size_0 == BYTE_OP) ? 
+      (is_unsigned_0) ? {24'b0, data_mem_w_0[7:0]} :                             // LBU
+      {{24{data_mem_w_0[7]}}, data_mem_w_0[7:0]} :                               // LB
+    (mem_read_access_size_0 == HALF_OP) ? 
+      (is_unsigned_0) ? {16'b0, data_mem_w_0[15:0]} :                            // LHU
+      {{16{data_mem_w_0[15]}}, data_mem_w_0[15:0]} :                             // LH
+    (mem_read_access_size_0 == WORD_OP) ? data_mem_w_0 : data_mem_w_0;             // LW
 
-  wire [DATAW-1:0] data_mem_w_sized_2 = 
-    (mem_read_access_size_2 == BYTE_OP) ? 
-      (is_unsigned_2) ? {24'b0, data_mem_w_2[7:0]} :                             // LBU
-      {{24{data_mem_w_2[7]}}, data_mem_w_2[7:0]} :                               // LB
-    (mem_read_access_size_2 == HALF_OP) ? 
-      (is_unsigned_2) ? {16'b0, data_mem_w_2[15:0]} :                            // LHU
-      {{16{data_mem_w_2[15]}}, data_mem_w[15:0]} :                             // LH
-    (mem_read_access_size_2 == WORD_OP) ? data_mem_w_2 : data_mem_w_2;             // LW
+
+// way 1
+  wire [DATAW-1:0] data_mem_w_sized_1 = 
+    (mem_read_access_size_1 == BYTE_OP) ? 
+      (is_unsigned_1) ? {24'b0, data_mem_w_1[7:0]} :                             // LBU
+      {{24{data_mem_w_1[7]}}, data_mem_w_1[7:0]} :                               // LB
+    (mem_read_access_size_1 == HALF_OP) ? 
+      (is_unsigned_1) ? {16'b0, data_mem_w_1[15:0]} :                            // LHU
+      {{16{data_mem_w_1[15]}}, data_mem_w_1[15:0]} :                             // LH
+    (mem_read_access_size_1 == WORD_OP) ? data_mem_w_1 : data_mem_w_1;             // LW
 
   // According to lecture slides, this should be in the memory stage
   writeback wb1(
-    .alu(alu_mw_r),                 // input
-    .mem(data_mem_w_sized),         // input
-    .pc4(pc4_mw_r),                 // input
-    .wb_sel(wb_sel),                // input
-    .wb_data(data_rd_w),             // output
+    // way 0
+    .alu(alu_mw_r_0),                 // input
+    .mem(data_mem_w_sized_0),         // input
+    .pc4(pc4_mw_r_0),                 // input
+    .wb_sel(wb_sel_0),                // input
+    .wb_data(data_rd_w_0),             // output
 
-    //2-way
-    .alu_2(alu_mw_r_2),                 // input
-    .mem_2(data_mem_w_sized_2),         // input
-    .pc4_2(pc4_mw_r_2),                 // input
-    .wb_sel_2(wb_sel_2),                // input
-    .wb_data_2(data_rd_w_2)             // output
+    //way 1
+    .alu_1(alu_mw_r_1),                 // input
+    .mem_1(data_mem_w_sized_1),         // input
+    .pc4_1(pc4_mw_r_1),                 // input
+    .wb_sel_1(wb_sel_1),                // input
+    .wb_data_1(data_rd_w_1)             // output
   );
 
 endmodule

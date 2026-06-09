@@ -547,7 +547,7 @@ module pd #(
       funct3_mw_r_0 <= funct3_mw_r_0;
     end
     else begin
-      pc_mw_r_0 <= pc_mw_r_0;
+      pc_mw_r_0 <= pc_xm_r_0;
       opcode_mw_r_0 <= opcode_xm_r_0;
       addr_rd_mw_r_0 <= addr_rd_xm_r_0;
       pc4_mw_r_0 <= pc4_xm_w_0;

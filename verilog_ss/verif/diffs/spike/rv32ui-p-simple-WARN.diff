@@ -1,9 +1,9 @@
 Benchmark: rv32ui-p-simple-WARN
-Compared: 3 commits  Mismatches: 2
+Compared: 3 commits  Mismatches: 1
 Proc commits: 3  Spike commits: 3
 
    #            PROC_PC    RD  PROC_VAL    SPIKE_PC   RD  SPIKE_VAL
 --------------------------------------------------------------------
    0  OK        01000004    3  00000001    01000004    3  00000001
-   1  MISMATCH  00000000    5  01000008    01000008    5  01000008
+   1  OK        01000008    5  01000008    01000008    5  01000008
    2  MISMATCH  0100000c    5  00000018    0100000c    5  01000020

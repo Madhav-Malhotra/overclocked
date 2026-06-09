@@ -1,22 +1,22 @@
 Benchmark: rv32ui-p-xor
-Compared: 16 commits  Mismatches: 13
+Compared: 16 commits  Mismatches: 11
 Proc commits: 16  Spike commits: 353
 
    #            PROC_PC    RD  PROC_VAL    SPIKE_PC   RD  SPIKE_VAL
 --------------------------------------------------------------------
-   0  MISMATCH  00000000    1  ff010000    01000000    1  ff010000
+   0  OK        01000000    1  ff010000    01000000    1  ff010000
    1  MISMATCH  01000004    1  ffffff00    01000004    1  ff00ff00
-   2  MISMATCH  00000000    2  0f0f1000    01000008    2  0f0f1000
+   2  OK        01000008    2  0f0f1000    01000008    2  0f0f1000
    3  MISMATCH  0100000c    2  010fff0f    0100000c    2  0f0f0f0f
-   4  MISMATCH  00000000   30  f00e1000    01000010   30  f00ff00f
+   4  MISMATCH  01000010   30  f00e1000    01000010   30  f00ff00f
    5  OK        01000014   29  f00ff000    01000014   29  f00ff000
-   6  MISMATCH  00000000   29  0000000f    01000018   29  f00ff00f
+   6  MISMATCH  01000018   29  0000000f    01000018   29  f00ff00f
    7  OK        0100001c    3  00000002    0100001c    3  00000002
    8  OK        01000024    1  0ff01000    01000024    1  0ff01000
    9  MISMATCH  0100002c    2  f0f0f000    01000028    1  0ff00ff0
   10  MISMATCH  01000034   30  ff00e000    0100002c    2  f0f0f000
-  11  MISMATCH  00000000    3  00000004    01000030    2  f0f0f0f0
-  12  MISMATCH  00000000    5  010004d0    01000034   30  ff00ff00
+  11  MISMATCH  010004c8    3  00000004    01000030    2  f0f0f0f0
+  12  MISMATCH  010004d0    5  010004d0    01000034   30  ff00ff00
   13  MISMATCH  0ff01008    3  00000001    01000038   29  ff010000
-  14  MISMATCH  00000000    5  010004e8    0100003c   29  ff00ff00
+  14  MISMATCH  010004e8    5  010004e8    0100003c   29  ff00ff00
   15  MISMATCH  0ff01010    5  010004e8    01000040    3  00000003

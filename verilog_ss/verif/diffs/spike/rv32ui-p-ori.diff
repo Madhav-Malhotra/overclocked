@@ -1,23 +1,23 @@
 Benchmark: rv32ui-p-ori
-Compared: 17 commits  Mismatches: 16
+Compared: 17 commits  Mismatches: 12
 Proc commits: 17  Spike commits: 128
 
    #            PROC_PC    RD  PROC_VAL    SPIKE_PC   RD  SPIKE_VAL
 --------------------------------------------------------------------
-   0  MISMATCH  00000000    1  ff010000    01000000    1  ff010000
+   0  OK        01000000    1  ff010000    01000000    1  ff010000
    1  MISMATCH  01000004    1  ffffff00    01000004    1  ff00ff00
-   2  MISMATCH  00000000   30  ffffff0f    01000008   30  ffffff0f
+   2  OK        01000008   30  ffffff0f    01000008   30  ffffff0f
    3  OK        0100000c   29  ffffff0f    0100000c   29  ffffff0f
-   4  MISMATCH  00000000    3  00000002    01000010    3  00000002
-   5  MISMATCH  00000000    1  0ff01000    01000018    1  0ff01000
-   6  MISMATCH  00000000   30  0ff010f0    0100001c    1  0ff00ff0
-   7  MISMATCH  00000000   29  fffffeff    01000020   30  0ff00ff0
+   4  OK        01000010    3  00000002    01000010    3  00000002
+   5  OK        01000018    1  0ff01000    01000018    1  0ff01000
+   6  MISMATCH  01000020   30  0ff010f0    0100001c    1  0ff00ff0
+   7  MISMATCH  01000028   29  fffffeff    01000020   30  0ff00ff0
    8  MISMATCH  010001dc    3  00000003    01000024   29  0ff01000
    9  MISMATCH  010001e4    1  00ff0000    01000028   29  0ff00ff0
   10  MISMATCH  010001ec   30  00ff070f    0100002c    3  00000003
   11  MISMATCH  010001f4   29  0000070e    01000034    1  00ff0000
-  12  MISMATCH  00000000    3  00000006    01000038    1  00ff00ff
-  13  MISMATCH  00000000    5  010001ec    0100003c   30  00ff07ff
+  12  MISMATCH  010001e4    3  00000006    01000038    1  00ff00ff
+  13  MISMATCH  010001ec    5  010001ec    0100003c   30  00ff07ff
   14  MISMATCH  00ff0008    3  00000001    01000040   29  00ff0000
-  15  MISMATCH  00000000    5  01000204    01000044   29  00ff07ff
+  15  MISMATCH  01000204    5  01000204    01000044   29  00ff07ff
   16  MISMATCH  00ff0010    5  01000200    01000048    3  00000004

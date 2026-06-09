@@ -698,6 +698,8 @@ module pd #(
     .addr_rs2_dx_1(addr_rs2_dx_r_1),  // input
     .addr_rd_xm_1(addr_rd_xm_r_1),    // input
     .addr_rd_mw_1(addr_rd_mw_r_1),    // input
+    .m_pc_0(pc_xm_r_0),               // input
+    .x_pc_1(pc_dx_r_1),               // input
     .br_taken_1(br_taken_1),          // output
     .branch_comp_data1_sel_1(branch_comp_data1_sel_1), // output
     .branch_comp_data2_sel_1(branch_comp_data2_sel_1), // output
@@ -716,8 +718,10 @@ module pd #(
   // Forwarding logic values
   localparam REG = 2'b00;
   localparam PC  = 2'b01;
-  localparam WX_BYPASS = 2'b10;
-  localparam MX_BYPASS = 2'b11;
+  localparam WX_BYPASS = 2'b010;
+  localparam WX_BYPASS = 2'b011;
+  localparam MX_BYPASS = 2'b100;
+  localparam MX_BYPASS = 2'b101;
 
   // branch forwarding logic (cases for WX and MX bypassing)
 

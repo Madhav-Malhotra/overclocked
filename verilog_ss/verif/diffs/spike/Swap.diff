@@ -1,11 +1,11 @@
 Benchmark: Swap
-Compared: 5 commits  Mismatches: 4
+Compared: 5 commits  Mismatches: 2
 Proc commits: 5  Spike commits: 6
 
    #            PROC_PC    RD  PROC_VAL    SPIKE_PC   RD  SPIKE_VAL
 --------------------------------------------------------------------
-   0  MISMATCH  00000000    2  01100000    01000000    2  01100000
+   0  OK        01000000    2  01100000    01000000    2  01100000
    1  OK        01000004    2  01100000    01000004    2  01100000
-   2  MISMATCH  00000000    1  0100000c    01000008    1  0100000c
+   2  OK        01000008    1  0100000c    01000008    1  0100000c
    3  MISMATCH  0100000c    5  0100000c    01000050   10  00000001
-   4  MISMATCH  00000000   10  00000001    0100000c    5  0100000c
+   4  MISMATCH  01000050   10  00000001    0100000c    5  0100000c

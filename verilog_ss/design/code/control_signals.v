@@ -44,14 +44,14 @@ module control_signals #(
     input [ADDRW-1:0] addr_rs2_dx_0,
     input [ADDRW-1:0] addr_rd_xm_0,
     input [ADDRW-1:0] addr_rd_mw_0,
-    output [1:0] branch_comp_data1_sel_0,
-    output [1:0] branch_comp_data2_sel_0,
+    output [2:0] branch_comp_data1_sel_0,
+    output [2:0] branch_comp_data2_sel_0,
     // br_taken exposed for use in test harness
     output br_taken_0,
     output pc_sel_0,
     output br_un_0,
-    output [1:0] a_sel_0,
-    output [1:0] b_sel_0,
+    output [2:0] a_sel_0,
+    output [2:0] b_sel_0,
     output [3:0] alu_sel_0,
     output mem_rw_0,
     output reg_wen_0,
@@ -79,14 +79,14 @@ module control_signals #(
     // used to check case 2 of forwarding for way 1
     input [DATAW-1:0] m_pc_0, 
     input [DATAW-1:0] x_pc_1, 
-    output [1:0] branch_comp_data1_sel_1,
-    output [1:0] branch_comp_data2_sel_1,
+    output [2:0] branch_comp_data1_sel_1,
+    output [2:0] branch_comp_data2_sel_1,
     // br_taken exposed for use in test harness
     output br_taken_1,
     output pc_sel_1,
     output br_un_1,
-    output [1:0] a_sel_1,
-    output [1:0] b_sel_1,
+    output [2:0] a_sel_1,
+    output [2:0] b_sel_1,
     output [3:0] alu_sel_1,
     output mem_rw_1,
     output reg_wen_1,
@@ -139,7 +139,7 @@ wire is_u_type_x_0  = is_lui_x_0 || is_auipc_x_0;
 
     // way 1
 wire is_branch_x_1  = (opcode_dx_1 == 7'b1100011);
-wire is_alu_x_1     = (opcode_dx_1 == 7'b0110011);
+wire is_alu_x_1     = (opcode_dx_1 == 7'b0110011); // is R-type instruction
 wire is_alu_imm_x_1 = (opcode_dx_1 == 7'b0010011);
 wire is_jal_x_1     = (opcode_dx_1 == 7'b1101111);
 wire is_auipc_x_1   = (opcode_dx_1 == 7'b0010111);
@@ -149,6 +149,8 @@ wire is_store_x_1   = (opcode_dx_1 == 7'b0100011);
 wire is_jalr_x_1    = (opcode_dx_1 == 7'b1100111);
 wire is_ecall_x_1   = (opcode_dx_1 == 7'b1110011);
 wire is_u_type_x_1  = is_lui_x_1 || is_auipc_x_1;
+
+wire stall_occured = (x_pc_1 - m_pc_0 == 4);  // ONCE STALLING LOGIC IS CONFIRMED, USE THAT INSTEAD !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 
 /* Determine if branch is taken */
@@ -243,21 +245,25 @@ wire insn_mw_writes_reg_1 = !(is_store_mw_r_1 || is_branch_mw_r_1 || is_ecall_mw
 // FORWARDING / MUX SELECTS
 // ==========================
 
+/* 
+    ALU: A and B select (including forwarding)
+*/
+
 // way 0
     // U-type and JAL use PC, not rs1; bypass only applies when rs1 is actually read
 assign a_sel_0 = (is_branch_x_0 || is_auipc_x_0 || is_jal_x_0) ? PC :
-               (!(is_u_type_x_0 || is_jal_x_0) && addr_rs1_dx_0 == addr_rd_xm_1 && addr_rd_xm_1 != 0 && insn_xm_writes_reg_1) ? MX_BYPASS_1 : // check way 1 - MX
-               (!(is_u_type_x_0 || is_jal_x_0) && addr_rs1_dx_0 == addr_rd_xm_0 && addr_rd_xm_0 != 0 && insn_xm_writes_reg_0) ? MX_BYPASS_0 : // check way 0 - MX
-               (!(is_u_type_x_0 || is_jal_x_0) && addr_rs1_dx_0 == addr_rd_mw_1 && addr_rd_mw_1 != 0 && insn_mw_writes_reg_1) ? WX_BYPASS_1 : // check way 1 - WX
-               (!(is_u_type_x_0 || is_jal_x_0) && addr_rs1_dx_0 == addr_rd_mw_0 && addr_rd_mw_0 != 0 && insn_mw_writes_reg_0) ? WX_BYPASS_0 : // check way 0 - WX
+               (!is_u_type_x_0 && addr_rs1_dx_0 == addr_rd_xm_1 && addr_rd_xm_1 != 0 && insn_xm_writes_reg_1) ? MX_BYPASS_1 : // check way 1 - MX
+               (!is_u_type_x_0 && addr_rs1_dx_0 == addr_rd_xm_0 && addr_rd_xm_0 != 0 && insn_xm_writes_reg_0) ? MX_BYPASS_0 : // check way 0 - MX
+               (!is_u_type_x_0 && addr_rs1_dx_0 == addr_rd_mw_1 && addr_rd_mw_1 != 0 && insn_mw_writes_reg_1) ? WX_BYPASS_1 : // check way 1 - WX
+               (!is_u_type_x_0 && addr_rs1_dx_0 == addr_rd_mw_0 && addr_rd_mw_0 != 0 && insn_mw_writes_reg_0) ? WX_BYPASS_0 : // check way 0 - WX
                 REG;
     // bypass on b_sel only applies to R-type (ALU reg-reg); all others use an immediate
 assign b_sel_0 = (is_alu_x_0 && addr_rs2_dx_0 == addr_rd_xm_1 && addr_rd_xm_1 != 0 && insn_xm_writes_reg_1) ? MX_BYPASS_1 : // check way 1 - MX
-                (is_alu_x_0 && addr_rs2_dx_0 == addr_rd_xm_0 && addr_rd_xm_0 != 0 && insn_xm_writes_reg_0) ? MX_BYPASS_0 : // check way 0 - MX
-               (is_alu_x_0 && addr_rs2_dx_0 == addr_rd_mw_1 && addr_rd_mw_1 != 0 && insn_mw_writes_reg_1) ? WX_BYPASS_1 : // check way 1 - WX
-               (is_alu_x_0 && addr_rs2_dx_0 == addr_rd_mw_0 && addr_rd_mw_0 != 0 && insn_mw_writes_reg_0) ? WX_BYPASS_0 : // check way 1 - WX
-               (!is_alu_x_0) ? IMM :
-                             REG;
+                 (is_alu_x_0 && addr_rs2_dx_0 == addr_rd_xm_0 && addr_rd_xm_0 != 0 && insn_xm_writes_reg_0) ? MX_BYPASS_0 : // check way 0 - MX
+                 (is_alu_x_0 && addr_rs2_dx_0 == addr_rd_mw_1 && addr_rd_mw_1 != 0 && insn_mw_writes_reg_1) ? WX_BYPASS_1 : // check way 1 - WX
+                 (is_alu_x_0 && addr_rs2_dx_0 == addr_rd_mw_0 && addr_rd_mw_0 != 0 && insn_mw_writes_reg_0) ? WX_BYPASS_0 : // check way 1 - WX
+                 (!is_alu_x_0) ? IMM : // if not R-type, use the immediate
+                    REG; // default, use decoded rs2 value
 
 // way 1
 /* 
@@ -265,51 +271,82 @@ CASE 1: way 0 and way 1 don't have the same rd --> follow same bypassing logic a
 CASE 2: way 0 and way 1 have same rd --> way 1 must stall, and in next cycle, can now do an MX bypass from way 0 to way 1
     - Can check if case 2 occured by comparing pc values of way 0 in memory and way 1 in execute, x_pc_1 - m_pc_0 = 4 bytes, we can do MX bypass  
 */
-assign stall_occured = (x_pc_1 - m_pc_0 == 4);  // look into if there's a way to do this via control signals (i.e. no subtraction)
 assign a_sel_1 = (is_branch_x_1 || is_auipc_x_1 || is_jal_x_1) ? PC :
                 (stall_occured && !(is_u_type_x_1 || is_jal_x_1)) ?
                 // Case 2: MX bypass from way 0 to way 1 is priority
-                    (insn_xm_writes_reg_0 && addr_rs1_dx_1 == addr_rd_xm_0 && addr_rd_xm_0 != 0) ? MX_BYPASS_0 :
-                    (addr_rs1_dx_1 == addr_rd_mw_1 && addr_rd_mw_1 != 0 && insn_mw_writes_reg_1) ? WX_BYPASS_1 :
-                    (addr_rs1_dx_1 == addr_rd_mw_0 && addr_rd_mw_0 != 0 && insn_mw_writes_reg_0) ? WX_BYPASS_0 :
+                    (addr_rs1_dx_1 == addr_rd_xm_0 && addr_rd_xm_0 != 0 && insn_xm_writes_reg_0) ? MX_BYPASS_0 : // check way 0 - MX
+                    (addr_rs1_dx_1 == addr_rd_mw_1 && addr_rd_mw_1 != 0 && insn_mw_writes_reg_1) ? WX_BYPASS_1 : // check way 1 - WX
+                    (addr_rs1_dx_1 == addr_rd_mw_0 && addr_rd_mw_0 != 0 && insn_mw_writes_reg_0) ? WX_BYPASS_0 : // check way 0 - WX
+                    REG
                 :
                 // can do same logic as way 0
-                    (addr_rs1_dx_1 == addr_rd_xm_1 && addr_rd_xm_1 != 0 && insn_xm_writes_reg_1) ? MX_BYPASS_1 : //check way 1 - MX
+                    (addr_rs1_dx_1 == addr_rd_xm_1 && addr_rd_xm_1 != 0 && insn_xm_writes_reg_1) ? MX_BYPASS_1 : // check way 1 - MX
                     (addr_rs1_dx_1 == addr_rd_xm_0 && addr_rd_xm_0 != 0 && insn_xm_writes_reg_0) ? MX_BYPASS_0 : // check way 0 - MX
                     (addr_rs1_dx_1 == addr_rd_mw_1 && addr_rd_mw_1 != 0 && insn_mw_writes_reg_1) ? WX_BYPASS_1 : // check way 1 - WX
                     (addr_rs1_dx_1 == addr_rd_mw_0 && addr_rd_mw_0 != 0 && insn_mw_writes_reg_0) ? WX_BYPASS_0 : // check way 0 - WX
                     REG;
 
 // bypass on b_sel only applies to R-type (ALU reg-reg); all others use an immediate
-assign b_sel_1 = (is_alu_x_1 && addr_rs2_dx_1 == addr_rd_xm_1 && addr_rd_xm_1 != 0 && insn_xm_writes_reg_1) ? MX_BYPASS_1 :
-                 (is_alu_x_1 && addr_rs2_dx_1 == addr_rd_xm_0 && addr_rd_xm_0 != 0 && insn_xm_writes_reg_0) ? MX_BYPASS_0 :
-               (is_alu_x_1 && addr_rs2_dx_1 == addr_rd_mw_1 && addr_rd_mw_1 != 0 && insn_mw_writes_reg_1) ? WX_BYPASS_1 :
-               (is_alu_x_1 && addr_rs2_dx_1 == addr_rd_mw_0 && addr_rd_mw_0 != 0 && insn_mw_writes_reg_0) ?  WX_BYPASS_0 :
-               (!is_alu_x_1) ? IMM :
-                             REG;
+assign b_sel_1 = (!is_alu_x_1) ? IMM :
+                    (stall_occured) ?
+                    // Case 2: MX bypass from way 0 to way 1 is priority
+                        (addr_rs2_dx_1 == addr_rd_xm_0 && addr_rd_xm_0 != 0 && insn_xm_writes_reg_0) ? MX_BYPASS_0 : // check way 0 - MX
+                        (addr_rs2_dx_1 == addr_rd_mw_1 && addr_rd_mw_1 != 0 && insn_mw_writes_reg_1) ? WX_BYPASS_1 : // check way 1 - WX
+                        (addr_rs2_dx_1 == addr_rd_mw_0 && addr_rd_mw_0 != 0 && insn_mw_writes_reg_0) ? WX_BYPASS_0 : // check way 
+                        REG
+                    :
+                    // can do same logic as way 0
+                        (addr_rs2_dx_1 == addr_rd_xm_1 && addr_rd_xm_1 != 0 && insn_xm_writes_reg_1) ? MX_BYPASS_1 : //check way 1 - MX
+                        (addr_rs2_dx_1 == addr_rd_xm_0 && addr_rd_xm_0 != 0 && insn_xm_writes_reg_0) ? MX_BYPASS_0 : // check way 0 - MX
+                        (addr_rs2_dx_1 == addr_rd_mw_1 && addr_rd_mw_1 != 0 && insn_mw_writes_reg_1) ? WX_BYPASS_1 : // check way 1 - WX
+                        (addr_rs2_dx_1 == addr_rd_mw_0 && addr_rd_mw_0 != 0 && insn_mw_writes_reg_0) ? WX_BYPASS_0 : // check way 0 - WX
+                        REG;
 
+/* 
+    Branch Comparator: A and B select (icluding forwarding)
+*/
 
 //way 0
-assign branch_comp_data1_sel_0 =  (addr_rs1_dx_0 == addr_rd_xm_0 && addr_rd_xm_0 != 0 && insn_xm_writes_reg_0) ? MX_BYPASS_0 :
-                                //   (addr_rs1_dx_0 == addr_rd_xm_1 && addr_rd_xm_1 != 0 && insn_xm_writes_reg_1) ? MX_BYPASS_1 : 
-                                
-                                (addr_rs1_dx_0 == addr_rd_mw_0 && addr_rd_mw_0 != 0 && insn_mw_writes_reg_0) ? WX_BYPASS_0 :
-                                // (addr_rs1_dx_0 == addr_rd_mw_1 && addr_rd_mw_1 != 0 && insn_mw_writes_reg_1) ? WX_BYPASS_1 :
+assign branch_comp_data1_sel_0 = (addr_rs1_dx_0 == addr_rd_xm_1 && addr_rd_xm_1 != 0 && insn_xm_writes_reg_1) ? MX_BYPASS_1 : // check way 1 - MX
+                                 (addr_rs1_dx_0 == addr_rd_xm_0 && addr_rd_xm_0 != 0 && insn_xm_writes_reg_0) ? MX_BYPASS_0 : // check way 0 - MX
+                                 (addr_rs1_dx_0 == addr_rd_mw_1 && addr_rd_mw_1 != 0 && insn_mw_writes_reg_1) ? WX_BYPASS_1 : // check way 1 - WX
+                                 (addr_rs1_dx_0 == addr_rd_mw_0 && addr_rd_mw_0 != 0 && insn_mw_writes_reg_0) ? WX_BYPASS_0 : // check way 0 - WX
                                                                                                         REG;
-assign branch_comp_data2_sel_0 =  (addr_rs2_dx_0 == addr_rd_xm_0 && addr_rd_xm_0 != 0 && insn_xm_writes_reg_0) ? MX_BYPASS_0 :
-                                //   (addr_rs2_dx_0 == addr_rd_xm_1 && addr_rd_xm_1 != 0 && insn_xm_writes_reg_1) ? MX_BYPASS_1 :
-                                (addr_rs2_dx_0 == addr_rd_mw_0 && addr_rd_mw_0 != 0 && insn_mw_writes_reg_0) ? WX_BYPASS_0 :
-                                // (addr_rs2_dx_0 == addr_rd_mw_1 && addr_rd_mw_1 != 0 && insn_mw_writes_reg_1) ? WX_BYPASS_1 :
+                                                                                                        
+assign branch_comp_data2_sel_0 = (addr_rs2_dx_0 == addr_rd_xm_1 && addr_rd_xm_1 != 0 && insn_xm_writes_reg_1) ? MX_BYPASS_1 : // check way 1 - MX
+                                 (addr_rs2_dx_0 == addr_rd_xm_0 && addr_rd_xm_0 != 0 && insn_xm_writes_reg_0) ? MX_BYPASS_0 : // check way 0 - MX 
+                                 (addr_rs2_dx_0 == addr_rd_mw_1 && addr_rd_mw_1 != 0 && insn_mw_writes_reg_1) ? WX_BYPASS_1 : // check way 1 - WX
+                                 (addr_rs2_dx_0 == addr_rd_mw_0 && addr_rd_mw_0 != 0 && insn_mw_writes_reg_0) ? WX_BYPASS_0 : // check way 0 - WX
+                                                    
                                                                                                         REG;
 //way 1
-assign branch_comp_data1_sel_1 =  (addr_rs1_dx_1 == addr_rd_xm_1 && addr_rd_xm_1 != 0 && insn_xm_writes_reg_1) ? MX_BYPASS_1 :
-                                //   (addr_rs1_dx_1 == addr_rd_xm_0 && addr_rd_xm_0 != 0 && insn_xm_writes_reg_0) ? MX_BYPASS_0 :
-                                (addr_rs1_dx_1 == addr_rd_mw_1 && addr_rd_mw_1 != 0 && insn_mw_writes_reg_1) ? WX_BYPASS_1 :
-                                // addr_rs1_dx_1 == addr_rd_mw_0 && addr_rd_mw_0 != 0 && insn_mw_writes_reg_0) ? WX_BYPASS_0 :
-                                                                                                        REG;
-assign branch_comp_data2_sel_1 =  (addr_rs2_dx_1 == addr_rd_xm_1 && addr_rd_xm_1 != 0 && insn_xm_writes_reg_1) ? MX_BYPASS_1 :
-                                (addr_rs2_dx_1 == addr_rd_mw_1 && addr_rd_mw_1 != 0 && insn_mw_writes_reg_1) ? WX_BYPASS_1 :
-                                                                                                        REG;
+assign branch_comp_data1_sel_1 = (stall_occured) ?
+                                    // Case 2: MX bypass from way 0 to way 1 is priority
+                                    (addr_rs1_dx_1 == addr_rd_xm_0 && addr_rd_xm_0 != 0 && insn_xm_writes_reg_0) ? MX_BYPASS_0 : // check way 0 - MX
+                                    (addr_rs1_dx_1 == addr_rd_mw_1 && addr_rd_mw_1 != 0 && insn_mw_writes_reg_1) ? WX_BYPASS_1 : // check way 1 - WX
+                                    (addr_rs1_dx_1 == addr_rd_mw_0 && addr_rd_mw_0 != 0 && insn_mw_writes_reg_0) ? WX_BYPASS_0 : // check way 0 - WX
+                                    REG
+                                :
+                                // can do same logic as way 0
+                                    (addr_rs1_dx_1 == addr_rd_xm_1 && addr_rd_xm_1 != 0 && insn_xm_writes_reg_1) ? MX_BYPASS_1 : // check way 1 - MX
+                                    (addr_rs1_dx_1 == addr_rd_xm_0 && addr_rd_xm_0 != 0 && insn_xm_writes_reg_0) ? MX_BYPASS_0 : // check way 0 - MX
+                                    (addr_rs1_dx_1 == addr_rd_mw_1 && addr_rd_mw_1 != 0 && insn_mw_writes_reg_1) ? WX_BYPASS_1 : // check way 1 - WX
+                                    (addr_rs1_dx_1 == addr_rd_mw_0 && addr_rd_mw_0 != 0 && insn_mw_writes_reg_0) ? WX_BYPASS_0 : // check way 0 - WX
+                                    REG;
+
+assign branch_comp_data2_sel_1 = (stall_occured) ?
+                                // Case 2: MX bypass from way 0 to way 1 is priority
+                                    (addr_rs1_dx_1 == addr_rd_xm_0 && addr_rd_xm_0 != 0 && insn_xm_writes_reg_0) ? MX_BYPASS_0 : // check way 0 - MX
+                                    (addr_rs1_dx_1 == addr_rd_mw_1 && addr_rd_mw_1 != 0 && insn_mw_writes_reg_1) ? WX_BYPASS_1 : // check way 1 - WX
+                                    (addr_rs1_dx_1 == addr_rd_mw_0 && addr_rd_mw_0 != 0 && insn_mw_writes_reg_0) ? WX_BYPASS_0 : // check way 
+                                    REG
+                                :
+                                // can do same logic as way 0
+                                    (addr_rs1_dx_1 == addr_rd_xm_1 && addr_rd_xm_1 != 0 && insn_xm_writes_reg_1) ? MX_BYPASS_1 : //check way 1 - MX
+                                    (addr_rs1_dx_1 == addr_rd_xm_0 && addr_rd_xm_0 != 0 && insn_xm_writes_reg_0) ? MX_BYPASS_0 : // check way 0 - MX
+                                    (addr_rs1_dx_1 == addr_rd_mw_1 && addr_rd_mw_1 != 0 && insn_mw_writes_reg_1) ? WX_BYPASS_1 : // check way 1 - WX
+                                    (addr_rs1_dx_1 == addr_rd_mw_0 && addr_rd_mw_0 != 0 && insn_mw_writes_reg_0) ? WX_BYPASS_0 : // check way 0 - WX
+                                    REG;
 
 // Just used via test harness
 assign br_taken_0 = branch_taken_0;

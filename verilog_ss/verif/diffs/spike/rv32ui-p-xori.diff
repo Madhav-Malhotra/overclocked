@@ -1,14 +1,14 @@
 Benchmark: rv32ui-p-xori
-Compared: 14 commits  Mismatches: 10
+Compared: 14 commits  Mismatches: 9
 Proc commits: 14  Spike commits: 130
 
    #            PROC_PC    RD  PROC_VAL    SPIKE_PC   RD  SPIKE_VAL
 --------------------------------------------------------------------
    0  OK        01000000    1  00ff1000    01000000    1  00ff1000
    1  MISMATCH  01000004    1  ffffff00    01000004    1  00ff0f00
-   2  MISMATCH  01000008   30  ff00ef0f    01000008   30  ff00f00f
+   2  MISMATCH  01000008   30  0000000f    01000008   30  ff00f00f
    3  OK        0100000c   29  ff00f000    0100000c   29  ff00f000
-   4  MISMATCH  01000010   29  0000000f    01000010   29  ff00f00f
+   4  OK        01000010   29  ff00f00f    01000010   29  ff00f00f
    5  OK        01000014    3  00000002    01000014    3  00000002
    6  OK        0100001c    1  0ff01000    0100001c    1  0ff01000
    7  MISMATCH  01000024   30  0ff010f0    01000020    1  0ff00ff0

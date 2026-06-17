@@ -1,8 +1,0 @@
-test_pd.o: \
- /home/peri/Desktop/CAPSTONE/overclocked/verilog/verif/tests/test_pd.cpp \
- /usr/share/verilator/include/verilated.h \
- /usr/share/verilator/include/verilatedos.h \
- /usr/share/verilator/include/verilated_config.h \
- /usr/share/verilator/include/verilated_types.h \
- /usr/share/verilator/include/verilated_funcs.h Vtop.h \
- /usr/share/verilator/include/vltstd/svdpi.h Vtop__Dpi.h

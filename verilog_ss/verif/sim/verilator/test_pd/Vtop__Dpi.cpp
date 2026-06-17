@@ -17,7 +17,7 @@
 #ifndef VL_DPIDECL_toggleClock_
 #define VL_DPIDECL_toggleClock_
 void toggleClock() {
-    // DPI export at /home/peri/Desktop/CAPSTONE/overclocked/verilog/verif/tests/clockgen.sv:51:19
+    // DPI export at /home/peri/Desktop/CAPSTONE/overclocked/verilog_ss/verif/tests/clockgen.sv:51:19
     return Vtop::toggleClock();
 }
 #endif

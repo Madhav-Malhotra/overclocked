@@ -16,7 +16,7 @@ extern "C" {
 
 
     // DPI EXPORTS
-    // DPI export at /home/peri/Desktop/CAPSTONE/overclocked/verilog/verif/tests/clockgen.sv:51:19
+    // DPI export at /home/peri/Desktop/CAPSTONE/overclocked/verilog_ss/verif/tests/clockgen.sv:51:19
     extern void toggleClock();
 
 #ifdef __cplusplus

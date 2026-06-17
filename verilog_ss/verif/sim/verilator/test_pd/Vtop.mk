@@ -36,9 +36,9 @@ VM_MODPREFIX = Vtop
 # User CFLAGS (from -CFLAGS on Verilator command line)
 VM_USER_CFLAGS = \
 	-DMEM_DEPTH=1048576 \
-	-DMEM_PATH="/home/peri/Desktop/CAPSTONE/overclocked/verilog/verif/data/rv32ui-p-add.x" \
+	-DMEM_PATH="/home/peri/Desktop/CAPSTONE/overclocked/verilog_ss/rv32-benchmarks/individual-instructions/superscalar_wxmx_bypass.x" \
 	-DVCD \
-	-DVCD_FILE="rv32ui-p-add.vcd" \
+	-DVCD_FILE="superscalar_wxmx_bypass.vcd" \
 
 # User LDLIBS (from -LDFLAGS on Verilator command line)
 VM_USER_LDLIBS = \
@@ -49,7 +49,7 @@ VM_USER_CLASSES = \
 
 # User .cpp directories (from .cpp's on Verilator command line)
 VM_USER_DIR = \
-	/home/peri/Desktop/CAPSTONE/overclocked/verilog/verif/tests \
+	/home/peri/Desktop/CAPSTONE/overclocked/verilog_ss/verif/tests \
 
 
 ### Default rules...
@@ -61,7 +61,7 @@ include $(VERILATOR_ROOT)/include/verilated.mk
 ### Executable rules... (from --exe)
 VPATH += $(VM_USER_DIR)
 
-test_pd.o: /home/peri/Desktop/CAPSTONE/overclocked/verilog/verif/tests/test_pd.cpp
+test_pd.o: /home/peri/Desktop/CAPSTONE/overclocked/verilog_ss/verif/tests/test_pd.cpp
 	$(OBJCACHE) $(CXX) $(CXXFLAGS) $(CPPFLAGS) $(OPT_FAST) -c -o $@ $<
 
 ### Link rules... (from --exe)

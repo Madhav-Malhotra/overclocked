@@ -1,5 +1,5 @@
 Benchmark: rv32ui-p-or
-Compared: 16 commits  Mismatches: 11
+Compared: 16 commits  Mismatches: 10
 Proc commits: 16  Spike commits: 354
 
    #            PROC_PC    RD  PROC_VAL    SPIKE_PC   RD  SPIKE_VAL
@@ -8,9 +8,9 @@ Proc commits: 16  Spike commits: 354
    1  MISMATCH  01000004    1  ffffff00    01000004    1  ff00ff00
    2  OK        01000008    2  0f0f1000    01000008    2  0f0f1000
    3  MISMATCH  0100000c    2  010fff0f    0100000c    2  0f0f0f0f
-   4  MISMATCH  01000010   30  ff0f1000    01000010   30  ff0fff0f
+   4  MISMATCH  01000010   30  ffffff0f    01000010   30  ff0fff0f
    5  OK        01000014   29  ff100000    01000014   29  ff100000
-   6  MISMATCH  01000018   29  ffffff0f    01000018   29  ff0fff0f
+   6  OK        01000018   29  ff0fff0f    01000018   29  ff0fff0f
    7  OK        0100001c    3  00000002    0100001c    3  00000002
    8  OK        01000024    1  0ff01000    01000024    1  0ff01000
    9  MISMATCH  0100002c    2  f0f0f000    01000028    1  0ff00ff0

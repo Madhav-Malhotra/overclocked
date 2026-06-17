@@ -78,27 +78,28 @@ module pd #(
   wire is_i_type_1;
 
   // Control Signals
+    // way 0
   wire reg_wen_0;
   wire pc_sel_0;
   wire br_un_0;
-  wire [1:0] a_sel_0;
-  wire [1:0] b_sel_0;
-  wire [1:0] branch_comp_data1_sel_0;
-  wire [1:0] branch_comp_data2_sel_0;
+  wire [2:0] a_sel_0;
+  wire [2:0] b_sel_0;
+  wire [2:0] branch_comp_data1_sel_0;
+  wire [2:0] branch_comp_data2_sel_0;
   wire [3:0] alu_sel_0;
   wire [1:0] wb_sel_0;
   wire br_eq_0;
   wire br_lt_0;
   wire br_taken_0;                  // Not needed for CPU. Just for test file
 
-    // Control Signals
+    // way 1
   wire reg_wen_1;
   wire pc_sel_1;
   wire br_un_1;
-  wire [1:0] a_sel_1;
-  wire [1:0] b_sel_1;
-  wire [1:0] branch_comp_data1_sel_1;
-  wire [1:0] branch_comp_data2_sel_1;
+  wire [2:0] a_sel_1;
+  wire [2:0] b_sel_1;
+  wire [2:0] branch_comp_data1_sel_1;
+  wire [2:0] branch_comp_data2_sel_1;
   wire [3:0] alu_sel_1;
   wire [1:0] wb_sel_1;
   wire br_eq_1;
@@ -234,7 +235,7 @@ module pd #(
   wire instr_mw_writes_reg_0 = (addr_rd_mw_r_0 != 0) && 
     !(opcode_mw_r_0 == STORE_OPCODE || opcode_mw_r_0 == BRANCH_OPCODE || opcode_mw_r_0 == ECALL_OPCODE); 
 
-  //way 2
+  //way 1
   wire instr_mw_writes_reg_1 = (addr_rd_mw_r_1!= 0) && 
   !(opcode_mw_r_1 == STORE_OPCODE ||opcode_mw_r_1 == BRANCH_OPCODE || opcode_mw_r_1 == ECALL_OPCODE); 
   
@@ -322,7 +323,7 @@ module pd #(
     end
   end
 
-// way 2
+// way 1
     always @(posedge clock) begin
     if (reset) begin
       pc_fd_r_1 <= 0;
@@ -716,37 +717,46 @@ module pd #(
 
 
   // Forwarding logic values
-  localparam REG = 2'b00;
-  localparam PC  = 2'b01;
-  localparam WX_BYPASS = 2'b010;
-  localparam WX_BYPASS = 2'b011;
-  localparam MX_BYPASS = 2'b100;
-  localparam MX_BYPASS = 2'b101;
+  localparam REG = 3'b000;
+  localparam PC  = 3'b001; // for rs1
+  localparam IMM  = 3'b001; // for rs2
+  localparam WX_BYPASS_0 = 3'b010;
+  localparam WX_BYPASS_1 = 3'b011;
+  localparam MX_BYPASS_0 = 3'b100;
+  localparam MX_BYPASS_1 = 3'b101;
 
   // branch forwarding logic (cases for WX and MX bypassing)
 
 //way 0
-  wire [DATAW-1:0] idata1_in_0 =  (branch_comp_data1_sel_0 == WX_BYPASS) ? data_rd_w_0:
-                                (branch_comp_data1_sel_0 == MX_BYPASS) ? alu_xm_r_0 :
-                                                                     data_rs1_w_0;
+  wire [DATAW-1:0] bc_data1_in_0 =  (branch_comp_data1_sel_0 == WX_BYPASS_0) ? data_rd_w_0:
+                                  (branch_comp_data1_sel_0 == WX_BYPASS_1) ? data_rd_w_1:
+                                  (branch_comp_data1_sel_0 == MX_BYPASS_0) ? alu_xm_r_0 :
+                                  (branch_comp_data1_sel_0 == MX_BYPASS_1) ? alu_xm_r_1 :
+                                        data_rs1_w_0;
 
-  wire [DATAW-1:0] idata2_in_0 =  (branch_comp_data2_sel_0 == WX_BYPASS) ? data_rd_w_0 :
-                                (branch_comp_data2_sel_0 == MX_BYPASS) ? alu_xm_r_0 :
-                                                                     data_rs2_w_0;
+  wire [DATAW-1:0] bc_idata2_in_0 =  (branch_comp_data2_sel_0 == WX_BYPASS_0) ? data_rd_w_0 :
+                                  (branch_comp_data2_sel_0 == WX_BYPASS_1) ? data_rd_w_1 :
+                                  (branch_comp_data2_sel_0 == MX_BYPASS_0) ? alu_xm_r_0 :
+                                  (branch_comp_data2_sel_0 == MX_BYPASS_1) ? alu_xm_r_1 :
+                                        data_rs2_w_0;
 
   // way 1
 
-  wire [DATAW-1:0] idata1_in_1 =  (branch_comp_data1_sel_1 == WX_BYPASS) ? data_rd_w_1 :
-                                (branch_comp_data1_sel_1 == MX_BYPASS) ? alu_xm_r_1 :
-                                                                     data_rs1_w_0;
+  wire [DATAW-1:0] bc_idata1_in_1 =  (branch_comp_data1_sel_1 == WX_BYPASS_0) ? data_rd_w_0 :
+                                  (branch_comp_data1_sel_1 == WX_BYPASS_1) ? data_rd_w_1 :
+                                  (branch_comp_data1_sel_1 == MX_BYPASS_0) ? alu_xm_r_0 :
+                                  (branch_comp_data1_sel_1 == MX_BYPASS_1) ? alu_xm_r_1 :
+                                        data_rs1_w_0;
 
-  wire [DATAW-1:0] idata2_in_1 =  (branch_comp_data2_sel_1 == WX_BYPASS) ? data_rd_w_1 :
-                                (branch_comp_data2_sel_1 == MX_BYPASS) ? alu_xm_r_1 :
-                                                                     data_rs2_w_1;
+  wire [DATAW-1:0] bc_idata2_in_1 =  (branch_comp_data2_sel_1 == WX_BYPASS_0) ? data_rd_w_0:
+                                  (branch_comp_data2_sel_1 == WX_BYPASS_1) ? data_rd_w_1 :
+                                  (branch_comp_data2_sel_1 == MX_BYPASS_0) ? alu_xm_r_0 :
+                                  (branch_comp_data2_sel_1 == MX_BYPASS_1) ? alu_xm_r_1 :
+                                        data_rs2_w_1;
 //way 0
   branch_comp bc1(
-    .idata1(idata1_in_0),
-    .idata2(idata2_in_0),
+    .idata1(bc_data1_in_0),
+    .idata2(bc_idata2_in_0),
     .br_un(br_un_0),
     .br_eq(br_eq_0),
     .br_lt(br_lt_0)
@@ -754,37 +764,47 @@ module pd #(
 
   //way 1
   branch_comp bc2(
-    .idata1(idata1_in_1),
-    .idata2(idata2_in_1),
+    .idata1(bc_idata1_in_1),
+    .idata2(bc_idata2_in_1),
     .br_un(br_un_1),
     .br_eq(br_eq_1),
     .br_lt(br_lt_1)
   );
   
-  // A sel definitions (determines ALU input 1)
-  assign alu_in1_w_0 = (a_sel_0 == REG) ? data_rs1_w_0 :
-                     (a_sel_0 == PC) ? pc_dx_r_0 :
-                     (a_sel_0 == WX_BYPASS) ? data_rd_w_0 :
-                                            alu_xm_r_0;
+  // way 0
+    // A sel definitions (determines ALU input 1)
+  assign alu_in1_w_0 = (a_sel_0 == PC) ? pc_dx_r_0 :
+                       (a_sel_0 == WX_BYPASS_0) ? data_rd_w_0 : 
+                       (a_sel_0 == WX_BYPASS_1) ? data_rd_w_1 :
+                       (a_sel_0 == MX_BYPASS_0) ? alu_xm_r_0 :
+                       (a_sel_0 == MX_BYPASS_1) ? alu_xm_r_1 :
+                                                  data_rs1_w_0; // default --> use decoded way 0 rs1 value
 
   // B sel definitions (determines ALU input 2)
-  localparam IMM  = 2'b01;
-  assign alu_in2_w_0 = (b_sel_0 == REG) ? data_rs2_w_0 :
-                     (b_sel_0 == IMM) ? imm_dx_r_0 :
-                     (b_sel_0 == WX_BYPASS) ? data_rd_w_0 :
-                                             alu_xm_r_0;
+  assign alu_in2_w_0 = (b_sel_0 == IMM) ? imm_dx_r_0 :
+                       (b_sel_0 == WX_BYPASS_0) ? data_rd_w_0 :
+                       (b_sel_0 == WX_BYPASS_1) ? data_rd_w_1 :
+                       (b_sel_0 == MX_BYPASS_0) ? alu_xm_r_0 :
+                       (b_sel_0 == MX_BYPASS_1) ? alu_xm_r_1 :
+                                                  data_rs2_w_0; // default --> use decoded way 0 rs2 value
 
+// way 1
   // A sel definitions (determines ALU input 1)
-  assign alu_in1_w_1 = (a_sel_1 == REG) ? data_rs1_w_1 :
-                     (a_sel_1 == PC) ? pc_dx_r_1 :
-                     (a_sel_1 == WX_BYPASS) ? data_rd_w_1 :
-                                            alu_xm_r_1;
+  assign alu_in1_w_1 =  (a_sel_1 == PC) ? pc_dx_r_1 :
+                        (a_sel_1 == WX_BYPASS_0) ? data_rd_w_0 :
+                        (a_sel_1 == WX_BYPASS_1) ? data_rd_w_1 :
+                        (a_sel_1 == MX_BYPASS_0) ? alu_xm_r_0 :
+                        (a_sel_1 == MX_BYPASS_1) ? alu_xm_r_1 :
+                                                  data_rs1_w_1 ; // default --> use decoded way 1 rs1 value
 
   // B sel definitions (determines ALU input 2)
-  assign alu_in2_w_1 = (b_sel_1 == REG) ? data_rs2_w_1 :
+  assign alu_in2_w_1 = 
                      (b_sel_1 == IMM) ? imm_dx_r_1 :
-                     (b_sel_1 == WX_BYPASS) ? data_rd_w_1 :
-                                             alu_xm_r_1;
+                     (b_sel_1 == WX_BYPASS_0) ? data_rd_w_0 :
+                     (b_sel_1 == WX_BYPASS_1) ? data_rd_w_1 :
+                     (b_sel_1 == MX_BYPASS_0) ? alu_xm_r_0 :
+                     (b_sel_1 == MX_BYPASS_1) ? alu_xm_r_1 :
+                                             data_rs2_w_1 ; // default --> use decoded way 1 rs2 value
   // way 0
   alu al1(
     .idata1(alu_in1_w_0),
@@ -801,28 +821,60 @@ module pd #(
     .odata(alu_out_w_1)
   );
 
+  // way 1
   wire [1:0] mem_write_access_size_0 = funct3_xm_r_0[1:0];     // For testbench
 
   // way 2
   wire [1:0] mem_write_access_size_1 = funct3_xm_r_1[1:0];     // For testbench
 
-  // WM bypass logic
+
+  // WM bypass logic  
   wire is_store_xm_0 = (opcode_xm_r_0 == STORE_OPCODE);  // Store instruction in XM stage
   wire is_store_xm_1 = (opcode_xm_r_1 == STORE_OPCODE);  // Store instruction in XM stage
 
+  wire stall_occured = (pc_xm_r_1 - pc_mw_r_0 == 4);  // ONCE STALLING LOGIC IS CONFIRMED, USE THAT INSTEAD !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-  wire wm_forward_0 = is_store_xm_0 && 
+  wire wm_forward_way0_0 = is_store_xm_0 &&               //from way 0 write into way 0 mem
                     (addr_rs2_xm_r_0 == addr_rd_mw_r_0) && 
                     (addr_rd_mw_r_0 != 0) && 
                     instr_mw_writes_reg_0;
 
-  wire wm_forward_1 = is_store_xm_1 && 
-                    (addr_rs2_xm_r_1 == addr_rd_mw_r_1) && 
+  wire wm_forward_way1_0 = is_store_xm_0 &&                 //from way 1 write into way 0 mem
+                    (addr_rs2_xm_r_0 == addr_rd_mw_r_1) && 
                     (addr_rd_mw_r_1 != 0) && 
                     instr_mw_writes_reg_1;
+
+  wire wm_forward_way0_1 = is_store_xm_1 && 
+                    (addr_rs2_xm_r_1 == addr_rd_mw_r_0) &&  //from way 0 write into way 1 mem
+                    (addr_rd_mw_r_0 != 0) && 
+                    instr_mw_writes_reg_0;
+
+  wire wm_forward_way1_1 = is_store_xm_1 &&               //from way 1 write into way 1 mem
+                    (addr_rs2_xm_r_1 == addr_rd_mw_r_1) &&  
+                    (addr_rd_mw_r_1 != 0) && 
+                    instr_mw_writes_reg_1;
+
   // Data memory instantiation based on forwarding logic
-  wire [DATAW-1:0] dmem_data_in_0 = (wm_forward_0) ? data_rd_w_0 : data_rs2_xm_r_0;
-  wire [DATAW-1:0] dmem_data_in_1 = (wm_forward_1) ? data_rd_w_1 : data_rs2_xm_r_1;
+// way 0
+  wire [DATAW-1:0] dmem_data_in_0 = (wm_forward_way1_0) ? data_rs2_xm_r_1 : // Check way 1 - WM bypass 
+                                    (wm_forward_way0_0) ? data_rs2_xm_r_0 : // Check way 0 - WM bypass 
+                                    data_rd_w_0; // use default 
+
+/*
+Way 1:  
+  CASE 1: way 0 and way 1 don't have the same rd --> follow same bypassing logic as way 1
+  CASE 2: way 0 and way 1 have same rd --> way 1 must stall, and in next cycle, can now do an WM bypass from way 0 to way 1
+      - Can check if case 2 occured by comparing pc values of way 0 in writeback and way 1 in memory, pc_xm_r_1 - pc_mw_r_0 = 4 bytes, we can do WM bypass  
+*/
+  wire [DATAW-1:0] dmem_data_in_1 = (stall_occured) ?
+                            (wm_forward_way0_1) ? data_rs2_xm_r_0 : // Check way 0 - WM bypass 
+                            data_rd_w_1 // use default 
+                      :
+                            (wm_forward_way1_1) ? data_rs2_xm_r_1 : // Check way 1 - WM bypass 
+                            (wm_forward_way0_1) ? data_rs2_xm_r_0 : // Check way 0 - WM bypass 
+                            data_rd_w_1; // use default 
+
+
 
 
   dmemory dmem1(

@@ -38,9 +38,12 @@ class alignas(VL_CACHE_LINE_BYTES)Vtop__Syms final : public VerilatedSyms {
     VerilatedScope __Vscope_top__dut;
     VerilatedScope __Vscope_top__dut__core;
     VerilatedScope __Vscope_top__dut__core__al1;
+    VerilatedScope __Vscope_top__dut__core__al2;
     VerilatedScope __Vscope_top__dut__core__bc1;
+    VerilatedScope __Vscope_top__dut__core__bc2;
     VerilatedScope __Vscope_top__dut__core__cs1;
     VerilatedScope __Vscope_top__dut__core__dec1;
+    VerilatedScope __Vscope_top__dut__core__dec2;
     VerilatedScope __Vscope_top__dut__core__dmem1;
     VerilatedScope __Vscope_top__dut__core__imem1;
     VerilatedScope __Vscope_top__dut__core__rf1;

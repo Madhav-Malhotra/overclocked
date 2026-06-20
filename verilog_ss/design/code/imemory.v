@@ -13,24 +13,24 @@
 // =============================================================================
 module imemory(
     input             clock,
-    input      [31:0] address,
+    input      [31:0] address_0,
+    input      [31:0] address_1,
     input      [31:0] data_in,
     input             read_write,
     input             enable,
-    output reg [63:0] data_out
+    output reg [31:0] data_out_0,
+    output reg [31:0] data_out_1
+    
 );
 
 // ====================
 // SIGNALS + INIT
 // ====================
-wire       [31:0] address_2;
 // effective address (0 indexed)
-wire       [31:0] ea;
-wire       [31:0] ea2;
+wire       [31:0] ea_0;
+wire       [31:0] ea_1;
 
 
-wire       [31:0] data_in_2;
-wire              read_write_2;
 localparam        START_ADDR = 32'h01000000;
 
 (* ram_style = "block" *) reg [31:0] mem[0:`MEM_DEPTH / 4 - 1];
@@ -43,16 +43,18 @@ end
 // READ LOGIC
 // ====================
 // Convert byte address to word index
-assign ea = (address - START_ADDR) >> 2;
-assign ea2 = ea + 1;
+assign ea_0 = (address_0 - START_ADDR) >> 2;
+assign ea_1 = (address_1 - START_ADDR) >> 2;
+
 
 always @(posedge clock) begin
     if (enable) begin
         // Write path unused in normal operation (read_write hardwired to 0)
-        if (read_write_2 == 1) begin
-            mem[ea] <= data_in_2;
+        if (read_write == 1) begin
+            mem[ea_0] <= data_in;
         end
-        data_out <= {mem[ea], mem[ea2]};
+        data_out_0 <= mem[ea_0];
+        data_out_1 <= mem[ea_1];
     end
 end
 

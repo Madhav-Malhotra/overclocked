@@ -1,6 +1,6 @@
 Benchmark: rv32uim-p-divu
-Compared: 34 commits  Mismatches: 8
-Proc commits: 34  Spike commits: 36
+Compared: 36 commits  Mismatches: 10
+Proc commits: 40  Spike commits: 36
 
    #            PROC_PC    RD  PROC_VAL    SPIKE_PC   RD  SPIKE_VAL
 --------------------------------------------------------------------
@@ -31,10 +31,12 @@ Proc commits: 34  Spike commits: 36
   24  OK        01000070   29  00000001    01000070   29  00000001
   25  OK        01000074    3  00000005    01000074    3  00000005
   26  OK        0100007c    1  fffffffe    0100007c    1  fffffffe
-  27  MISMATCH  01000084   30  7fffffff    01000080    2  00000002
-  28  MISMATCH  0100008c   29  7ffffffe    01000084   30  7fffffff
+  27  MISMATCH  01000084   30  00000000    01000080    2  00000002
+  28  MISMATCH  0100008c   29  00000000    01000084   30  7fffffff
   29  MISMATCH  010002c0    3  0000000a    01000088   29  7ffff000
   30  MISMATCH  010002c8    5  010002c8    0100008c   29  7fffefff
-  31  MISMATCH  00000006    3  00000001    01000090    3  00000006
-  32  MISMATCH  010002e0    5  010002e0    010002c0    3  0000000c
-  33  MISMATCH  0000000e    5  010002e0    010002c4    3  0000000d
+  31  MISMATCH  0100009c    2  00000000    01000090    3  00000006
+  32  MISMATCH  010000a4   29  ffffffff    010002c0    3  0000000c
+  33  MISMATCH  010000ac   29  ffffffff    010002c4    3  0000000d
+  34  MISMATCH  010000ac   29  ffffffff    010002c8    5  010002c8
+  35  MISMATCH  010000ac   29  ffffffff    010002cc    5  010002f8

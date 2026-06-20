@@ -150,10 +150,6 @@ module pd #(
     (addr_rd_mw_r == addr_rs2_w && addr_rs2_w != 0 && !is_u_type && !is_j_type && !is_i_type) 
   );
 
-  // stalls for load-store extreme dependency
-  wire load_store_stall = is_load_xm && is_store_fd &&
-    (addr_rd_xm_r == addr_rs1_w) && (addr_rd_xm_r == addr_rs2_w);
-
   // Some instruction in mem stage writing to rs2 of store
   wire instr_xm_writes_reg = (addr_rd_xm_r != 0) && 
     !(opcode_xm_r == STORE_OPCODE || opcode_xm_r == BRANCH_OPCODE || opcode_xm_r == ECALL_OPCODE);   
@@ -162,7 +158,7 @@ module pd #(
 
 
   // Combine stalls
-  wire stall = load_stall || wd_stall || load_store_stall || store_rs2_stall;
+  wire stall = load_stall || wd_stall || store_rs2_stall;
   wire imem_enable = !stall;
 
   // ===================

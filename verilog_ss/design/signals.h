@@ -4,7 +4,7 @@
 // ----- signals -----
 // You will also need to define PC properly
 `define F_PC_0                pc_r_0
-`define F_INSN_0              instr_w_upper
+`define F_INSN_0              instr_w_0
 
 `define D_PC_0                pc_fd_r_0
 
@@ -43,14 +43,13 @@
 `define IMEMORY             imem1
 `define DMEMORY             dmem1
 
-// ----- signals -----
 
 // ----- design -----
 `define TOP_MODULE                 pd
 // ----- design -----
 
 `define F_PC_1                pc_r_1
-`define F_INSN_1              instr_w_lower
+`define F_INSN_1              instr_w_1
 
 `define D_PC_1                pc_fd_r_1
 
@@ -85,3 +84,5 @@
 `define W_ENABLE_1            reg_wen_1
 `define W_DESTINATION_1       addr_rd_mw_r_1
 `define W_DATA_1              data_rd_w_1
+
+// ----- signals -----

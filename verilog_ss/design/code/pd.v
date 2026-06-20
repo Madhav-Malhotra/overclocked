@@ -43,11 +43,11 @@ module pd #(
   reg [DATAW-1:0] pc_r_0; // each way has own pc value (to reflect instruction being processed)
   reg [DATAW-1:0] pc_r_1;
 
-  wire [63:0] instr_w;       // output line into pipeline register
-  wire [31:0] instr_w_upper = instr_w[63:32];
-  wire [31:0] instr_w_lower = instr_w[31:0];
+  reg [31:0] instr_w_0;
+  reg [31:0] instr_w_1;
 
   reg [DATAW-1:0] imem_in_r;      // unused input to imem
+
   wire imem_rw_w = 0;             // always 0 (read-only)
   
   // Decoder unit
@@ -216,7 +216,8 @@ module pd #(
   localparam ECALL_OPCODE = 7'b1110011;
 
 
-  // this logic happens during the decode stage so the _w signals represent the FD instruction that is currently being decoded
+// this logic happens during the decode stage so the _w signals represent the FD instruction that is currently being decoded
+  // way 0
   wire is_load_dx_0 = (opcode_dx_r_0 == LOAD_OPCODE); // DX instruction is load
   wire is_store_fd_0 = (opcode_w_0 == STORE_OPCODE);  // FD instruction is store
   wire is_load_xm_0 = (opcode_xm_r_0 == LOAD_OPCODE);
@@ -224,64 +225,132 @@ module pd #(
   wire is_nop_mw_0 = (opcode_mw_r_0 == NOP_OPCODE && addr_rd_mw_r_0 == 0);
   wire is_nop_xm_0 = (opcode_xm_r_0 == NOP_OPCODE && addr_rd_xm_r_0 == 0);
 
+  // way 1
+  wire is_load_dx_1 = (opcode_dx_r_1 == LOAD_OPCODE); // DX instruction is load
+  wire is_store_fd_1 = (opcode_w_1 == STORE_OPCODE);  // FD instruction is store
+  wire is_load_xm_1 = (opcode_xm_r_1 == LOAD_OPCODE);
+
+  wire is_nop_mw_1 = (opcode_mw_r_1 == NOP_OPCODE && addr_rd_mw_r_1 == 0);
+  wire is_nop_xm_1 = (opcode_xm_r_1 == NOP_OPCODE && addr_rd_xm_r_1 == 0);
+
 
   // stalls due to load hazard - load in X to rd, read rd in D
+    // way 0
   wire load_stall_0 = is_load_dx_0 && 
-               ((addr_rd_dx_r_0 == addr_rs1_w_0 && !is_u_type_0 && !is_j_type_0) || 
-                (addr_rd_dx_r_0 == addr_rs2_w_0 && !is_u_type_0 && !is_j_type_0 && !is_store_fd_0 && !is_i_type_0));
+               ((addr_rd_dx_r_0 == addr_rs1_w_0 && !is_u_type_0 && !is_j_type_0) || // check way 0 - rs1
+                (addr_rd_dx_r_0 == addr_rs1_w_1 && !is_u_type_0 && !is_j_type_0) || // check way 1 - rs1
+                (addr_rd_dx_r_0 == addr_rs2_w_0 && !is_u_type_0 && !is_j_type_0 && !is_store_fd_0 && !is_i_type_0) || // check way 0 - rs2 
+                (addr_rd_dx_r_0 == addr_rs2_w_1 && !is_u_type_0 && !is_j_type_0 && !is_store_fd_0 && !is_i_type_0)); // check way 1 - rs2
+    // way 1
+  wire load_stall_1 = is_load_dx_1 && 
+               ((addr_rd_dx_r_1 == addr_rs1_w_1 && !is_u_type_1 && !is_j_type_1) || // check way 1 - rs1
+                (addr_rd_dx_r_1 == addr_rs1_w_0 && !is_u_type_1 && !is_j_type_1) || // check way 0 - rs1
+                (addr_rd_dx_r_1 == addr_rs2_w_1 && !is_u_type_1 && !is_j_type_1 && !is_store_fd_1 && !is_i_type_1) || // check way 1 - rs2
+                (addr_rd_dx_r_1 == addr_rs2_w_0 && !is_u_type_1 && !is_j_type_1 && !is_store_fd_1 && !is_i_type_1)); // check way 0 - rs2 
 
   // stalls due to write data hazard (no WD forward path)
   // Doesn't involve x0 + is an opcode that writes to an rd
+    // way 0
   wire instr_mw_writes_reg_0 = (addr_rd_mw_r_0 != 0) && 
     !(opcode_mw_r_0 == STORE_OPCODE || opcode_mw_r_0 == BRANCH_OPCODE || opcode_mw_r_0 == ECALL_OPCODE); 
 
-  //way 1
+    //way 1
   wire instr_mw_writes_reg_1 = (addr_rd_mw_r_1!= 0) && 
   !(opcode_mw_r_1 == STORE_OPCODE ||opcode_mw_r_1 == BRANCH_OPCODE || opcode_mw_r_1 == ECALL_OPCODE); 
   
-  // + is an opcode that uses rs1/2
-  wire wd_stall_0 = !is_nop_mw_0 && ( addr_rd_mw_r_0!= addr_rd_xm_r_0) && ( addr_rd_mw_r_0 != addr_rd_dx_r_0) && instr_mw_writes_reg_0 && (
-    (addr_rd_mw_r_0 == addr_rs1_w_0 && addr_rs1_w_0 != 0 && !is_u_type_0 && !is_j_type_0) || 
-    (addr_rd_mw_r_0 == addr_rs2_w_0 && addr_rs2_w_0 != 0 && !is_u_type_0 && !is_j_type_0 && !is_i_type_0) 
-  );
+  // WD STALL
+  wire bypass_to_0 =  ( (addr_rd_mw_r_0 == addr_rd_xm_r_0) || // wx bypass from way 0
+                        (addr_rd_mw_r_0 == addr_rd_xm_r_1) || // wx bypass from way 1
+                        (addr_rd_mw_r_0 == addr_rd_dx_r_0) || // mx bypass from way 0
+                        (addr_rd_mw_r_0 == addr_rd_dx_r_1) ) && // mx bypass from way 1 
+                        (instr_mw_writes_reg_0 && !is_nop_mw_0);  // instruction in wb actually writesback...
 
-  // stalls for load-store extreme dependency
-  wire load_store_stall_0 = is_load_xm_0 && is_store_fd_0 &&
-    (addr_rd_xm_r_0 == addr_rs1_w_0) && (addr_rd_xm_r_0 == addr_rs2_w_0);
+ wire bypass_to_1 =   ((addr_rd_mw_r_1 == addr_rd_xm_r_1) || // wx bypass from way 1
+                        (addr_rd_mw_r_1 == addr_rd_xm_r_0) || // wx bypass from way 0
+                        (addr_rd_mw_r_1 == addr_rd_dx_r_1) || // mx bypass from way 1 
+                        (addr_rd_mw_r_1 == addr_rd_dx_r_0) ) && // mx bypass from way 0
+                        (instr_mw_writes_reg_1 && !is_nop_mw_1);  // instruction in wb actually writesback...
+                      
+  // way 0
+  wire wd_stall_0 = (addr_rd_mw_r_0 == addr_rs1_w_0 && addr_rs1_w_0 != 0 && !is_u_type_0 && !is_j_type_0 && !bypass_to_0) ||  // check rs1 of WB in way 0 and D
+                    (addr_rd_mw_r_1 == addr_rs1_w_0 && addr_rs1_w_0 != 0 && !is_u_type_0 && !is_j_type_0 && !bypass_to_1) ||  // check rs1 of WB in way 1 and D
+                    (addr_rd_mw_r_0 == addr_rs2_w_0 && addr_rs2_w_0 != 0 && !is_u_type_0 && !is_j_type_0 && !is_i_type_0 && !bypass_to_0) ||  // check rs2 of WB in way 0 and D
+                    (addr_rd_mw_r_1 == addr_rs2_w_0 && addr_rs2_w_0 != 0 && !is_u_type_0 && !is_j_type_0 && !is_i_type_0 && !bypass_to_1); // check rs2 of WB in way 1 and D
 
-  // Some instruction in mem stage writing to rs2 of store
+  // way 1
+  wire wd_stall_1 = (addr_rd_mw_r_0 == addr_rs1_w_1 && addr_rs1_w_1 != 0 && !is_u_type_1 && !is_j_type_1 && !bypass_to_0) ||  // check rs1 of WB in way 0 and D
+                    (addr_rd_mw_r_1 == addr_rs1_w_1 && addr_rs1_w_1 != 0 && !is_u_type_1 && !is_j_type_1 && !bypass_to_1) ||  // check rs1 of WB in way 1 and D
+                    (addr_rd_mw_r_0 == addr_rs2_w_1 && addr_rs2_w_1 != 0 && !is_u_type_1 && !is_j_type_1 && !is_i_type_1 && !bypass_to_0) ||  // check rs2 of WB in way 0 and D
+                    (addr_rd_mw_r_1 == addr_rs2_w_1 && addr_rs2_w_1 != 0 && !is_u_type_1 && !is_j_type_1 && !is_i_type_1 && !bypass_to_1); // check rs2 of WB in way 1 and D
+
+    
+  // Some instruction in mem stage writing to rs2 of store --> cannot do any sort of bypass
   wire instr_xm_writes_reg_0 = (addr_rd_xm_r_0 != 0) && 
     !(opcode_xm_r_0 == STORE_OPCODE || opcode_xm_r_0 == BRANCH_OPCODE || opcode_xm_r_0 == ECALL_OPCODE);   
-  wire store_rs2_stall_0 = is_store_fd_0 && (addr_rd_xm_r_0 == addr_rs2_w_0) 
-    && instr_xm_writes_reg_0 && !is_nop_xm_0;
+  
+  wire instr_xm_writes_reg_1 = (addr_rd_xm_r_1 != 0) && 
+    !(opcode_xm_r_1 == STORE_OPCODE || opcode_xm_r_1 == BRANCH_OPCODE || opcode_xm_r_1 == ECALL_OPCODE);   
 
+  // way 0
+  wire store_rs2_stall_0 = is_store_fd_0 &&
+                           ((addr_rd_xm_r_0 == addr_rs2_w_0 && instr_xm_writes_reg_0 && !is_nop_xm_0) || // conflict with way 0
+                            (addr_rd_xm_r_1 == addr_rs2_w_0 && instr_xm_writes_reg_1 && !is_nop_xm_1));   // conflict with way 1 
+
+  // way 1
+  wire store_rs2_stall_1 = is_store_fd_1 &&
+                           ((addr_rd_xm_r_0 == addr_rs2_w_1 && instr_xm_writes_reg_0 && !is_nop_xm_0) || // conflict with way 0
+                            (addr_rd_xm_r_1 == addr_rs2_w_1 && instr_xm_writes_reg_1 && !is_nop_xm_1));   // conflict with way 1 
+
+ // STALLS FOR SUPERSCALAR:
+ // write-use case between ways --> 2 consecutive instructions (taken by way0 and way1) are writing to/accessing same register value
+  wire insn_writes_reg_fd_0 = (addr_rd_w_0 != 0) && !(opcode_dx_r_0 == STORE_OPCODE || opcode_dx_r_0 == BRANCH_OPCODE || opcode_dx_r_0 == ECALL_OPCODE);
+
+  wire two_way_write_use_case = insn_writes_reg_fd_0 && !is_u_type_1 && !is_j_type_1 && ((addr_rd_w_0 == addr_rs1_w_1 && addr_rs2_w_1 != 0) || (addr_rd_w_0 == addr_rs2_w_1 && addr_rs2_w_1 != 0 && !is_i_type_1));
 
   // Combine stalls
-  wire stall = load_stall_0 || wd_stall_0 || load_store_stall_0 || store_rs2_stall_0;
-  wire imem_enable = !stall;
+    // way 0
+  wire stall_0 = load_stall_0 || wd_stall_0 || store_rs2_stall_0;
+  wire imem_enable = !stall_0;
+
+    // way 1
+  wire stall_1 = load_stall_1 || wd_stall_1 || store_rs2_stall_1 || two_way_write_use_case;
+  wire imem_enable_1 = !stall_1;
 
   // ===================
   // CONTROL/FSMs
   // ===================
 
   // Fetch unit reset and increment
+  // way 0
   always @(posedge clock) begin
     if (reset) begin
       pc_r_0 <= BASE_ADDR;
-      pc_r_1 <= BASE_ADDR + 4;
       imem_in_r <= 0;
     end else if (br_taken_0) begin          // NEED TO FIX THIS LOGIC
       pc_r_0 <= alu_out_w_0;
-      pc_r_1 <= alu_out_w_1;
-    end else if (stall || !fetch_en) begin // FIX THIS LOGIC
+    end else if (stall_0 || !fetch_en) begin 
       pc_r_0 <= pc_r_0;  
-      pc_r_1 <= pc_r_1;  
     end else begin
       pc_r_0 <= (pc_sel_0 == 1) ? alu_out_w_0 : pc4_f_w_0;
-      pc_r_1 <= (pc_sel_1 == 1) ? alu_out_w_1 : pc4_f_w_1;
     end
   end 
 
+  // way 1
+  /* 
+  For way 1: must stall when way 0 is stalling as well to prevent out of order execution way 1 memory and writeback stages occur before way 0
+  */
+
+always @(posedge clock) begin
+    if (reset) begin
+      pc_r_1 <= BASE_ADDR + 4;
+    end else if (br_taken_1) begin          // NEED TO FIX THIS LOGIC
+      pc_r_1 <= alu_out_w_1;
+    end else if (stall_0 || stall_1 || !fetch_en) begin  // stall way 1 if either way 0 stalls or way 1 has to stall 
+      pc_r_1 <= pc_r_1;  
+    end else begin
+      pc_r_1 <= (pc_sel_1 == 1) ? alu_out_w_1 : pc4_f_w_1;
+    end
+  end 
   
   // ===================
   // PIPELINE LOGIC
@@ -294,7 +363,7 @@ module pd #(
   reg [31:0] prev_instr_1;
 
 
-// way 1
+// way 0
   always @(posedge clock) begin
     if (reset) begin
       pc_fd_r_0 <= 0;
@@ -311,14 +380,14 @@ module pd #(
       prev_instr_0 <= NOP_INSTR;    // Insert NOP on branch taken
       stall_fd_0 <= 1;
     end
-    else if (stall) begin
+    else if (stall_0) begin
       pc_fd_r_0 <= pc_fd_r_0;          // Hold FD pipeline registers during stall
-      prev_instr_0 <= (!stall_fd_0) ? instr_w_upper : prev_instr_0;
+      prev_instr_0 <= (!stall_fd_0) ? instr_w_0 : prev_instr_0;
       stall_fd_0 <= 1;
     end
     else begin
       pc_fd_r_0 <= pc_r_0;
-      prev_instr_0 <= instr_w_upper;
+      prev_instr_0 <= instr_w_0;
       stall_fd_0 <= 0;
     end
   end
@@ -340,20 +409,20 @@ module pd #(
       prev_instr_1 <= NOP_INSTR;    // Insert NOP on branch taken
       stall_fd_1 <= 1;
     end
-    else if (stall) begin
+    else if (stall_1) begin
       pc_fd_r_1 <= pc_fd_r_1;          // Hold FD pipeline registers during stall
-      prev_instr_1 <= (!stall_fd_1) ? instr_w_lower : prev_instr_1;
+      prev_instr_1 <= (!stall_fd_1) ? instr_w_1 : prev_instr_1;
       stall_fd_1 <= 1;
     end
     else begin
       pc_fd_r_1 <= pc_r_1;
-      prev_instr_1 <= instr_w_lower;
+      prev_instr_1 <= instr_w_1;
       stall_fd_1 <= 0;
     end
   end
 
-  wire [31:0] instr_fd_w_0 = (stall_fd_0) ? prev_instr_0 : instr_w_upper; 
-  wire [31:0] instr_fd_w_1 = (stall_fd_1) ? prev_instr_1 : instr_w_lower; 
+  wire [31:0] instr_fd_w_0 = (stall_fd_0) ? prev_instr_0 : instr_w_0; 
+  wire [31:0] instr_fd_w_1 = (stall_fd_1) ? prev_instr_1 : instr_w_1; 
 
 
   // Decode-Execute stage 
@@ -379,7 +448,7 @@ module pd #(
       addr_rd_dx_r_0 <= addr_rd_dx_r_0;
       funct7_dx_r_0 <= funct7_dx_r_0;
     end
-    else if (stall || br_taken_0) begin
+    else if (stall_0 || br_taken_0) begin
       // Insert NOP only on branch taken
       pc_dx_r_0 <= pc_fd_r_0;
       opcode_dx_r_0 <= NOP_OPCODE;
@@ -425,7 +494,7 @@ module pd #(
       addr_rd_dx_r_1 <= addr_rd_dx_r_1;
       funct7_dx_r_1 <= funct7_dx_r_1;
     end
-    else if (stall || br_taken_1) begin
+    else if (stall_1 || br_taken_1) begin
       // Insert NOP only on branch taken
       pc_dx_r_1 <= pc_fd_r_1;
       opcode_dx_r_1 <= NOP_OPCODE;
@@ -591,11 +660,14 @@ module pd #(
   // ===================================
   imemory imem1(
     .clock(clock),           // input
-    .address(pc_r_0),        // input
+    .address_0(pc_r_0),        // input
+    .address_1(pc_r_1),        // input
     .data_in(imem_in_r),     // input
     .read_write(imem_rw_w),  // input (hardcoded to 0)
     .enable(imem_enable),    // input 
-    .data_out(instr_w)       // output
+    .data_out_0(instr_w_0),       // output
+    .data_out_1(instr_w_1)       // output
+
   );
 
   // way 0

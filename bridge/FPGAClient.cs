@@ -5,15 +5,13 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using DotNetEnv;
 
 public class FPGAClient : IDisposable, ICPU
 {
     public CPUState state { get; private set; }
     private bool disposed = false;
-    private static HttpClient client = new()
-    { // define 1 HttpClient to reuse over multiple requests
-        BaseAddress = new Uri("http://localhost:8080"),
-    };
+    private static readonly HttpClient client;
     /*
      * makeRequest - utility function to make an HTTP request to the webserver.
      *
@@ -352,6 +350,20 @@ public class FPGAClient : IDisposable, ICPU
         string res = makeRequest("/controls/status");
         Console.WriteLine(res);
         return;
+    }
+
+    /*
+     * FPGAClient - static constructor to initialize the HTTPClient reused for all web requests
+     */
+    static FPGAClient()
+    {
+        DotNetEnv.Env.Load();
+        string host = DotNetEnv.Env.GetString("HOST", "localhost");
+        string port = DotNetEnv.Env.GetString("PORT", "8080");
+        client = new HttpClient
+        {
+            BaseAddress = new Uri($"http://{host}:{port}")
+        };
     }
 
     /*

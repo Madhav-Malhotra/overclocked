@@ -192,12 +192,12 @@ public static class CPUFactory
     // We use an Enum instead of a string to avoid typos.
     public enum ImplementationType { Verilator, FPGA }
 
-    public static ICPU Create(ImplementationType type, string levelPath)
+    public static ICPU Create(string levelPath, ImplementationType type = ImplementationType.Verilator)
     {
         return type switch
         {
             ImplementationType.Verilator => new VerilatorClient(levelPath),
-            //ImplementationType.FPGA => new FPGAClient(levelPath),
+            ImplementationType.FPGA => new FPGAClient(levelPath),
             _ => throw new System.ArgumentException("Invalid Implementation Type")
         };
     }

@@ -24,7 +24,7 @@ make -n
 ```
 
 
-Then run the C# side:
+Then run the C# side, from `overclocked/bridge/`
 ```
 dotnet build
 

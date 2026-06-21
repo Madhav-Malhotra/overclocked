@@ -237,8 +237,8 @@ public class FPGAClient : IDisposable, ICPU
     {
         return new Fd
         {
-            fd_pc = this.state.pc,// FIXME (diana) is this missing a separate fd-stage pc?
-            fd_pc4 = this.state.pc4,
+            fd_pc = this.state.fd_pc,
+            fd_pc4 = this.state.fd_pc4,
             instruction = this.state.instruction,
         };
     }
@@ -337,7 +337,7 @@ public class FPGAClient : IDisposable, ICPU
     {
         return new Mw
         {
-            pc4 = this.state.pc4, // FIXME (diana) is this missing a separate mw_pc4?
+            pc4 = this.state.mw_pc4,
             wb_in_alu = this.state.wb_in_alu,
         };
     }

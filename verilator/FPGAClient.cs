@@ -56,6 +56,20 @@ public class FPGAClient : IDisposable, ICPU
         return res.Content.ReadAsStringAsync().Result;
     }
 
+
+    /*
+     * Tick - Advances the clock.
+     *
+     * TODO (diana) We want to synchronize the hardware clock with the in-game clock.
+     * This can be achieved by combining a game-clock with the hardware clk signal, but requires changes to verilog.
+     * Stub function added here as a placeholder to satisfy the ICPU interface.
+     */
+    public void Tick()
+    {
+        Console.WriteLine("NOT IMPLEMENTED");
+        return;
+    }
+
     /*
      * writeIMem - Load a hex-encoded program file into instruction memory.
      * 

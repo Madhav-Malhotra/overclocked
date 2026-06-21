@@ -48,12 +48,15 @@ public class VerilatorClient : IDisposable, ICPU
     [DllImport(NativeLib, CallingConvention = CallingConvention.Cdecl)]
     public static extern void cleanup_design_wrapper();
 
-
+    /*
+     * Tick - Advances the simulated clock.
+     */
     public void Tick()
     {
         tick();
         return;
     }
+
     /*
      * writeIMem — Load a hex-encoded program file into instruction memory.
      *

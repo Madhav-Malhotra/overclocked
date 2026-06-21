@@ -1,5 +1,5 @@
-using System; 
-using System.Collections.Generic; 
+using System;
+using System.Collections.Generic;
 using System.Net.Http;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -27,9 +27,9 @@ public class FPGAClient : IDisposable, ICPU
     {
         HttpRequestMessage req;
         HttpResponseMessage res = new HttpResponseMessage();
-        try 
+        try
         {
-            switch (endpoint) 
+            switch (endpoint)
             {
                 // GET endpoints
                 case "/controls/status":
@@ -37,7 +37,7 @@ public class FPGAClient : IDisposable, ICPU
                     req = new HttpRequestMessage(HttpMethod.Get, endpoint);
                     res = client.Send(req);
                     break;
-                    // POST endpoints
+                // POST endpoints
                 case "/imem/update":
                 case "/controls/update":
                 case "/controls/fetchEn/update":
@@ -49,13 +49,13 @@ public class FPGAClient : IDisposable, ICPU
                     req.Content = new StringContent(json, Encoding.UTF8, "application/json");
                     res = client.Send(req);
                     break;
-                default: 
+                default:
                     Console.WriteLine($"unsupported endpoint: {endpoint}");
                     break;
             }
             res.EnsureSuccessStatusCode();
-        } 
-        catch (Exception ex) 
+        }
+        catch (Exception ex)
         {
             Console.WriteLine($"API Error on {endpoint}: {ex.Message}");
             return string.Empty;
@@ -79,7 +79,7 @@ public class FPGAClient : IDisposable, ICPU
 
     /*
      * writeIMem - Load a hex-encoded program file into instruction memory.
-     * 
+     *
      * Reads each line of the file at `path`, strips comments and optional "0x"
      * prefixes, parses the remaining text as a 32-bit hex instruction.
      * Calls the /imem/update endpoint with the list of 32-bit hex instructions as JSON content.
@@ -87,15 +87,15 @@ public class FPGAClient : IDisposable, ICPU
      *
      * @param path  Path to the hex file (one instruction word per line).
      */
-    public void writeIMem(string path) 
+    public void writeIMem(string path)
     {
-        List<uint> instructions  = new List<uint>();
+        List<uint> instructions = new List<uint>();
         try
         {
             string[] lines = File.ReadAllLines(path);
-            foreach (string line in lines) 
+            foreach (string line in lines)
             {
-                string cleanLine = line.Split("//")[0].Trim(); 
+                string cleanLine = line.Split("//")[0].Trim();
                 if (string.IsNullOrEmpty(cleanLine)) continue;
                 if (cleanLine.StartsWith("0x")) cleanLine = cleanLine.Substring(2); // cut off 0x
                 // Parse hex string to 32-bit uint
@@ -119,7 +119,7 @@ public class FPGAClient : IDisposable, ICPU
      *
      * Calls GetState() internally to refresh state.
      */
-    public void PrintState() 
+    public void PrintState()
     {
         GetState();
         Console.WriteLine(this.state);
@@ -135,11 +135,11 @@ public class FPGAClient : IDisposable, ICPU
      *
      * @return  A CPUState struct populated with the current simulation state.
      */
-    public CPUState GetState() 
+    public CPUState GetState()
     {
         string res = makeRequest("/outputs/status");
-        var opts = new JsonSerializerOptions 
-        { 
+        var opts = new JsonSerializerOptions
+        {
             PropertyNameCaseInsensitive = true,
             IncludeFields = true
         };
@@ -153,7 +153,7 @@ public class FPGAClient : IDisposable, ICPU
      *
      * @return  The pc field from the refreshed CPUState.
      */
-    public uint GetPC() 
+    public uint GetPC()
     {
         return GetState().pc;
     }
@@ -163,7 +163,7 @@ public class FPGAClient : IDisposable, ICPU
      *
      * @return  The instruction field from the refreshed CPUState.
      */
-    public uint GetInstruction() 
+    public uint GetInstruction()
     {
         return GetState().instruction;
     }
@@ -183,15 +183,15 @@ public class FPGAClient : IDisposable, ICPU
      * SetFetchEn — Enable/disable the Fetch stage and advance the clock.
      *
      * Make a request to /controls/fetchEn/update with the desired enable value.
-     * This function call should typically be followed by a GetFetch() to 
+     * This function call should typically be followed by a GetFetch() to
      * retrieve the outputs of the Fetch stage.
      * Each SetFetchEn(true) must have a corresponding SetFetchEn(false).
      *
      * @param val  true to enable the Fetch stage; false to stall it.
      */
-    public void SetFetchEn(bool val) 
+    public void SetFetchEn(bool val)
     {
-        Dictionary<string, bool> args = new () { ["en"] = val };
+        Dictionary<string, bool> args = new() { ["en"] = val };
         string argsJson = JsonSerializer.Serialize(args);
         makeRequest("/controls/fetchEn/update", argsJson);
         return;
@@ -202,9 +202,10 @@ public class FPGAClient : IDisposable, ICPU
      *
      * @return  A Fetch record containing the current PC.
      */
-    public Fetch GetFetch() 
+    public Fetch GetFetch()
     {
-        return new Fetch {
+        return new Fetch
+        {
             pc = this.state.pc,
         };
     }
@@ -213,15 +214,15 @@ public class FPGAClient : IDisposable, ICPU
      * SetFdEn — Enable/disable the Fetch→Decode pipeline register and advance the clock.
      *
      * Make a request to /controls/fdEn/update with the desired enable value.
-     * This function call should typically be followed by a GetFd() to 
+     * This function call should typically be followed by a GetFd() to
      * retrieve the outputs of the Fetch-Decode stage.
      * Each SetFdEn(true) must have a corresponding SetFdEn(false).
      *
      * @param val  true to enable the FD register; false to stall it.
      */
-    public void SetFdEn(bool val) 
+    public void SetFdEn(bool val)
     {
-        Dictionary<string, bool> args = new () { ["en"] = val };
+        Dictionary<string, bool> args = new() { ["en"] = val };
         string argsJson = JsonSerializer.Serialize(args);
         makeRequest("/controls/fdEn/update", argsJson);
         return;
@@ -232,9 +233,10 @@ public class FPGAClient : IDisposable, ICPU
      *
      * @return  An Fd record containing fd_pc, fd_pc4, and the instruction word.
      */
-    public Fd GetFd() 
+    public Fd GetFd()
     {
-        return new Fd {
+        return new Fd
+        {
             fd_pc = this.state.pc,// FIXME (diana) is this missing a separate fd-stage pc?
             fd_pc4 = this.state.pc4,
             instruction = this.state.instruction,
@@ -245,15 +247,15 @@ public class FPGAClient : IDisposable, ICPU
      * SetDxEn — Enable/disable the Decode→Execute pipeline register and advance the clock.
      *
      * Make a request to /controls/dxEn/update with the desired enable value.
-     * This function call should typically be followed by a GetDx() to 
+     * This function call should typically be followed by a GetDx() to
      * retrieve the outputs of the Decode-Execute stage.
      * Each SetDxEn(true) must have a corresponding SetDxEn(false).
      *
      * @param val  true to enable the DX register; false to stall it.
      */
-    public void SetDxEn(bool val) 
+    public void SetDxEn(bool val)
     {
-        Dictionary<string, bool> args = new () { ["en"] = val };
+        Dictionary<string, bool> args = new() { ["en"] = val };
         string argsJson = JsonSerializer.Serialize(args);
         makeRequest("/controls/dxEn/update", argsJson);
         return;
@@ -264,10 +266,11 @@ public class FPGAClient : IDisposable, ICPU
      *
      * @return  A Dx record containing the source register addresses (addr_rs1, addr_rs2).
      */
-    public Dx GetDx() 
+    public Dx GetDx()
     {
         getControls();
-        return new Dx {
+        return new Dx
+        {
             addr_rs1 = this.state.addr_rs1,
             addr_rs2 = this.state.addr_rs2,
         };
@@ -278,15 +281,15 @@ public class FPGAClient : IDisposable, ICPU
      *
      *
      * Make a request to /controls/xmEn/update with the desired enable value.
-     * This function call should typically be followed by a GetXm() to 
+     * This function call should typically be followed by a GetXm() to
      * retrieve the outputs of the Execute-Memory stage.
      * Each SetXmEn(true) must have a corresponding SetXmEn(false).
      *
      * @param val  true to enable the XM register; false to stall it.
      */
-    public void SetXmEn(bool val) 
+    public void SetXmEn(bool val)
     {
-        Dictionary<string, bool> args = new () { ["en"] = val };
+        Dictionary<string, bool> args = new() { ["en"] = val };
         string argsJson = JsonSerializer.Serialize(args);
         makeRequest("/controls/xmEn/update", argsJson);
         return;
@@ -297,9 +300,10 @@ public class FPGAClient : IDisposable, ICPU
      *
      * @return  An Xm record containing alu_out and the data memory write value (dmem_data_in).
      */
-    public Xm GetXm() 
+    public Xm GetXm()
     {
-        return new Xm {
+        return new Xm
+        {
             alu_out = this.state.alu_out,
             dmem_data_in = this.state.dmem_data_in,
         };
@@ -310,15 +314,15 @@ public class FPGAClient : IDisposable, ICPU
      *
      *
      * Make a request to /controls/mwEn/update with the desired enable value.
-     * This function call should typically be followed by a GetMw() to 
+     * This function call should typically be followed by a GetMw() to
      * retrieve the outputs of the Memory-Writeback stage.
      * Each SetMwEn(true) must have a corresponding SetMwEn(false).
      *
      * @param val  true to enable the MW register; false to stall it.
      */
-    public void SetMwEn(bool val) 
-     {
-        Dictionary<string, bool> args = new () { ["en"] = val };
+    public void SetMwEn(bool val)
+    {
+        Dictionary<string, bool> args = new() { ["en"] = val };
         string argsJson = JsonSerializer.Serialize(args);
         makeRequest("/controls/mwEn/update", argsJson);
         return;
@@ -329,20 +333,22 @@ public class FPGAClient : IDisposable, ICPU
      *
      * @return  An Mw record containing pc4, wb_in_alu, and the memory read value (mem).
      */
-    public Mw GetMw() 
-     {
-        return new Mw {
+    public Mw GetMw()
+    {
+        return new Mw
+        {
             pc4 = this.state.pc4, // FIXME (diana) is this missing a separate mw_pc4?
             wb_in_alu = this.state.wb_in_alu,
         };
     }
 
-    /* getControls - private helper debugging function for outputting current control signals. 
+    /* getControls - private helper debugging function for outputting current control signals.
      *
      * Only used in this file and added to a Set<stage> function for inspecting control signals.
      *
      */
-    private void getControls() {
+    private void getControls()
+    {
         string res = makeRequest("/controls/status");
         Console.WriteLine(res);
         return;
@@ -353,7 +359,8 @@ public class FPGAClient : IDisposable, ICPU
      *
      * @param path Path to the hex program file.
      */
-    public FPGAClient(string path) {
+    public FPGAClient(string path)
+    {
         this.state = new CPUState();
         writeIMem(path);
         this.state = GetState();
@@ -369,7 +376,7 @@ public class FPGAClient : IDisposable, ICPU
     }
     protected virtual void Dispose(bool disposing)
     {
-        if(!this.disposed)
+        if (!this.disposed)
         {
             disposed = true;
         }
@@ -403,5 +410,3 @@ public class FPGAClient : IDisposable, ICPU
         }
     }
 }
-
-

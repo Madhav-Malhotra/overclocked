@@ -6,7 +6,6 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-// TODO docstrings
 public class FPGAClient : IDisposable, ICPU
 {
     public CPUState state { get; private set; }
@@ -15,9 +14,17 @@ public class FPGAClient : IDisposable, ICPU
     { // define 1 HttpClient to reuse over multiple requests
         BaseAddress = new Uri("http://localhost:8080"),
     };
-    // docstring: each API request that has to be made to implement a function in the interface, add here as a switch 
-    // @return A JSON string containing the webserver's API repsonse
-    private string makeRequest(string endpoint, string json = "") {
+    /*
+     * makeRequest - utility function to make an HTTP request to the webserver.
+     *
+     * The mapping of endpoint to GET/POST request is hardcoded in the switch statement.
+     *
+     * @param endpoint  API endpoint to call
+     * @param json      JSON payload used in POST requests
+     * @return          JSON string containing the webserver's response
+     */
+    private string makeRequest(string endpoint, string json = "")
+    {
         HttpRequestMessage req;
         HttpResponseMessage res = new HttpResponseMessage();
         try 

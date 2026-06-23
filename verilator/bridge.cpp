@@ -221,8 +221,8 @@ void init_design_wrapper() {
 /*
  * eval — Re-evaluate combinational logic without advancing the clock.
  *
- * Useful after directly writing internal signals (e.g. pipeline enables or
- * imem contents) to propagate the changes through combinational paths before
+ * Useful after directly writing internal signals (e.g. imem contents)
+ * to propagate the changes through combinational paths before
  * reading back state.
  */
 void eval() {

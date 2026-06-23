@@ -6,7 +6,6 @@
 //              writeback select. Also computes MX/WX forwarding selects for
 //              ALU inputs and the branch comparator.
 // Inputs:      clock, reset
-//              dx_en, xm_en, mw_en - pipeline stage enables (for internal regs)
 //              opcode_dx/xm/mw     - opcodes of instructions in each stage
 //              funct3, funct7      - function codes of the DX instruction
 //              br_eq, br_lt        - branch comparator outputs
@@ -27,10 +26,6 @@ module control_signals #(
 (
     input clock,
     input reset,
-    // active high pipeline enables — freezes the corresponding pipeline reg
-    input dx_en,
-    input xm_en,
-    input mw_en,
     input [6:0] opcode_dx,
     input [6:0] opcode_xm,
     input [6:0] opcode_mw,
@@ -202,7 +197,7 @@ always @(posedge clock) begin
         is_branch_xm_r <= 1'b0;
         is_ecall_xm_r <= 1'b0;
     end
-    else if (xm_en) begin
+    else begin
         is_store_xm_r <= is_store_x;
         is_load_xm_r <= is_load_x;
         is_jal_xm_r <= is_jal_x;
@@ -229,7 +224,7 @@ always @(posedge clock) begin
         is_jal_mw_r    <= 1'b0;
         is_jalr_mw_r   <= 1'b0;
     end
-    else if (mw_en) begin
+    else begin
         is_store_mw_r  <= is_store_xm_r;
         is_branch_mw_r <= is_branch_xm_r;
         is_ecall_mw_r  <= is_ecall_xm_r;

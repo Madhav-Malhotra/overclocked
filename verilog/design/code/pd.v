@@ -24,13 +24,6 @@ module pd #(
   // INSTANTIATE SIGNALS
   // ===================
 
-  // enable signals for each pipeline stage
-  wire fetch_en = 1;
-  wire fd_en = 1;
-  wire dx_en = 1;
-  wire xm_en = 1;
-  wire mw_en = 1;
-
   // Fetch unit
   reg [DATAW-1:0] pc_r;
   wire [DATAW-1:0] instr_w;       // output line into pipeline register
@@ -178,7 +171,7 @@ module pd #(
     else if (br_taken) begin          // ADD THIS BEFORE stall check
     pc_r <= alu_out_w;
   end
-    else if (stall || !fetch_en ) begin
+    else if (stall) begin
       pc_r <= pc_r;  // Hold PC value during stall
     end
     else begin
@@ -200,11 +193,6 @@ module pd #(
       pc_fd_r <= 0;
       prev_instr <= 0;
       stall_fd <= 1;
-    end
-    else if (!fd_en) begin
-        pc_fd_r <= pc_fd_r;
-        prev_instr <= prev_instr;
-        stall_fd <= stall_fd;
     end
     else if (br_taken) begin
       pc_fd_r <= pc_r;
@@ -236,16 +224,6 @@ module pd #(
       addr_rs2_dx_r <= 0;
       addr_rd_dx_r <= 0;
       funct7_dx_r <= 0;
-    end
-    else if (!dx_en) begin
-      pc_dx_r <= pc_dx_r;
-      opcode_dx_r <= opcode_dx_r;
-      funct3_dx_r <= funct3_dx_r;
-      imm_dx_r <= imm_dx_r;
-      addr_rs1_dx_r <= addr_rs1_dx_r;
-      addr_rs2_dx_r <= addr_rs2_dx_r;
-      addr_rd_dx_r <= addr_rd_dx_r;
-      funct7_dx_r <= funct7_dx_r;
     end
     else if (stall || br_taken) begin
       // Insert NOP only on branch taken
@@ -284,16 +262,6 @@ module pd #(
       addr_rs2_xm_r <= 0;
       addr_rd_xm_r <= 0;
     end
-    else if (!xm_en) begin
-      pc_xm_r <= pc_xm_r;
-      imm_xm_r <= imm_xm_r;
-      funct3_xm_r <= funct3_xm_r;
-      data_rs2_xm_r <= data_rs2_xm_r;
-      alu_xm_r <= 0;
-      opcode_xm_r <= 0;
-      addr_rs2_xm_r <= 0;
-      addr_rd_xm_r <= 0;
-    end
     else begin
       pc_xm_r <= pc_dx_r;             // Pipeline PC, rs2 data from last stage
       imm_xm_r <= imm_dx_r; 
@@ -322,14 +290,6 @@ module pd #(
       alu_mw_r <= 0;
       funct3_mw_r <= 0;
     end 
-    else if (!mw_en) begin
-      pc_mw_r <= pc_mw_r;
-      opcode_mw_r <= opcode_mw_r;
-      addr_rd_mw_r <= addr_rd_mw_r;
-      pc_mw_r <= pc_mw_r;
-      alu_mw_r <= alu_mw_r;
-      funct3_mw_r <= funct3_mw_r;
-    end
     else begin
       pc_mw_r <= pc_xm_r;
       opcode_mw_r <= opcode_xm_r;
@@ -386,9 +346,6 @@ module pd #(
   control_signals cs1(
     .clock(clock),
     .reset(reset),
-    .dx_en(dx_en),
-    .xm_en(xm_en),
-    .mw_en(mw_en),
     .opcode_dx(opcode_dx_r),      // input
     .opcode_xm(opcode_xm_r),      // input
     .opcode_mw(opcode_mw_r),      // input

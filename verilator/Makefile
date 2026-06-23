@@ -35,9 +35,11 @@ else
 endif
 OBJ_DIR = obj_dir
 LIB_NAME = libdesign_wrapper.$(LIB_EXT)
+UNITY_PLUGINS_DIR ?= ../unity/Assets/Plugins
+MINGW_CXX = x86_64-w64-mingw32-g++
 
 # Default target
-all: verilog bridge
+all: verilog bridge dll
 
 # Step 1: Run Verilator to generate C++ headers/classes
 verilog:
@@ -55,8 +57,22 @@ bridge:
 		$(OBJ_DIR)/Vdesign_wrapper*.cpp \
 		bridge.cpp
 
+# Build a Windows DLL (via MinGW cross-compiler) and copy it to Unity's Plugins folder.
+# Run this from WSL when bridge.cpp changes and Unity is running on Windows.
+# WARNING: Unity must be closed before this command will succeed
+dll:
+	$(MINGW_CXX) -O3 -shared -o design_wrapper.dll \
+		-I $(OBJ_DIR) \
+		-I $(VERILATOR_INC) \
+		-I $(VERILATOR_INC)/vltstd \
+		$(VERILATOR_INC)/verilated.cpp \
+		$(VERILATOR_INC)/verilated_threads.cpp \
+		$(OBJ_DIR)/Vdesign_wrapper*.cpp \
+		bridge.cpp
+	cp design_wrapper.dll $(UNITY_PLUGINS_DIR)/design_wrapper.dll
+
 # Utility to clean up generated verilator, shared library files (not Unity)
 clean:
-	rm -rf $(OBJ_DIR) $(LIB_NAME)
+	rm -rf $(OBJ_DIR) $(LIB_NAME) design_wrapper.dll
 
-.PHONY: all verilog bridge clean
+.PHONY: all verilog bridge dll clean

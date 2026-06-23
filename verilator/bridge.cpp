@@ -10,8 +10,6 @@
  * Responsibilities:
  *   - Lifecycle management: init / cleanup the Verilated model instance.
  *   - Clock control: tick() drives one full rising+falling edge.
- *   - Pipeline-enable signals: per-stage enable wires (fetch_en … mw_en) let
- *     the game advance individual pipeline stages independently.
  *   - State snapshot: get_cpu_state() copies every observable wire/register
  *     into a flat CPUState struct that C# can marshal by value.
  *   - Memory access: set_imem / peek_imem / dump_imem / dump_dmem allow the
@@ -35,6 +33,8 @@ static VerilatedContext* contextp = nullptr;
 
 
 extern "C" {
+// Making sure memory alignment matches what C# in Unity expects
+#pragma pack(push, 1)
 struct CPUState {
     uint32_t pc;
     uint32_t instruction;
@@ -82,13 +82,26 @@ struct CPUState {
     // fd stage
     uint32_t fd_pc;
     uint32_t fd_pc4;
+    uint8_t  opcode_fd;      // combinatorial decode of instr_fd_w (opcode_w)
+    uint8_t  addr_rd_fd;     // combinatorial decode of instr_fd_w (addr_rd_w)
+    // dx stage (per-stage copies for validator)
+    uint8_t  opcode_dx;
+    uint8_t  addr_rd_dx;
+    uint32_t dx_pc;
     // xm stage
     uint32_t dmem_data_in;
+    uint8_t  opcode_xm;
+    uint8_t  addr_rd_xm;
+    uint32_t xm_pc;
     // mw stage
     uint32_t wb_in_alu;
     uint32_t mem;
     uint32_t mw_pc4;
+    uint8_t  opcode_mw;
+    uint8_t  addr_rd_mw;
+    uint32_t mw_pc;
 };
+#pragma pack(pop)
 
 /*
  * get_cpu_state — Snapshot every observable signal into a CPUState struct.
@@ -127,7 +140,7 @@ void get_cpu_state(CPUState* out_state) {
     out_state->addr_rs1 = design->rootp->design_wrapper__DOT__core__DOT__addr_rs1_dx_r;
     out_state->addr_rs2 = design->rootp->design_wrapper__DOT__core__DOT__addr_rs2_dx_r;
     out_state->funct3 = design->rootp->design_wrapper__DOT__core__DOT__funct3_dx_r;
-    out_state->funct7 = design->rootp->design_wrapper__DOT__core__DOT__cs1__DOT__funct7_dx_r;
+    out_state->funct7 = design->rootp->design_wrapper__DOT__core__DOT__funct7_dx_r;
     out_state->imm = design->rootp->design_wrapper__DOT__core__DOT__imm_dx_r;
     out_state->shamt = design->rootp->design_wrapper__DOT__core__DOT__shamt_w;
     out_state->is_u_type_w = design->rootp->design_wrapper__DOT__core__DOT__cs1__DOT__is_u_type_x;
@@ -145,14 +158,26 @@ void get_cpu_state(CPUState* out_state) {
 
     // more specific pipeline stage data:
     // fd
-    out_state->fd_pc= design->rootp->design_wrapper__DOT__core__DOT__pc_fd_r;
-    out_state->fd_pc4= design->rootp->design_wrapper__DOT__core__DOT__pc4_f_w;
+    out_state->fd_pc    = design->rootp->design_wrapper__DOT__core__DOT__pc_fd_r;
+    out_state->fd_pc4   = design->rootp->design_wrapper__DOT__core__DOT__pc4_f_w;
+    out_state->opcode_fd   = design->rootp->design_wrapper__DOT__core__DOT__opcode_w;
+    out_state->addr_rd_fd  = design->rootp->design_wrapper__DOT__core__DOT__addr_rd_w;
+    // dx
+    out_state->opcode_dx   = design->rootp->design_wrapper__DOT__core__DOT__opcode_dx_r;
+    out_state->addr_rd_dx  = design->rootp->design_wrapper__DOT__core__DOT__addr_rd_dx_r;
+    out_state->dx_pc       = design->rootp->design_wrapper__DOT__core__DOT__pc_dx_r;
     // xm
     out_state->dmem_data_in = design->rootp->design_wrapper__DOT__core__DOT__dmem_data_in;
+    out_state->opcode_xm   = design->rootp->design_wrapper__DOT__core__DOT__opcode_xm_r;
+    out_state->addr_rd_xm  = design->rootp->design_wrapper__DOT__core__DOT__addr_rd_xm_r;
+    out_state->xm_pc       = design->rootp->design_wrapper__DOT__core__DOT__pc_xm_r;
     // mw
     out_state->wb_in_alu = design->rootp->design_wrapper__DOT__core__DOT__alu_mw_r;
-    out_state->mem = design->rootp->design_wrapper__DOT__core__DOT__data_mem_w_sized;
-    out_state->mw_pc4 = design->rootp->design_wrapper__DOT__core__DOT__pc4_mw_r;
+    out_state->mem       = design->rootp->design_wrapper__DOT__core__DOT__data_mem_w_sized;
+    out_state->mw_pc4    = design->rootp->design_wrapper__DOT__core__DOT__pc4_mw_r;
+    out_state->opcode_mw   = design->rootp->design_wrapper__DOT__core__DOT__opcode_mw_r;
+    out_state->addr_rd_mw  = design->rootp->design_wrapper__DOT__core__DOT__addr_rd_mw_r;
+    out_state->mw_pc       = design->rootp->design_wrapper__DOT__core__DOT__pc_mw_r;
 }
 
 
@@ -196,8 +221,8 @@ void init_design_wrapper() {
 /*
  * eval — Re-evaluate combinational logic without advancing the clock.
  *
- * Useful after directly writing internal signals (e.g. pipeline enables or
- * imem contents) to propagate the changes through combinational paths before
+ * Useful after directly writing internal signals (e.g. imem contents)
+ * to propagate the changes through combinational paths before
  * reading back state.
  */
 void eval() {
@@ -221,44 +246,6 @@ void cleanup_design_wrapper() {
     }
 }
 
-
-/*
- * Pipeline-stage enable setters.
- *
- * Each function drives the corresponding enable wire for one pipeline stage.
- * When an enable is low, that stage's pipeline register holds its current value
- * (stalls) rather than latching new data on the next rising edge.
- *
- * The game uses these to advance instructions through the pipeline one stage
- * at a time, giving players visibility into each stage's behaviour.
- *
- * Call eval() or tick() after setting enables to propagate the change.
- */
-
-/* set_fetch_en — Enable/disable the Fetch stage (PC register). */
-void set_fetch_en (bool val) {
-    design->rootp->design_wrapper__DOT__core__DOT__fetch_en = val;
-}
-
-/* set_fd_en — Enable/disable the Fetch→Decode pipeline register. */
-void set_fd_en (bool val) {
-    design->rootp->design_wrapper__DOT__core__DOT__fd_en = val;
-}
-
-/* set_dx_en — Enable/disable the Decode→Execute pipeline register. */
-void set_dx_en (bool val) {
-    design->rootp->design_wrapper__DOT__core__DOT__dx_en = val;
-}
-
-/* set_xm_en — Enable/disable the Execute→Memory pipeline register. */
-void set_xm_en (bool val) {
-    design->rootp->design_wrapper__DOT__core__DOT__xm_en = val;
-}
-
-/* set_mw_en — Enable/disable the Memory→Writeback pipeline register. */
-void set_mw_en (bool val) {
-    design->rootp->design_wrapper__DOT__core__DOT__mw_en = val;
-}
 
 /*
  * Instruction / data memory access utilities.

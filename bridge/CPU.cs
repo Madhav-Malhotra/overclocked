@@ -73,11 +73,24 @@ public struct CPUState
 
     public uint fd_pc;
     public uint fd_pc4;
+    public byte opcode_fd;
+    public byte addr_rd_fd;
+
+    public byte opcode_dx;
+    public byte addr_rd_dx;
+    public uint dx_pc;
+
     public uint dmem_data_in;
+    public byte opcode_xm;
+    public byte addr_rd_xm;
+    public uint xm_pc;
+
     public uint wb_in_alu;
     public uint mem;
     public uint mw_pc4;
-
+    public byte opcode_mw;
+    public byte addr_rd_mw;
+    public uint mw_pc;
     // overriding the ToString() function so the string representation is easier to read during debugging
     public override string ToString()
     {

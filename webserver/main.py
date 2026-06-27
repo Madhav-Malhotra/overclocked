@@ -105,7 +105,7 @@ class Outputs(BaseModel):
         }
 
 
-""" in-memory instance of the IMem (instruction memory contents """
+""" in-memory instance of the IMem (instruction memory) contents """
 imem = IMem(mem=[])
 
 """ in-memory instance of the Outputs class """

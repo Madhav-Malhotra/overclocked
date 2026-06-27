@@ -1,6 +1,6 @@
 Benchmark: gcd
-Compared: 9 commits  Mismatches: 5
-Proc commits: 9  Spike commits: 42
+Compared: 11 commits  Mismatches: 7
+Proc commits: 11  Spike commits: 42
 
    #            PROC_PC    RD  PROC_VAL    SPIKE_PC   RD  SPIKE_VAL
 --------------------------------------------------------------------
@@ -10,6 +10,8 @@ Proc commits: 9  Spike commits: 42
    3  MISMATCH  0100000c    5  0100000c    0100002c   10  00001000
    4  MISMATCH  0100002c   10  00001000    01000030   15  0000007c
    5  OK        01000034   10  00000800    01000034   10  00000800
-   6  MISMATCH  0100003c   10  00000800    0100003c   10  00000784
-   7  MISMATCH  01000044   10  000007fc    0100003c   10  00000708
-   8  MISMATCH  0100000c    5  0100000c    0100003c   10  0000068c
+   6  MISMATCH  0100003c   10  00000000    0100003c   10  00000784
+   7  MISMATCH  0100003c   10  00000000    0100003c   10  00000708
+   8  MISMATCH  01000044   10  fffffffc    0100003c   10  0000068c
+   9  MISMATCH  0100004c   10  fffffff8    0100003c   10  00000610
+  10  MISMATCH  0100000c    5  0100000c    0100003c   10  00000594

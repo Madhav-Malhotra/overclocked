@@ -36,9 +36,9 @@ VM_MODPREFIX = Vtop
 # User CFLAGS (from -CFLAGS on Verilator command line)
 VM_USER_CFLAGS = \
 	-DMEM_DEPTH=1048576 \
-	-DMEM_PATH="/home/peri/Desktop/CAPSTONE/overclocked/verilog_ss/rv32-benchmarks/individual-instructions/superscalar_wxmx_bypass.x" \
+	-DMEM_PATH="/home/peri/Desktop/CAPSTONE/overclocked/verilog_ss/verif/data/rv32ui-p-add.x" \
 	-DVCD \
-	-DVCD_FILE="superscalar_wxmx_bypass.vcd" \
+	-DVCD_FILE="rv32ui-p-add.vcd" \
 
 # User LDLIBS (from -LDFLAGS on Verilator command line)
 VM_USER_LDLIBS = \

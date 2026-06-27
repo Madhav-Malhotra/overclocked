@@ -137,8 +137,10 @@ module pd #(
   wire [DATAW-1:0] data_rd_w_1;
 
   // PC + 8
-  wire [DATAW-1:0] pc4_f_w_0 = pc_r_0 + 8;    // NEED ADD MUX TO SELECT PC+4 FOR STALLING LOGIC
-  wire [DATAW-1:0] pc4_f_w_1 = pc_r_1 + 8;    // NEED ADD MUX TO SELECT PC+4 FOR STALLING LOGIC
+  wire [DATAW-1:0] pc8_f_w_0 = pc_r_0 + 8;    
+  // wire [DATAW-1:0] pc4_f_w_0 = pc_r_0 + 4;    
+  wire [DATAW-1:0] pc8_f_w_1 = pc_r_1 + 8;
+  // wire [DATAW-1:0] pc12_f_w_1 = pc_r_1 + 12;    
 
 
   // ====================
@@ -328,10 +330,14 @@ module pd #(
       imem_in_r <= 0;
     end else if (br_taken_0) begin          // NEED TO FIX THIS LOGIC
       pc_r_0 <= alu_out_w_0;
-    end else if (stall_0 || !fetch_en) begin 
+    end else if (stall_0 || (!stall_0 && stall_1) || !fetch_en) begin 
       pc_r_0 <= pc_r_0;  
-    end else begin
-      pc_r_0 <= (pc_sel_0 == 1) ? alu_out_w_0 : pc4_f_w_0;
+    end else begin 
+      pc_r_0 <= (pc_sel_0 == 1) ? alu_out_w_0 : // if branch --> use pc calculated from alu
+                // (stalled_fd_1)  ? pc4_f_w_0    : // if way 1 stalled in decode 2 cycles ago: take way 1's instruction pc+4 (to maintain in-order execution)
+                                  pc8_f_w_0;      // default: pc + 8
+
+
     end
   end 
 
@@ -348,7 +354,9 @@ always @(posedge clock) begin
     end else if (stall_0 || stall_1 || !fetch_en) begin  // stall way 1 if either way 0 stalls or way 1 has to stall 
       pc_r_1 <= pc_r_1;  
     end else begin
-      pc_r_1 <= (pc_sel_1 == 1) ? alu_out_w_1 : pc4_f_w_1;
+      pc_r_1 <= (pc_sel_1 == 1) ? alu_out_w_1 : // if branch --> use pc calculated from alu 
+                //  (stalled_fd_1) ? pc12_f_w_1  : // if way 1 stalled in decode 2 cycles ago: let way 0 take next instruction, and take the next next instruction
+                                  pc8_f_w_1;    // default: pc + 8
     end
   end 
   
@@ -357,8 +365,9 @@ always @(posedge clock) begin
   // ===================
   
   // Fetch-Decode stage
-  reg stall_fd_0; 
-  reg stall_fd_1; 
+  reg stall_fd_0;
+  reg stall_fd_1;
+  reg stalled_fd_1; 
   reg [31:0] prev_instr_0;
   reg [31:0] prev_instr_1;
 
@@ -383,6 +392,11 @@ always @(posedge clock) begin
     else if (stall_0) begin
       pc_fd_r_0 <= pc_fd_r_0;          // Hold FD pipeline registers during stall
       prev_instr_0 <= (!stall_fd_0) ? instr_w_0 : prev_instr_0;
+      stall_fd_0 <= 1;
+    end
+    else if (!stall_0 && stall_1) begin 
+      pc_fd_r_0 <= pc_r_0;
+      prev_instr_0 <= (!stall_fd_0) ? instr_w_0 : prev_instr_0;;    // Insert NOP on branch taken
       stall_fd_0 <= 1;
     end
     else begin

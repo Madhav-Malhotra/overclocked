@@ -1,6 +1,6 @@
 Benchmark: superscalar_wxmx_bypass
-Compared: 15 commits  Mismatches: 0
-Proc commits: 15  Spike commits: 15
+Compared: 15 commits  Mismatches: 1
+Proc commits: 49997  Spike commits: 15
 
    #            PROC_PC    RD  PROC_VAL    SPIKE_PC   RD  SPIKE_VAL
 --------------------------------------------------------------------
@@ -18,4 +18,4 @@ Proc commits: 15  Spike commits: 15
   11  OK        0100002c   10  00000028    0100002c   10  00000028
   12  OK        01000034    3  00000001    01000034    3  00000001
   13  OK        01000038    5  01000038    01000038    5  01000038
-  14  OK        0100003c    5  01000050    0100003c    5  01000050
+  14  MISMATCH  01000040    5  01000040    0100003c    5  01000050

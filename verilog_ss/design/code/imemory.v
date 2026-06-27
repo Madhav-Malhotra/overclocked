@@ -43,7 +43,7 @@ end
 // READ LOGIC
 // ====================
 // Convert byte address to word index
-assign ea_0 = (address_0 - START_ADDR) >> 2;
+assign ea_0 = (address_0 - START_ADDR) >> 2; 
 assign ea_1 = (address_1 - START_ADDR) >> 2;
 
 

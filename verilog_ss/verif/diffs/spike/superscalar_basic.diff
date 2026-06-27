@@ -1,6 +1,6 @@
 Benchmark: superscalar_basic
-Compared: 11 commits  Mismatches: 0
-Proc commits: 11  Spike commits: 11
+Compared: 11 commits  Mismatches: 1
+Proc commits: 49995  Spike commits: 11
 
    #            PROC_PC    RD  PROC_VAL    SPIKE_PC   RD  SPIKE_VAL
 --------------------------------------------------------------------
@@ -14,4 +14,4 @@ Proc commits: 11  Spike commits: 11
    7  OK        0100001c    8  00000050    0100001c    8  00000050
    8  OK        01000024    3  00000001    01000024    3  00000001
    9  OK        01000028    5  01000028    01000028    5  01000028
-  10  OK        0100002c    5  01000040    0100002c    5  01000040
+  10  MISMATCH  01000030    5  01000030    0100002c    5  01000040

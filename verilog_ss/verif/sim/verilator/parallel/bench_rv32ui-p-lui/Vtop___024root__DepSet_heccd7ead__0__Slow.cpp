@@ -898,9 +898,9 @@ VL_ATTR_COLD void Vtop___024root___stl_sequent__TOP__0(Vtop___024root* vlSelf) {
     CData/*0:0*/ __VdfgTmp_h23a26853__0;
     __VdfgTmp_h23a26853__0 = 0;
     // Body
-    vlSelf->top__DOT__dut__DOT__core__DOT__pc4_f_w_0 
+    vlSelf->top__DOT__dut__DOT__core__DOT__pc8_f_w_0 
         = ((IData)(8U) + vlSelf->top__DOT__dut__DOT__core__DOT__pc_r_0);
-    vlSelf->top__DOT__dut__DOT__core__DOT__pc4_f_w_1 
+    vlSelf->top__DOT__dut__DOT__core__DOT__pc8_f_w_1 
         = ((IData)(8U) + vlSelf->top__DOT__dut__DOT__core__DOT__pc_r_1);
     vlSelf->top__DOT__dut__DOT__core__DOT__cs1__DOT____VdfgTmp_hc82ee4e8__0 
         = ((0x6fU == (IData)(vlSelf->top__DOT__dut__DOT__core__DOT__opcode_dx_r_0)) 
@@ -2216,8 +2216,8 @@ VL_ATTR_COLD void Vtop___024root___ctor_var_reset(Vtop___024root* vlSelf) {
     vlSelf->top__DOT__dut__DOT__core__DOT__data_mem_w_1 = VL_RAND_RESET_I(32);
     vlSelf->top__DOT__dut__DOT__core__DOT__data_rd_w_0 = VL_RAND_RESET_I(32);
     vlSelf->top__DOT__dut__DOT__core__DOT__data_rd_w_1 = VL_RAND_RESET_I(32);
-    vlSelf->top__DOT__dut__DOT__core__DOT__pc4_f_w_0 = VL_RAND_RESET_I(32);
-    vlSelf->top__DOT__dut__DOT__core__DOT__pc4_f_w_1 = VL_RAND_RESET_I(32);
+    vlSelf->top__DOT__dut__DOT__core__DOT__pc8_f_w_0 = VL_RAND_RESET_I(32);
+    vlSelf->top__DOT__dut__DOT__core__DOT__pc8_f_w_1 = VL_RAND_RESET_I(32);
     vlSelf->top__DOT__dut__DOT__core__DOT__pc_fd_r_0 = VL_RAND_RESET_I(32);
     vlSelf->top__DOT__dut__DOT__core__DOT__pc_dx_r_0 = VL_RAND_RESET_I(32);
     vlSelf->top__DOT__dut__DOT__core__DOT__pc_fd_r_1 = VL_RAND_RESET_I(32);

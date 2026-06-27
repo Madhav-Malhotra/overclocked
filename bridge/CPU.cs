@@ -10,8 +10,6 @@
  *   - Declare [DllImport] bindings for every extern "C" function in bridge.cpp.
  *   - Expose per-stage helper structs (Fetch, Fd, Dx, Xm, Mw) so callers get
  *     strongly-typed snapshots of each pipeline register.
- *   - Wrap raw enable-setter calls in SetXxxEn() methods that also tick the
- *     clock, matching the game's "advance one stage at a time" usage pattern.
  *   - Implement IDisposable so cleanup_design_wrapper() is always called even
  *     if an exception occurs.
  *
@@ -178,24 +176,14 @@ public interface ICPU
     uint GetInstruction();
     // DON'T USE (deprecated):  retrieve the ALU output from the appropriate pipeline stage struct
     uint GetALUOut();
-    // SetFetchEn enable/disable the Fetch stage.
-    void SetFetchEn(bool val);
     // GetFetch retrieves a snapshot of Fetch stage outputs.
     Fetch GetFetch();
-    // SetFdEn enable/disable the Fd stage.
-    void SetFdEn(bool val);
     // GetFd retrieves a snapshot of Fd stage outputs.
     Fd GetFd();
-    // SetDxEn enable/disable the Dx stage.
-    void SetDxEn(bool val);
     // GetDx retrieves a snapshot of Dx stage outputs.
     Dx GetDx();
-    // SetXmEn enable/disable the Xm stage.
-    void SetXmEn(bool val);
     // GetXm retrieves a snapshot of Xm stage outputs.
     Xm GetXm();
-    // SetMwEn enable/disable the Mw stage.
-    void SetMwEn(bool val);
     // GetMw retrieves a snapshot of Mw stage outputs.
     Mw GetMw();
 }

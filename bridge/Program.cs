@@ -29,57 +29,13 @@ class Program
             myCpu.PrintState();
             Console.WriteLine("=============");
         };
-        //uncomment for normal CPU operation
-        /*
-        myCpu.SetFetchEn(true);
-        myCpu.SetFdEn(true);
-        myCpu.SetDxEn(true);
-        myCpu.SetXmEn(true);
-        myCpu.SetMwEn(true);
-        for (int i = 0; i < 10; i ++)
-        {
-            myCpu.Tick();
-            printOutput();
-        }
-        */
+        printOutput();
         //// now advance the instruction through the stages
-        for (int i = 1; i <= 2; i++)
+        for (int i = 1; i <= 20; i++)
         {
             Console.WriteLine($"running instruction: {i}");
-            printOutput();
-            myCpu.SetFetchEn(true);
             myCpu.Tick();
             printOutput();
-            myCpu.SetFetchEn(false);
-            myCpu.Tick();
-            printOutput();
-
-            myCpu.SetFdEn(true);
-            myCpu.Tick();
-            printOutput();
-            myCpu.SetFdEn(false);
-            myCpu.Tick();
-            printOutput();
-
-            myCpu.SetDxEn(true);
-            myCpu.Tick();
-            printOutput();
-            myCpu.SetDxEn(false);
-            myCpu.Tick();
-            printOutput();
-
-            myCpu.SetXmEn(true);
-            myCpu.Tick();
-            printOutput();
-            myCpu.SetXmEn(false);
-            myCpu.Tick();
-            printOutput();
-
-            myCpu.SetMwEn(true);
-            myCpu.Tick();
-            printOutput();
-            myCpu.SetMwEn(false);
-            myCpu.Tick();
         }
     }
 }

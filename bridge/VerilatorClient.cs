@@ -19,21 +19,6 @@ public class VerilatorClient : IDisposable, ICPU
     public static extern void get_cpu_state(out CPUState state);
 
     [DllImport(NativeLib, CallingConvention = CallingConvention.Cdecl)]
-    public static extern void set_fetch_en(bool val);
-
-    [DllImport(NativeLib, CallingConvention = CallingConvention.Cdecl)]
-    public static extern void set_fd_en(bool val);
-
-    [DllImport(NativeLib, CallingConvention = CallingConvention.Cdecl)]
-    public static extern void set_dx_en(bool val);
-
-    [DllImport(NativeLib, CallingConvention = CallingConvention.Cdecl)]
-    public static extern void set_xm_en(bool val);
-
-    [DllImport(NativeLib, CallingConvention = CallingConvention.Cdecl)]
-    public static extern void set_mw_en(bool val);
-
-    [DllImport(NativeLib, CallingConvention = CallingConvention.Cdecl)]
     public static extern void set_imem(uint addr, uint instruction);
 
     [DllImport(NativeLib, CallingConvention = CallingConvention.Cdecl)]
@@ -156,21 +141,6 @@ public class VerilatorClient : IDisposable, ICPU
     }
 
     /*
-     * SetFetchEn — Enable/disable the Fetch stage and advance the clock.
-     *
-     * Apply the enable value. The new value is latched at the next cycle.
-     * This function call should typically be followed by a GetFetch() to
-     * retrieve the outputs of the Fetch stage.
-     * Each SetFetchEn(true) must have a corresponding SetFetchEn(false).
-     *
-     * @param val  true to enable the Fetch stage; false to stall it.
-     */
-    public void SetFetchEn(bool val)
-    {
-        set_fetch_en(val);
-    }
-
-    /*
      * GetFetch — Return a typed snapshot of the Fetch stage outputs.
      *
      * @return  A Fetch record containing the current PC.
@@ -182,21 +152,6 @@ public class VerilatorClient : IDisposable, ICPU
         {
             pc = this.state.pc
         };
-    }
-
-    /*
-     * SetFdEn — Enable/disable the Fetch→Decode pipeline register and advance the clock.
-     *
-     * Apply the enable value. The new value is latched at the next cycle.
-     * This function call should typically be followed by a GetFd() to
-     * retrieve the outputs of the Fetch-Decode stage.
-     * Each SetFdEn(true) must have a corresponding SetFdEn(false).
-     *
-     * @param val  true to enable the FD register; false to stall it.
-     */
-    public void SetFdEn(bool val)
-    {
-        set_fd_en(val);
     }
 
     /*
@@ -216,21 +171,6 @@ public class VerilatorClient : IDisposable, ICPU
     }
 
     /*
-     * SetDxEn — Enable/disable the Decode→Execute pipeline register and advance the clock.
-     *
-     * Apply the enable value. The new value is latched at the next cycle.
-     * This function call should typically be followed by a GetDx() to
-     * retrieve the outputs of the Decode-Execute stage.
-     * Each SetDxEn(true) must have a corresponding SetDxEn(false).
-     *
-     * @param val  true to enable the DX register; false to stall it.
-     */
-    public void SetDxEn(bool val)
-    {
-        set_dx_en(val);
-    }
-
-    /*
      * GetDx — Return a typed snapshot of the Decode→Execute register contents.
      *
      * @return  A Dx record containing the source register addresses (addr_rs1, addr_rs2).
@@ -246,22 +186,6 @@ public class VerilatorClient : IDisposable, ICPU
     }
 
     /*
-     * SetXmEn — Enable/disable the Execute→Memory pipeline register and advance the clock.
-     *
-     *
-     * Apply the enable value. The new value is latched at the next cycle.
-     * This function call should typically be followed by a GetXm() to
-     * retrieve the outputs of the Execute-Memory stage.
-     * Each SetXmEn(true) must have a corresponding SetXmEn(false).
-     *
-     * @param val  true to enable the XM register; false to stall it.
-     */
-    public void SetXmEn(bool val)
-    {
-        set_xm_en(val);
-    }
-
-    /*
      * GetXm — Return a typed snapshot of the Execute→Memory register contents.
      *
      * @return  An Xm record containing alu_out and the data memory write value (dmem_data_in).
@@ -274,22 +198,6 @@ public class VerilatorClient : IDisposable, ICPU
             alu_out = this.state.alu_out,
             dmem_data_in = this.state.dmem_data_in
         };
-    }
-
-    /*
-     * SetMwEn — Enable/disable the Memory→Writeback pipeline register and advance the clock.
-     *
-     *
-     * Apply the enable value. The new value is latched at the next cycle.
-     * This function call should typically be followed by a GetMw() to
-     * retrieve the outputs of the Memory-Writeback stage.
-     * Each SetMwEn(true) must have a corresponding SetMwEn(false).
-     *
-     * @param val  true to enable the MW register; false to stall it.
-     */
-    public void SetMwEn(bool val)
-    {
-        set_mw_en(val);
     }
 
     /*

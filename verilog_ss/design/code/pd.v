@@ -394,10 +394,10 @@ always @(posedge clock) begin
       prev_instr_0 <= (!stall_fd_0) ? instr_w_0 : prev_instr_0;
       stall_fd_0 <= 1;
     end
-    else if (!stall_0 && stall_1) begin 
-      pc_fd_r_0 <= pc_r_0;
-      prev_instr_0 <= (!stall_fd_0) ? instr_w_0 : prev_instr_0;;    // Insert NOP on branch taken
-      stall_fd_0 <= 1;
+    else if (!stall_fd_0 && stall_fd_1) begin 
+      pc_fd_r_0 <= pc_fd_r_0;
+      prev_instr_0 <= prev_instr_0;    // Insert NOP on branch taken
+      stall_fd_0 <= 0;
     end
     else begin
       pc_fd_r_0 <= pc_r_0;
@@ -462,7 +462,7 @@ always @(posedge clock) begin
       addr_rd_dx_r_0 <= addr_rd_dx_r_0;
       funct7_dx_r_0 <= funct7_dx_r_0;
     end
-    else if (stall_0 || br_taken_0) begin
+    else if (stall_0 || br_taken_0 || (!stall_fd_0 && stall_fd_1)) begin
       // Insert NOP only on branch taken
       pc_dx_r_0 <= pc_fd_r_0;
       opcode_dx_r_0 <= NOP_OPCODE;

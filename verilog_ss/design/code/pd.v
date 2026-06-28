@@ -311,7 +311,7 @@ module pd #(
 
   // Combine stalls
     // way 0
-  wire stall_0 = load_stall_0 || wd_stall_0 || store_rs2_stall_0;
+  wire stall_0 = (load_stall_0 || wd_stall_0 || store_rs2_stall_0) && !(!stall_fd_0 && stall_fd_1);
   wire imem_enable = !stall_0;
 
     // way 1

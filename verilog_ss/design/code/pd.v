@@ -137,8 +137,10 @@ module pd #(
   wire [DATAW-1:0] data_rd_w_1;
 
   // PC + 8
-  wire [DATAW-1:0] pc4_f_w_0 = pc_r_0 + 8;    // NEED ADD MUX TO SELECT PC+4 FOR STALLING LOGIC
-  wire [DATAW-1:0] pc4_f_w_1 = pc_r_1 + 8;    // NEED ADD MUX TO SELECT PC+4 FOR STALLING LOGIC
+  wire [DATAW-1:0] pc8_f_w_0 = pc_r_0 + 8;    
+  // wire [DATAW-1:0] pc4_f_w_0 = pc_r_0 + 4;    
+  wire [DATAW-1:0] pc8_f_w_1 = pc_r_1 + 8;
+  // wire [DATAW-1:0] pc12_f_w_1 = pc_r_1 + 12;    
 
 
   // ====================
@@ -303,13 +305,13 @@ module pd #(
 
  // STALLS FOR SUPERSCALAR:
  // write-use case between ways --> 2 consecutive instructions (taken by way0 and way1) are writing to/accessing same register value
-  wire insn_writes_reg_fd_0 = (addr_rd_w_0 != 0) && !(opcode_dx_r_0 == STORE_OPCODE || opcode_dx_r_0 == BRANCH_OPCODE || opcode_dx_r_0 == ECALL_OPCODE);
+  wire insn_writes_reg_fd_0 = (addr_rd_w_0 != 0) && !(opcode_w_0 == STORE_OPCODE || opcode_w_0 == BRANCH_OPCODE || opcode_w_0 == ECALL_OPCODE);
 
-  wire two_way_write_use_case = insn_writes_reg_fd_0 && !is_u_type_1 && !is_j_type_1 && ((addr_rd_w_0 == addr_rs1_w_1 && addr_rs2_w_1 != 0) || (addr_rd_w_0 == addr_rs2_w_1 && addr_rs2_w_1 != 0 && !is_i_type_1));
+  wire two_way_write_use_case = insn_writes_reg_fd_0 && !is_u_type_1 && !is_j_type_1 && ((addr_rd_w_0 == addr_rs1_w_1 && addr_rs1_w_1 != 0) || (addr_rd_w_0 == addr_rs2_w_1 && addr_rs2_w_1 != 0 && !is_i_type_1));
 
   // Combine stalls
     // way 0
-  wire stall_0 = load_stall_0 || wd_stall_0 || store_rs2_stall_0;
+  wire stall_0 = (load_stall_0 || wd_stall_0 || store_rs2_stall_0) && !(!stall_fd_0 && stall_fd_1);
   wire imem_enable = !stall_0;
 
     // way 1
@@ -328,10 +330,14 @@ module pd #(
       imem_in_r <= 0;
     end else if (br_taken_0) begin          // NEED TO FIX THIS LOGIC
       pc_r_0 <= alu_out_w_0;
-    end else if (stall_0 || !fetch_en) begin 
+    end else if (stall_0 || (!stall_0 && stall_1) || !fetch_en) begin 
       pc_r_0 <= pc_r_0;  
-    end else begin
-      pc_r_0 <= (pc_sel_0 == 1) ? alu_out_w_0 : pc4_f_w_0;
+    end else begin 
+      pc_r_0 <= (pc_sel_0 == 1) ? alu_out_w_0 : // if branch --> use pc calculated from alu
+                // (stalled_fd_1)  ? pc4_f_w_0    : // if way 1 stalled in decode 2 cycles ago: take way 1's instruction pc+4 (to maintain in-order execution)
+                                  pc8_f_w_0;      // default: pc + 8
+
+
     end
   end 
 
@@ -348,7 +354,9 @@ always @(posedge clock) begin
     end else if (stall_0 || stall_1 || !fetch_en) begin  // stall way 1 if either way 0 stalls or way 1 has to stall 
       pc_r_1 <= pc_r_1;  
     end else begin
-      pc_r_1 <= (pc_sel_1 == 1) ? alu_out_w_1 : pc4_f_w_1;
+      pc_r_1 <= (pc_sel_1 == 1) ? alu_out_w_1 : // if branch --> use pc calculated from alu 
+                //  (stalled_fd_1) ? pc12_f_w_1  : // if way 1 stalled in decode 2 cycles ago: let way 0 take next instruction, and take the next next instruction
+                                  pc8_f_w_1;    // default: pc + 8
     end
   end 
   
@@ -357,8 +365,9 @@ always @(posedge clock) begin
   // ===================
   
   // Fetch-Decode stage
-  reg stall_fd_0; 
-  reg stall_fd_1; 
+  reg stall_fd_0;
+  reg stall_fd_1;
+  reg stalled_fd_1; 
   reg [31:0] prev_instr_0;
   reg [31:0] prev_instr_1;
 
@@ -385,6 +394,11 @@ always @(posedge clock) begin
       prev_instr_0 <= (!stall_fd_0) ? instr_w_0 : prev_instr_0;
       stall_fd_0 <= 1;
     end
+    else if (!stall_fd_0 && stall_fd_1) begin 
+      pc_fd_r_0 <= pc_fd_r_0;
+      prev_instr_0 <= prev_instr_0;    // Insert NOP on branch taken
+      stall_fd_0 <= 0;
+    end
     else begin
       pc_fd_r_0 <= pc_r_0;
       prev_instr_0 <= instr_w_0;
@@ -409,7 +423,7 @@ always @(posedge clock) begin
       prev_instr_1 <= NOP_INSTR;    // Insert NOP on branch taken
       stall_fd_1 <= 1;
     end
-    else if (stall_1) begin
+    else if (stall_0 || stall_1) begin
       pc_fd_r_1 <= pc_fd_r_1;          // Hold FD pipeline registers during stall
       prev_instr_1 <= (!stall_fd_1) ? instr_w_1 : prev_instr_1;
       stall_fd_1 <= 1;
@@ -448,7 +462,7 @@ always @(posedge clock) begin
       addr_rd_dx_r_0 <= addr_rd_dx_r_0;
       funct7_dx_r_0 <= funct7_dx_r_0;
     end
-    else if (stall_0 || br_taken_0) begin
+    else if (stall_0 || br_taken_0 || (!stall_fd_0 && stall_fd_1)) begin
       // Insert NOP only on branch taken
       pc_dx_r_0 <= pc_fd_r_0;
       opcode_dx_r_0 <= NOP_OPCODE;
@@ -494,7 +508,7 @@ always @(posedge clock) begin
       addr_rd_dx_r_1 <= addr_rd_dx_r_1;
       funct7_dx_r_1 <= funct7_dx_r_1;
     end
-    else if (stall_1 || br_taken_1) begin
+    else if (stall_0 || stall_1 || br_taken_1) begin
       // Insert NOP only on branch taken
       pc_dx_r_1 <= pc_fd_r_1;
       opcode_dx_r_1 <= NOP_OPCODE;
@@ -818,7 +832,7 @@ always @(posedge clock) begin
                                   (branch_comp_data1_sel_1 == WX_BYPASS_1) ? data_rd_w_1 :
                                   (branch_comp_data1_sel_1 == MX_BYPASS_0) ? alu_xm_r_0 :
                                   (branch_comp_data1_sel_1 == MX_BYPASS_1) ? alu_xm_r_1 :
-                                        data_rs1_w_0;
+                                        data_rs1_w_1;
 
   wire [DATAW-1:0] bc_idata2_in_1 =  (branch_comp_data2_sel_1 == WX_BYPASS_0) ? data_rd_w_0:
                                   (branch_comp_data2_sel_1 == WX_BYPASS_1) ? data_rd_w_1 :

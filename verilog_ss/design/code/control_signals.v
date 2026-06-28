@@ -336,16 +336,16 @@ assign branch_comp_data1_sel_1 = (stall_occured) ?
 
 assign branch_comp_data2_sel_1 = (stall_occured) ?
                                 // Case 2: MX bypass from way 0 to way 1 is priority
-                                    (addr_rs1_dx_1 == addr_rd_xm_0 && addr_rd_xm_0 != 0 && insn_xm_writes_reg_0) ? MX_BYPASS_0 : // check way 0 - MX
-                                    (addr_rs1_dx_1 == addr_rd_mw_1 && addr_rd_mw_1 != 0 && insn_mw_writes_reg_1) ? WX_BYPASS_1 : // check way 1 - WX
-                                    (addr_rs1_dx_1 == addr_rd_mw_0 && addr_rd_mw_0 != 0 && insn_mw_writes_reg_0) ? WX_BYPASS_0 : // check way 
+                                    (addr_rs2_dx_1 == addr_rd_xm_0 && addr_rd_xm_0 != 0 && insn_xm_writes_reg_0) ? MX_BYPASS_0 : // check way 0 - MX
+                                    (addr_rs2_dx_1 == addr_rd_mw_1 && addr_rd_mw_1 != 0 && insn_mw_writes_reg_1) ? WX_BYPASS_1 : // check way 1 - WX
+                                    (addr_rs2_dx_1 == addr_rd_mw_0 && addr_rd_mw_0 != 0 && insn_mw_writes_reg_0) ? WX_BYPASS_0 : // check way 
                                     REG
                                 :
                                 // can do same logic as way 0
-                                    (addr_rs1_dx_1 == addr_rd_xm_1 && addr_rd_xm_1 != 0 && insn_xm_writes_reg_1) ? MX_BYPASS_1 : //check way 1 - MX
-                                    (addr_rs1_dx_1 == addr_rd_xm_0 && addr_rd_xm_0 != 0 && insn_xm_writes_reg_0) ? MX_BYPASS_0 : // check way 0 - MX
-                                    (addr_rs1_dx_1 == addr_rd_mw_1 && addr_rd_mw_1 != 0 && insn_mw_writes_reg_1) ? WX_BYPASS_1 : // check way 1 - WX
-                                    (addr_rs1_dx_1 == addr_rd_mw_0 && addr_rd_mw_0 != 0 && insn_mw_writes_reg_0) ? WX_BYPASS_0 : // check way 0 - WX
+                                    (addr_rs2_dx_1 == addr_rd_xm_1 && addr_rd_xm_1 != 0 && insn_xm_writes_reg_1) ? MX_BYPASS_1 : //check way 1 - MX
+                                    (addr_rs2_dx_1 == addr_rd_xm_0 && addr_rd_xm_0 != 0 && insn_xm_writes_reg_0) ? MX_BYPASS_0 : // check way 0 - MX
+                                    (addr_rs2_dx_1 == addr_rd_mw_1 && addr_rd_mw_1 != 0 && insn_mw_writes_reg_1) ? WX_BYPASS_1 : // check way 1 - WX
+                                    (addr_rs2_dx_1 == addr_rd_mw_0 && addr_rd_mw_0 != 0 && insn_mw_writes_reg_0) ? WX_BYPASS_0 : // check way 0 - WX
                                     REG;
 
 // Just used via test harness

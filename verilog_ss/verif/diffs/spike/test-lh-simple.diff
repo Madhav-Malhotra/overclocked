@@ -1,6 +1,6 @@
 Benchmark: test-lh-simple
 Compared: 26 commits  Mismatches: 3
-Proc commits: 28  Spike commits: 26
+Proc commits: 27  Spike commits: 26
 
    #            PROC_PC    RD  PROC_VAL    SPIKE_PC   RD  SPIKE_VAL
 --------------------------------------------------------------------
@@ -27,6 +27,6 @@ Proc commits: 28  Spike commits: 26
   20  OK        0100005c    3  00001000    0100005c    3  00001000
   21  OK        01000060    3  00000ff0    01000060    3  00000ff0
   22  OK        01000064    5  00000004    01000064    5  00000004
-  23  MISMATCH  01000078    5  00000048    0100008c    5  0100008c
-  24  MISMATCH  01000090    5  00000074    01000090    5  010000b8
-  25  MISMATCH  01000090    5  000000a0    01000094   10  00000001
+  23  MISMATCH  01000090    5  00000030    0100008c    5  0100008c
+  24  MISMATCH  01000090    5  0000005c    01000090    5  010000b8
+  25  MISMATCH  010000b0    1  00000000    01000094   10  00000001

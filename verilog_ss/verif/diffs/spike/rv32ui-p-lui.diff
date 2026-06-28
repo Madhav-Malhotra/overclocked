@@ -1,6 +1,6 @@
 Benchmark: rv32ui-p-lui
-Compared: 20 commits  Mismatches: 3
-Proc commits: 21  Spike commits: 20
+Compared: 20 commits  Mismatches: 2
+Proc commits: 20  Spike commits: 20
 
    #            PROC_PC    RD  PROC_VAL    SPIKE_PC   RD  SPIKE_VAL
 --------------------------------------------------------------------
@@ -21,6 +21,6 @@ Proc commits: 21  Spike commits: 20
   14  OK        01000044    3  00000005    01000044    3  00000005
   15  OK        01000050   29  00000000    01000050   29  00000000
   16  OK        01000054    3  00000006    01000054    3  00000006
-  17  MISMATCH  01000068    3  0000000c    01000084    3  00000001
-  18  MISMATCH  01000070    5  01000070    01000088    5  01000088
+  17  MISMATCH  01000068    5  01000068    01000084    3  00000001
+  18  OK        01000088    5  01000088    01000088    5  01000088
   19  MISMATCH  01000088    5  01000088    0100008c    5  010000a0

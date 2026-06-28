@@ -1,6 +1,6 @@
 Benchmark: rv32ui-p-bge
-Compared: 9 commits  Mismatches: 6
-Proc commits: 9  Spike commits: 158
+Compared: 11 commits  Mismatches: 8
+Proc commits: 11  Spike commits: 158
 
    #            PROC_PC    RD  PROC_VAL    SPIKE_PC   RD  SPIKE_VAL
 --------------------------------------------------------------------
@@ -9,7 +9,9 @@ Proc commits: 9  Spike commits: 158
    2  OK        01000008    2  00000000    01000008    2  00000000
    3  MISMATCH  01000320    3  00000004    01000020    3  00000003
    4  MISMATCH  01000330    5  01000330    01000024    1  00000001
-   5  MISMATCH  01000020    1  00000001    01000028    2  00000001
-   6  MISMATCH  01000020    3  00000003    01000040    3  00000004
-   7  MISMATCH  01000348    5  01000348    01000044    1  ffffffff
-   8  MISMATCH  01000028    2  00000001    01000048    2  ffffffff
+   5  MISMATCH  01000020    3  00000003    01000028    2  00000001
+   6  MISMATCH  01000348    5  01000348    01000040    3  00000004
+   7  MISMATCH  01000028    2  00000001    01000044    1  ffffffff
+   8  MISMATCH  01000328    3  00000006    01000048    2  ffffffff
+   9  MISMATCH  01000330    5  01000330    01000060    3  00000005
+  10  MISMATCH  01000348    5  01000348    01000064    1  00000001

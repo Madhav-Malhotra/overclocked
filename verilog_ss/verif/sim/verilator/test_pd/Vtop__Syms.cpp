@@ -215,8 +215,6 @@ Vtop__Syms::Vtop__Syms(VerilatedContext* contextp, const char* namep, Vtop* mode
         __Vscope_top__dut__core.varInsert(__Vfinal,"opcode_w_1", &(TOP.top__DOT__dut__DOT__core__DOT__opcode_w_1), false, VLVT_UINT8,VLVD_NODIR|VLVF_PUB_RW,1 ,6,0);
         __Vscope_top__dut__core.varInsert(__Vfinal,"opcode_xm_r_0", &(TOP.top__DOT__dut__DOT__core__DOT__opcode_xm_r_0), false, VLVT_UINT8,VLVD_NODIR|VLVF_PUB_RW,1 ,6,0);
         __Vscope_top__dut__core.varInsert(__Vfinal,"opcode_xm_r_1", &(TOP.top__DOT__dut__DOT__core__DOT__opcode_xm_r_1), false, VLVT_UINT8,VLVD_NODIR|VLVF_PUB_RW,1 ,6,0);
-        __Vscope_top__dut__core.varInsert(__Vfinal,"pc12_f_w_1", &(TOP.top__DOT__dut__DOT__core__DOT__pc12_f_w_1), false, VLVT_UINT32,VLVD_NODIR|VLVF_PUB_RW,1 ,31,0);
-        __Vscope_top__dut__core.varInsert(__Vfinal,"pc4_f_w_0", &(TOP.top__DOT__dut__DOT__core__DOT__pc4_f_w_0), false, VLVT_UINT32,VLVD_NODIR|VLVF_PUB_RW,1 ,31,0);
         __Vscope_top__dut__core.varInsert(__Vfinal,"pc4_mw_r_0", &(TOP.top__DOT__dut__DOT__core__DOT__pc4_mw_r_0), false, VLVT_UINT32,VLVD_NODIR|VLVF_PUB_RW,1 ,31,0);
         __Vscope_top__dut__core.varInsert(__Vfinal,"pc4_mw_r_1", &(TOP.top__DOT__dut__DOT__core__DOT__pc4_mw_r_1), false, VLVT_UINT32,VLVD_NODIR|VLVF_PUB_RW,1 ,31,0);
         __Vscope_top__dut__core.varInsert(__Vfinal,"pc4_xm_w_0", &(TOP.top__DOT__dut__DOT__core__DOT__pc4_xm_w_0), false, VLVT_UINT32,VLVD_NODIR|VLVF_PUB_RW,1 ,31,0);

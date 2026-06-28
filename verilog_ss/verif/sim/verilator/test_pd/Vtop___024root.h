@@ -400,9 +400,7 @@ class alignas(VL_CACHE_LINE_BYTES) Vtop___024root final : public VerilatedModule
         IData/*31:0*/ top__DOT__dut__DOT__core__DOT__data_rd_w_0;
         IData/*31:0*/ top__DOT__dut__DOT__core__DOT__data_rd_w_1;
         IData/*31:0*/ top__DOT__dut__DOT__core__DOT__pc8_f_w_0;
-        IData/*31:0*/ top__DOT__dut__DOT__core__DOT__pc4_f_w_0;
         IData/*31:0*/ top__DOT__dut__DOT__core__DOT__pc8_f_w_1;
-        IData/*31:0*/ top__DOT__dut__DOT__core__DOT__pc12_f_w_1;
         IData/*31:0*/ top__DOT__dut__DOT__core__DOT__pc_fd_r_0;
         IData/*31:0*/ top__DOT__dut__DOT__core__DOT__pc_dx_r_0;
         IData/*31:0*/ top__DOT__dut__DOT__core__DOT__pc_fd_r_1;
@@ -410,10 +408,10 @@ class alignas(VL_CACHE_LINE_BYTES) Vtop___024root final : public VerilatedModule
         IData/*31:0*/ top__DOT__dut__DOT__core__DOT__imm_dx_r_0;
         IData/*31:0*/ top__DOT__dut__DOT__core__DOT__imm_dx_r_1;
         IData/*31:0*/ top__DOT__dut__DOT__core__DOT__pc_xm_r_0;
-    };
-    struct {
         IData/*31:0*/ top__DOT__dut__DOT__core__DOT__imm_xm_r_0;
         IData/*31:0*/ top__DOT__dut__DOT__core__DOT__alu_xm_r_0;
+    };
+    struct {
         IData/*31:0*/ top__DOT__dut__DOT__core__DOT__data_rs2_xm_r_0;
         IData/*31:0*/ top__DOT__dut__DOT__core__DOT__pc_xm_r_1;
         IData/*31:0*/ top__DOT__dut__DOT__core__DOT__imm_xm_r_1;
@@ -476,10 +474,10 @@ class alignas(VL_CACHE_LINE_BYTES) Vtop___024root final : public VerilatedModule
         IData/*31:0*/ top__DOT__dut__DOT__core__DOT__al1__DOT__idata1;
         IData/*31:0*/ top__DOT__dut__DOT__core__DOT__al1__DOT__idata2;
         IData/*31:0*/ top__DOT__dut__DOT__core__DOT__al1__DOT__odata;
-    };
-    struct {
         IData/*31:0*/ top__DOT__dut__DOT__core__DOT__al1__DOT__mask;
         IData/*31:0*/ top__DOT__dut__DOT__core__DOT__al2__DOT__idata1;
+    };
+    struct {
         IData/*31:0*/ top__DOT__dut__DOT__core__DOT__al2__DOT__idata2;
         IData/*31:0*/ top__DOT__dut__DOT__core__DOT__al2__DOT__odata;
         IData/*31:0*/ top__DOT__dut__DOT__core__DOT__al2__DOT__mask;

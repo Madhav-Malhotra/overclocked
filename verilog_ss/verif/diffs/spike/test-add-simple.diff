@@ -1,6 +1,6 @@
 Benchmark: test-add-simple
-Compared: 27 commits  Mismatches: 1
-Proc commits: 27  Spike commits: 29
+Compared: 29 commits  Mismatches: 3
+Proc commits: 29  Spike commits: 29
 
    #            PROC_PC    RD  PROC_VAL    SPIKE_PC   RD  SPIKE_VAL
 --------------------------------------------------------------------
@@ -31,3 +31,5 @@ Proc commits: 27  Spike commits: 29
   24  OK        01000070    4  80000000    01000070    4  80000000
   25  OK        01000074    5  00000005    01000074    5  00000005
   26  MISMATCH  01000088    5  00000039    0100009c    5  0100009c
+  27  MISMATCH  010000a0    5  00000055    010000a0    5  010000b8
+  28  MISMATCH  010000a0    5  00000071    010000a4   10  00000001

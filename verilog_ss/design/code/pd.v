@@ -305,9 +305,9 @@ module pd #(
 
  // STALLS FOR SUPERSCALAR:
  // write-use case between ways --> 2 consecutive instructions (taken by way0 and way1) are writing to/accessing same register value
-  wire insn_writes_reg_fd_0 = (addr_rd_w_0 != 0) && !(opcode_dx_r_0 == STORE_OPCODE || opcode_dx_r_0 == BRANCH_OPCODE || opcode_dx_r_0 == ECALL_OPCODE);
+  wire insn_writes_reg_fd_0 = (addr_rd_w_0 != 0) && !(opcode_w_0 == STORE_OPCODE || opcode_w_0 == BRANCH_OPCODE || opcode_w_0 == ECALL_OPCODE);
 
-  wire two_way_write_use_case = insn_writes_reg_fd_0 && !is_u_type_1 && !is_j_type_1 && ((addr_rd_w_0 == addr_rs1_w_1 && addr_rs2_w_1 != 0) || (addr_rd_w_0 == addr_rs2_w_1 && addr_rs2_w_1 != 0 && !is_i_type_1));
+  wire two_way_write_use_case = insn_writes_reg_fd_0 && !is_u_type_1 && !is_j_type_1 && ((addr_rd_w_0 == addr_rs1_w_1 && addr_rs1_w_1 != 0) || (addr_rd_w_0 == addr_rs2_w_1 && addr_rs2_w_1 != 0 && !is_i_type_1));
 
   // Combine stalls
     // way 0

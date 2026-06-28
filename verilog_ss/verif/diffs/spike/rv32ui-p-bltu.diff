@@ -1,15 +1,17 @@
 Benchmark: rv32ui-p-bltu
-Compared: 9 commits  Mismatches: 4
-Proc commits: 9  Spike commits: 174
+Compared: 11 commits  Mismatches: 8
+Proc commits: 11  Spike commits: 174
 
    #            PROC_PC    RD  PROC_VAL    SPIKE_PC   RD  SPIKE_VAL
 --------------------------------------------------------------------
    0  OK        01000000    3  00000002    01000000    3  00000002
    1  OK        01000004    1  00000000    01000004    1  00000000
    2  OK        01000008    2  00000001    01000008    2  00000001
-   3  OK        01000020    3  00000003    01000020    3  00000003
-   4  MISMATCH  010002fc    3  00000006    01000024    1  fffffffe
-   5  OK        01000028    2  ffffffff    01000028    2  ffffffff
-   6  MISMATCH  01000304    5  01000304    01000040    3  00000004
-   7  MISMATCH  01000314    5  01000314    01000044    1  00000000
-   8  MISMATCH  0100031c    5  0100031c    01000048    2  ffffffff
+   3  MISMATCH  010002f4    3  00000004    01000020    3  00000003
+   4  MISMATCH  01000304    5  01000304    01000024    1  fffffffe
+   5  MISMATCH  01000020    3  00000003    01000028    2  ffffffff
+   6  MISMATCH  0100031c    5  0100031c    01000040    3  00000004
+   7  MISMATCH  01000028    2  ffffffff    01000044    1  00000000
+   8  MISMATCH  010002fc    3  00000006    01000048    2  ffffffff
+   9  MISMATCH  01000304    5  01000304    01000060    3  00000005
+  10  MISMATCH  0100031c    5  0100031c    01000064    1  00000001

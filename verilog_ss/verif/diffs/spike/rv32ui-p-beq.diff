@@ -1,6 +1,6 @@
 Benchmark: rv32ui-p-beq
-Compared: 9 commits  Mismatches: 6
-Proc commits: 9  Spike commits: 149
+Compared: 11 commits  Mismatches: 8
+Proc commits: 11  Spike commits: 149
 
    #            PROC_PC    RD  PROC_VAL    SPIKE_PC   RD  SPIKE_VAL
 --------------------------------------------------------------------
@@ -9,7 +9,9 @@ Proc commits: 9  Spike commits: 149
    2  OK        01000008    2  00000000    01000008    2  00000000
    3  MISMATCH  010002c0    3  00000004    01000020    3  00000003
    4  MISMATCH  010002d0    5  010002d0    01000024    1  00000001
-   5  MISMATCH  01000020    1  00000001    01000028    2  00000001
-   6  MISMATCH  01000020    3  00000003    01000040    3  00000004
-   7  MISMATCH  010002e8    5  010002e8    01000044    1  ffffffff
-   8  MISMATCH  01000028    2  00000001    01000048    2  ffffffff
+   5  MISMATCH  01000020    3  00000003    01000028    2  00000001
+   6  MISMATCH  010002e8    5  010002e8    01000040    3  00000004
+   7  MISMATCH  01000028    2  00000001    01000044    1  ffffffff
+   8  MISMATCH  010002c8    3  00000006    01000048    2  ffffffff
+   9  MISMATCH  010002d0    5  010002d0    01000060    3  00000005
+  10  MISMATCH  010002e8    5  010002e8    01000064    1  00000000

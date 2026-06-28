@@ -423,7 +423,7 @@ always @(posedge clock) begin
       prev_instr_1 <= NOP_INSTR;    // Insert NOP on branch taken
       stall_fd_1 <= 1;
     end
-    else if (stall_1) begin
+    else if (stall_0 || stall_1) begin
       pc_fd_r_1 <= pc_fd_r_1;          // Hold FD pipeline registers during stall
       prev_instr_1 <= (!stall_fd_1) ? instr_w_1 : prev_instr_1;
       stall_fd_1 <= 1;
@@ -508,7 +508,7 @@ always @(posedge clock) begin
       addr_rd_dx_r_1 <= addr_rd_dx_r_1;
       funct7_dx_r_1 <= funct7_dx_r_1;
     end
-    else if (stall_1 || br_taken_1) begin
+    else if (stall_0 || stall_1 || br_taken_1) begin
       // Insert NOP only on branch taken
       pc_dx_r_1 <= pc_fd_r_1;
       opcode_dx_r_1 <= NOP_OPCODE;
@@ -832,7 +832,7 @@ always @(posedge clock) begin
                                   (branch_comp_data1_sel_1 == WX_BYPASS_1) ? data_rd_w_1 :
                                   (branch_comp_data1_sel_1 == MX_BYPASS_0) ? alu_xm_r_0 :
                                   (branch_comp_data1_sel_1 == MX_BYPASS_1) ? alu_xm_r_1 :
-                                        data_rs1_w_0;
+                                        data_rs1_w_1;
 
   wire [DATAW-1:0] bc_idata2_in_1 =  (branch_comp_data2_sel_1 == WX_BYPASS_0) ? data_rd_w_0:
                                   (branch_comp_data2_sel_1 == WX_BYPASS_1) ? data_rd_w_1 :

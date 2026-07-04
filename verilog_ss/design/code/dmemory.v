@@ -67,6 +67,7 @@ always @(posedge clock) begin
     data_out <= {mem[addr+3], mem[addr+2], mem[addr+1], mem[addr]};
 end
 
+// If way 0 = store and way 1 = load --> do store before load
 // Same-cycle store->load forwarding between ways:
 // way 0 (older) and way 1 (younger) are in the M stage in the SAME cycle.
 // If way 0 is storing to bytes that way 1 is loading, way 1 must observe

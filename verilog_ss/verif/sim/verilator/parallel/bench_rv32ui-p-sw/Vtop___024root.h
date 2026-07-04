@@ -20,6 +20,7 @@ class alignas(VL_CACHE_LINE_BYTES) Vtop___024root final : public VerilatedModule
         CData/*0:0*/ top__DOT__reset;
         CData/*0:0*/ top__DOT__dut__DOT__core__DOT__br_taken_0;
         CData/*0:0*/ top__DOT__dut__DOT__core__DOT__br_taken_1;
+        CData/*0:0*/ top__DOT__dut__DOT__core__DOT__data_mem_rw_0;
         CData/*6:0*/ top__DOT__dut__DOT__core__DOT__opcode_dx_r_0;
         CData/*2:0*/ top__DOT__dut__DOT__core__DOT__funct3_dx_r_0;
         CData/*4:0*/ top__DOT__dut__DOT__core__DOT__addr_rs1_dx_r_0;
@@ -56,7 +57,6 @@ class alignas(VL_CACHE_LINE_BYTES) Vtop___024root final : public VerilatedModule
         CData/*0:0*/ top__DOT__dut__DOT__core__DOT__cs1__DOT__is_jalr_xm_r_0;
         CData/*0:0*/ top__DOT__dut__DOT__core__DOT__cs1__DOT__is_branch_xm_r_0;
         CData/*0:0*/ top__DOT__dut__DOT__core__DOT__cs1__DOT__is_ecall_xm_r_0;
-        CData/*0:0*/ top__DOT__dut__DOT__core__DOT__cs1__DOT__branch_taken_xm_r_0;
         CData/*0:0*/ top__DOT__dut__DOT__core__DOT__cs1__DOT__is_store_xm_r_1;
         CData/*0:0*/ top__DOT__dut__DOT__core__DOT__cs1__DOT__is_load_xm_r_1;
         CData/*0:0*/ top__DOT__dut__DOT__core__DOT__cs1__DOT__is_jal_xm_r_1;
@@ -69,7 +69,6 @@ class alignas(VL_CACHE_LINE_BYTES) Vtop___024root final : public VerilatedModule
         CData/*0:0*/ top__DOT__dut__DOT__core__DOT__cs1__DOT__is_load_mw_r_0;
         CData/*0:0*/ top__DOT__dut__DOT__core__DOT__cs1__DOT__is_jal_mw_r_0;
         CData/*0:0*/ top__DOT__dut__DOT__core__DOT__cs1__DOT__is_jalr_mw_r_0;
-        CData/*0:0*/ top__DOT__dut__DOT__core__DOT__cs1__DOT__branch_taken_mw_r_0;
         CData/*0:0*/ top__DOT__dut__DOT__core__DOT__cs1__DOT__is_store_mw_r_1;
         CData/*0:0*/ top__DOT__dut__DOT__core__DOT__cs1__DOT__is_branch_mw_r_1;
         CData/*0:0*/ top__DOT__dut__DOT__core__DOT__cs1__DOT__is_ecall_mw_r_1;
@@ -78,6 +77,7 @@ class alignas(VL_CACHE_LINE_BYTES) Vtop___024root final : public VerilatedModule
         CData/*0:0*/ top__DOT__dut__DOT__core__DOT__cs1__DOT__is_jalr_mw_r_1;
         CData/*0:0*/ top__DOT__dut__DOT__core__DOT__cs1__DOT____VdfgTmp_h6779d008__0;
         CData/*0:0*/ top__DOT__dut__DOT__core__DOT__cs1__DOT____VdfgTmp_hce7ac8ac__0;
+        CData/*2:0*/ top__DOT__dut__DOT__core__DOT__dmem1__DOT__w0_store_nbytes;
         CData/*0:0*/ __Vdpi_export_trigger;
         CData/*0:0*/ __VstlFirstIteration;
     };

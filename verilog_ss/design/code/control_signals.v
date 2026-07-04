@@ -204,7 +204,6 @@ reg is_jal_xm_r_0;
 reg is_jalr_xm_r_0;
 reg is_branch_xm_r_0;
 reg is_ecall_xm_r_0;
-reg branch_taken_xm_r_0;
 
     // way 1
 reg is_store_xm_r_1;
@@ -222,7 +221,6 @@ reg is_ecall_mw_r_0;
 reg is_load_mw_r_0;
 reg is_jal_mw_r_0;
 reg is_jalr_mw_r_0;
-reg branch_taken_mw_r_0;
 
     // way 1
 reg is_store_mw_r_1;
@@ -352,13 +350,10 @@ assign branch_comp_data2_sel_1 = (stall_occured) ?
 
 // Just used via test harness
 assign br_taken_0 = branch_taken_0;
-// assign pc_sel_0 = branch_taken_0 || is_jal_x_0 || is_jalr_x_0; 
-assign pc_sel_0 = branch_taken_0; 
-
+assign pc_sel_0 = branch_taken_0 || is_jal_x_0 || is_jalr_x_0;
 
 assign br_taken_1 = branch_taken_1;
-// assign pc_sel_1 = branch_taken_1 || is_jal_x_1 || is_jalr_x_1;
-assign pc_sel_1 = branch_taken_1;
+assign pc_sel_1 = branch_taken_1 || is_jal_x_1 || is_jalr_x_1;
 
 // LUI passes B (immediate) through unchanged; all other non-ALU ops use ADD for address/target computation
     // way 0
@@ -417,7 +412,6 @@ always @(posedge clock) begin
         is_jalr_xm_r_0 <= 1'b0;
         is_branch_xm_r_0 <= 1'b0;
         is_ecall_xm_r_0 <= 1'b0;
-        branch_taken_xm_r_0 <= 1'b0; 
     end
     else if (xm_en_0) begin
         is_store_xm_r_0 <= is_store_x_0;
@@ -426,7 +420,6 @@ always @(posedge clock) begin
         is_jalr_xm_r_0 <= is_jalr_x_0;
         is_branch_xm_r_0 <= is_branch_x_0;
         is_ecall_xm_r_0 <= is_ecall_x_0;
-        branch_taken_xm_r_0 <= branch_taken_0; // if branch in way 0, must flush way 1's execute
     end
 end
 
@@ -434,6 +427,13 @@ end
 // way 1
 always @(posedge clock) begin
     if (reset) begin
+        is_store_xm_r_1 <= 1'b0;
+        is_load_xm_r_1 <= 1'b0;
+        is_jal_xm_r_1 <= 1'b0;
+        is_jalr_xm_r_1 <= 1'b0;
+        is_branch_xm_r_1 <= 1'b0;
+        is_ecall_xm_r_1 <= 1'b0;
+    end else if (br_taken_0) begin
         is_store_xm_r_1 <= 1'b0;
         is_load_xm_r_1 <= 1'b0;
         is_jal_xm_r_1 <= 1'b0;
@@ -460,7 +460,7 @@ end
 assign mem_rw_0 = is_store_xm_r_0 && !reset;
 
 //way 1
-assign mem_rw_1 = is_store_xm_r_1 && !reset && !branch_taken_xm_r_0; // if branch in way 0, must flush way 1's execute (disble write in memory)
+assign mem_rw_1 = is_store_xm_r_1 && !reset;
 
 //way 0
 // Memory-Writeback Pipeline registers
@@ -472,7 +472,6 @@ always @(posedge clock) begin
         is_load_mw_r_0   <= 1'b0;
         is_jal_mw_r_0    <= 1'b0;
         is_jalr_mw_r_0   <= 1'b0;
-        branch_taken_mw_r_0 <= 1'b0;
     end
     else if (mw_en_0) begin
         is_store_mw_r_0  <= is_store_xm_r_0;
@@ -481,7 +480,6 @@ always @(posedge clock) begin
         is_load_mw_r_0  <= is_load_xm_r_0;
         is_jal_mw_r_0    <= is_jal_xm_r_0;
         is_jalr_mw_r_0   <= is_jalr_xm_r_0;
-        branch_taken_mw_r_0 <= branch_taken_xm_r_0; // if branch in way 0, must flush way 1's execute
     end
 end
 
@@ -527,8 +525,7 @@ assign wb_sel_0 = (is_load_mw_r_0) ? WB_MEM :
 wire is_ecall_wb_1 = (opcode_mw_1 == 7'b1110011);
 wire is_nop_1 = (opcode_mw_1 == 7'b0);
     // stores, branches, ecalls, NOPs, reset, and writes to x0 all suppress the register write
-    // if branch in way 0, must flush way 1's execute (disable wen in writeback)
-assign reg_wen_1 = !(is_store_mw_r_1 || is_branch_mw_r_1 || is_ecall_wb_1 || is_nop_1 || reset || addr_rd_mw_1 == 0) && !branch_taken_mw_r_0;
+assign reg_wen_1 = !(is_store_mw_r_1 || is_branch_mw_r_1 || is_ecall_wb_1 || is_nop_1 || reset || addr_rd_mw_1 == 0);
 
     // loads read from memory; JAL/JALR write PC+4; everything else writes the ALU result
 assign wb_sel_1 = (is_load_mw_r_1) ? WB_MEM :

@@ -250,24 +250,39 @@ module pd #(
   // stalls due to write data hazard (no WD forward path)
   // Doesn't involve x0 + is an opcode that writes to an rd
     // way 0
+
+
   wire instr_mw_writes_reg_0 = (addr_rd_mw_r_0 != 0) && 
     !(opcode_mw_r_0 == STORE_OPCODE || opcode_mw_r_0 == BRANCH_OPCODE || opcode_mw_r_0 == ECALL_OPCODE); 
 
     //way 1
   wire instr_mw_writes_reg_1 = (addr_rd_mw_r_1!= 0) && 
-  !(opcode_mw_r_1 == STORE_OPCODE ||opcode_mw_r_1 == BRANCH_OPCODE || opcode_mw_r_1 == ECALL_OPCODE); 
+  !(opcode_mw_r_1 == STORE_OPCODE || opcode_mw_r_1 == BRANCH_OPCODE || opcode_mw_r_1 == ECALL_OPCODE); 
+  
+
+    // Some instruction in mem stage writing to rs2 of store --> cannot do any sort of bypass
+  wire instr_xm_writes_reg_0 = (addr_rd_xm_r_0 != 0) && 
+    !(opcode_xm_r_0 == STORE_OPCODE || opcode_xm_r_0 == BRANCH_OPCODE || opcode_xm_r_0 == ECALL_OPCODE);   
+  
+  wire instr_xm_writes_reg_1 = (addr_rd_xm_r_1 != 0) && 
+    !(opcode_xm_r_1 == STORE_OPCODE || opcode_xm_r_1 == BRANCH_OPCODE || opcode_xm_r_1 == ECALL_OPCODE);   
+    
+  wire instr_dx_writes_reg_0 = (addr_rd_dx_r_0 != 0) &&
+    !(opcode_dx_r_0 == STORE_OPCODE || opcode_dx_r_0 == BRANCH_OPCODE || opcode_dx_r_0 == ECALL_OPCODE);
+  wire instr_dx_writes_reg_1 = (addr_rd_dx_r_1 != 0) &&
+    !(opcode_dx_r_1 == STORE_OPCODE || opcode_dx_r_1 == BRANCH_OPCODE || opcode_dx_r_1 == ECALL_OPCODE);
   
   // WD STALL
-  wire bypass_to_0 =  ( (addr_rd_mw_r_0 == addr_rd_xm_r_0) || // wx bypass from way 0
-                        (addr_rd_mw_r_0 == addr_rd_xm_r_1) || // wx bypass from way 1
-                        (addr_rd_mw_r_0 == addr_rd_dx_r_0) || // mx bypass from way 0
-                        (addr_rd_mw_r_0 == addr_rd_dx_r_1) ) && // mx bypass from way 1 
+  wire bypass_to_0 =  ( (addr_rd_mw_r_0 == addr_rd_xm_r_0 && instr_xm_writes_reg_0) || // wx bypass from way 0
+                        (addr_rd_mw_r_0 == addr_rd_xm_r_1 && instr_xm_writes_reg_1) || // wx bypass from way 1
+                        (addr_rd_mw_r_0 == addr_rd_dx_r_0 && instr_dx_writes_reg_0) || // mx bypass from way 0
+                        (addr_rd_mw_r_0 == addr_rd_dx_r_1 && instr_dx_writes_reg_1) ) && // mx bypass from way 1 
                         (instr_mw_writes_reg_0 && !is_nop_mw_0);  // instruction in wb actually writesback...
 
- wire bypass_to_1 =   ((addr_rd_mw_r_1 == addr_rd_xm_r_1) || // wx bypass from way 1
-                        (addr_rd_mw_r_1 == addr_rd_xm_r_0) || // wx bypass from way 0
-                        (addr_rd_mw_r_1 == addr_rd_dx_r_1) || // mx bypass from way 1 
-                        (addr_rd_mw_r_1 == addr_rd_dx_r_0) ) && // mx bypass from way 0
+ wire bypass_to_1 =   ((addr_rd_mw_r_1 == addr_rd_xm_r_1 && instr_xm_writes_reg_1) || // wx bypass from way 1
+                        (addr_rd_mw_r_1 == addr_rd_xm_r_0 && instr_xm_writes_reg_0) || // wx bypass from way 0
+                        (addr_rd_mw_r_1 == addr_rd_dx_r_1 && instr_dx_writes_reg_1) || // mx bypass from way 1 
+                        (addr_rd_mw_r_1 == addr_rd_dx_r_0 && instr_dx_writes_reg_0) ) && // mx bypass from way 0
                         (instr_mw_writes_reg_1 && !is_nop_mw_1);  // instruction in wb actually writesback...
                       
   // way 0
@@ -283,13 +298,6 @@ module pd #(
                     (addr_rd_mw_r_1 == addr_rs2_w_1 && addr_rs2_w_1 != 0 && !is_u_type_1 && !is_j_type_1 && !is_i_type_1 && !bypass_to_1); // check rs2 of WB in way 1 and D
 
     
-  // Some instruction in mem stage writing to rs2 of store --> cannot do any sort of bypass
-  wire instr_xm_writes_reg_0 = (addr_rd_xm_r_0 != 0) && 
-    !(opcode_xm_r_0 == STORE_OPCODE || opcode_xm_r_0 == BRANCH_OPCODE || opcode_xm_r_0 == ECALL_OPCODE);   
-  
-  wire instr_xm_writes_reg_1 = (addr_rd_xm_r_1 != 0) && 
-    !(opcode_xm_r_1 == STORE_OPCODE || opcode_xm_r_1 == BRANCH_OPCODE || opcode_xm_r_1 == ECALL_OPCODE);   
-
   // way 0
   wire store_rs2_stall_0 = is_store_fd_0 &&
                            ((addr_rd_xm_r_0 == addr_rs2_w_0 && instr_xm_writes_reg_0 && !is_nop_xm_0) || // conflict with way 0
@@ -397,11 +405,11 @@ always @(posedge clock) begin
       prev_instr_0 <= NOP_INSTR;
       stall_fd_0 <= 1;
     end
-    else if (!stall_fd_0 && stall_fd_1) begin 
-      pc_fd_r_0 <= pc_fd_r_0;
-      prev_instr_0 <= prev_instr_0;    // Insert NOP on branch taken
-      stall_fd_0 <= 0;
-    end
+    // else if (!stall_fd_0 && stall_fd_1) begin 
+    //   pc_fd_r_0 <= pc_fd_r_0;
+    //   prev_instr_0 <= prev_instr_0;    // Insert NOP on branch taken
+    //   stall_fd_0 <= 0;
+    // end
     else begin
       pc_fd_r_0 <= pc_r_0;
       prev_instr_0 <= instr_w_0;
@@ -536,7 +544,7 @@ always @(posedge clock) begin
   end
 
   // Execute-Memory stage
-// way 1
+// way 0
   always @(posedge clock) begin
     if (reset) begin
       pc_xm_r_0 <= 0;
@@ -570,7 +578,7 @@ always @(posedge clock) begin
     end
   end
 
-// way 2
+// way 1
     always @(posedge clock) begin
     if (reset) begin
       pc_xm_r_1 <= 0;
@@ -591,7 +599,17 @@ always @(posedge clock) begin
       opcode_xm_r_1 <= 0;
       addr_rs2_xm_r_1 <= 0;
       addr_rd_xm_r_1 <= 0;
-    end 
+    end else if (br_taken_0) begin
+      pc_xm_r_1 <= pc_dx_r_1;
+      imm_xm_r_1 <= 0;
+      funct3_xm_r_1 <= 0;
+      data_rs2_xm_r_1 <= 0;
+      alu_xm_r_1 <= 0;
+      opcode_xm_r_1 <= NOP_OPCODE;
+      addr_rs2_xm_r_1 <= 0;
+      addr_rd_xm_r_1 <= 0;
+    end
+
     else begin
       pc_xm_r_1 <= pc_dx_r_1;             // Pipeline PC, rs2 data from last stage
       imm_xm_r_1 <= imm_dx_r_1; 

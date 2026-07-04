@@ -67,6 +67,22 @@ always @(posedge clock) begin
     data_out <= {mem[addr+3], mem[addr+2], mem[addr+1], mem[addr]};
 end
 
+// Same-cycle store->load forwarding between ways:
+// way 0 (older) and way 1 (younger) are in the M stage in the SAME cycle.
+// If way 0 is storing to bytes that way 1 is loading, way 1 must observe
+// way 0's data (program order), not the stale memory contents.
+wire [2:0] w0_store_nbytes = (access_size == 2'd0) ? 3'd1 :
+                             (access_size == 2'd1) ? 3'd2 : 3'd4;
+
+function [7:0] rd_byte_way1(input [31:0] a);
+    begin
+        if (read_write && (a >= addr) && ((a - addr) < {29'b0, w0_store_nbytes}))
+            rd_byte_way1 = data_in[8*(a - addr) +: 8];  // forward way 0's store data
+        else
+            rd_byte_way1 = mem[a];
+    end
+endfunction
+
 // way 2
 always @(posedge clock) begin
     if (read_write_1 == 1'b1) begin
@@ -79,7 +95,9 @@ always @(posedge clock) begin
         end
     end
     // Read always occurs; caller ignores data_out on writes
-    data_out_1 <= {mem[addr_2+3], mem[addr_2+2], mem[addr_2+1], mem[addr_2]};
+    // data_out_1 <= {mem[addr_2+3], mem[addr_2+2], mem[addr_2+1], mem[addr_2]};
+        data_out_1 <= {rd_byte_way1(addr_2+3), rd_byte_way1(addr_2+2), rd_byte_way1(addr_2+1), rd_byte_way1(addr_2)};
+
 end
 
 endmodule

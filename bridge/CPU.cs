@@ -10,8 +10,6 @@
  *   - Declare [DllImport] bindings for every extern "C" function in bridge.cpp.
  *   - Expose per-stage helper structs (Fetch, Fd, Dx, Xm, Mw) so callers get
  *     strongly-typed snapshots of each pipeline register.
- *   - Wrap raw enable-setter calls in SetXxxEn() methods that also tick the
- *     clock, matching the game's "advance one stage at a time" usage pattern.
  *   - Implement IDisposable so cleanup_design_wrapper() is always called even
  *     if an exception occurs.
  *
@@ -25,7 +23,8 @@ using System;
 using System.Runtime.InteropServices;
 
 [StructLayout(LayoutKind.Sequential, Pack = 1)]
-public struct CPUState {
+public struct CPUState
+{
     // MUST stay sync'ed with CPUState in C++, since we pass the struct ptr
     // order must match the CPUState definition
     public uint pc;          // Maps to uint32_t
@@ -37,16 +36,16 @@ public struct CPUState {
                              // branch_comp.v output ports
     public byte br_eq;
     public byte br_lt;
-    public byte branch_comp_data1_sel; // 
-    public byte branch_comp_data2_sel; // 
-    public byte br_taken;              // 
-    public byte pc_sel;                // 
-    public byte br_un;                 // 
+    public byte branch_comp_data1_sel; //
+    public byte branch_comp_data2_sel; //
+    public byte br_taken;              //
+    public byte pc_sel;                //
+    public byte br_un;                 //
     public byte a_sel;                 // [1:0]
     public byte b_sel;                 // [1:0]
     public byte alu_sel;               // [3:0]
-    public byte mem_rw;                // 
-    public byte reg_wen;               // 
+    public byte mem_rw;                //
+    public byte reg_wen;               //
     public byte wb_sel;                // [1:0]
                                        // decoder.v output ports
     public byte opcode;         // [6:0]
@@ -72,11 +71,24 @@ public struct CPUState {
 
     public uint fd_pc;
     public uint fd_pc4;
+    public byte opcode_fd;
+    public byte addr_rd_fd;
+
+    public byte opcode_dx;
+    public byte addr_rd_dx;
+    public uint dx_pc;
+
     public uint dmem_data_in;
+    public byte opcode_xm;
+    public byte addr_rd_xm;
+    public uint xm_pc;
+
     public uint wb_in_alu;
     public uint mem;
     public uint mw_pc4;
-
+    public byte opcode_mw;
+    public byte addr_rd_mw;
+    public uint mw_pc;
     // overriding the ToString() function so the string representation is easier to read during debugging
     public override string ToString()
     {
@@ -96,13 +108,25 @@ public struct CPUState {
 
 // output structs after each corresponding enable signal is high
 // returned in the get_${stage} functions
-public record struct Fetch(uint pc);
+public record struct Fetch(uint pc)
+{
+    public override string ToString()
+    {
+        return $"Fetch {{ pc = 0x{pc:X8} }}";
+    }
+};
 
 public record struct Fd(
     uint fd_pc,
     uint fd_pc4,
     uint instruction
-);
+    )
+{
+    public override string ToString()
+    {
+        return $"Fd {{ fd_pc = 0x{fd_pc:X8}, fd_pc = 0x{fd_pc4:X8}, instruction = 0x{instruction:X8} }}";
+    }
+};
 
 public record struct Dx(
     uint addr_rs1,
@@ -119,7 +143,8 @@ public record struct Mw(
     uint wb_in_alu,
     uint mem
 );
-enum Operation : byte {
+enum Operation : byte
+{
     ADD = 0,
     SUB = 1,
     SLL = 2,
@@ -133,7 +158,8 @@ enum Operation : byte {
 }
 
 // Bridge CPU interface to abstract FPGA/Verilator backend from Unity.
-public interface ICPU {
+public interface ICPU
+{
     // CPUState struct representing all module outputs.
     CPUState state { get; } // TODO make this var name uppercase
     // Tick advances the clock to mark the end of a CPU cycle.
@@ -150,24 +176,14 @@ public interface ICPU {
     uint GetInstruction();
     // DON'T USE (deprecated):  retrieve the ALU output from the appropriate pipeline stage struct
     uint GetALUOut();
-    // SetFetchEn enable/disable the Fetch stage.
-    void SetFetchEn(bool val);
     // GetFetch retrieves a snapshot of Fetch stage outputs.
     Fetch GetFetch();
-    // SetFdEn enable/disable the Fd stage.
-    void SetFdEn(bool val);
     // GetFd retrieves a snapshot of Fd stage outputs.
     Fd GetFd();
-    // SetDxEn enable/disable the Dx stage.
-    void SetDxEn(bool val);
     // GetDx retrieves a snapshot of Dx stage outputs.
     Dx GetDx();
-    // SetXmEn enable/disable the Xm stage.
-    void SetXmEn(bool val);
     // GetXm retrieves a snapshot of Xm stage outputs.
     Xm GetXm();
-    // SetMwEn enable/disable the Mw stage.
-    void SetMwEn(bool val);
     // GetMw retrieves a snapshot of Mw stage outputs.
     Mw GetMw();
 }
@@ -177,12 +193,12 @@ public static class CPUFactory
     // We use an Enum instead of a string to avoid typos.
     public enum ImplementationType { Verilator, FPGA }
 
-    public static ICPU Create(ImplementationType type, string levelPath)
+    public static ICPU Create(string levelPath, ImplementationType type = ImplementationType.Verilator)
     {
         return type switch
         {
             ImplementationType.Verilator => new VerilatorClient(levelPath),
-            //ImplementationType.FPGA      => new FPGAClient(levelPath),
+            ImplementationType.FPGA => new FPGAClient(levelPath),
             _ => throw new System.ArgumentException("Invalid Implementation Type")
         };
     }

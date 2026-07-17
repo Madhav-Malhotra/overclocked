@@ -163,9 +163,11 @@ Two testing approaches:
 - `.trace` files - Execution traces in FDXMW format
 - `.vcd` files - Waveform dumps (optional, enable with VCD=1)
 
-## Unity/Frontend (Placeholder)
+## Unity/Frontend
 
-The `unity/` directory is reserved for game/frontend components but is currently empty.
+The `unity/` directory contains the Overclocked game itself (see `unity/CLAUDE.md`). It consumes this processor via two paths:
+- Verilator: `verilator/` compiles the Verilog into a native plugin (`design_wrapper.dll`/`.so`) that `unity/Assets/CPUWrapper/CPU.cs` calls into directly.
+- FPGA: `bridge/` and `webserver/` (top-level, sibling to `verilog/`) let the same `ICPU` interface talk to a synthesized design running on a PYNQ-Z2 over a REST API instead of the native plugin.
 
 ## Working with This Codebase
 

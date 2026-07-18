@@ -19,15 +19,17 @@ SOURCES = $(wildcard *.c)
 ELF_TARGETS = $(SOURCES:.c=.iss.elf)
 X_TARGETS   = $(SOURCES:.c=.x)
 
+
 # Default target: build both .iss.elf (Spike) and .x (processor)
 all: $(ELF_TARGETS) $(X_TARGETS)
 	@echo ""
 	@echo "Built $(words $(ELF_TARGETS)) ISS-compatible benchmarks (.iss.elf + .x)"
 
 # Pattern rule to build each .iss.elf from .c
-%.iss.elf: %.c $(STARTUP)
+ %.iss.elf: %.c $(STARTUP)
 	@echo "  CC  $@"
 	@$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $(STARTUP) $<
+
 
 # Build .x from .iss.elf: binary dump -> one little-endian word per line
 %.x: %.iss.elf

@@ -52,7 +52,9 @@ module stall_signals #(
     input is_i_type_1,
 
     output stall_0,
-    output stall_1
+    output stall_1,
+    output instr_mw_writes_reg_0_op,
+    output instr_mw_writes_reg_1_op
 );
 
 
@@ -182,5 +184,10 @@ module stall_signals #(
 
     // way 1
   assign stall_1 = load_stall_1 || wd_stall_1 || store_rs2_stall_1 || two_way_write_use_case;
+
+
+// Other signals used by other logic
+assign instr_mw_writes_reg_0_op = instr_mw_writes_reg_0;
+assign instr_mw_writes_reg_1_op = instr_mw_writes_reg_1;  
 
 endmodule

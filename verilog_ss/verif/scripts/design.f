@@ -7,3 +7,4 @@ imemory.v
 pd.v
 register_file.v
 writeback.v
+stall_signals.v

@@ -202,27 +202,27 @@ always @(posedge clock) begin
         is_branch_xm_r <= 1'b0;
         is_ecall_xm_r  <= 1'b0;
     end
-    else if (xm_en) begin
-        if (USE_MULTICYCLE_MULT && stall) begin
-            // While array_mult holds MUL in DX, inject a bubble into XM so
-            // instructions already past EX can drain through MW without being
-            // re-issued on every stall cycle.
-            is_store_xm_r  <= 1'b0;
-            is_load_xm_r   <= 1'b0;
-            is_jal_xm_r    <= 1'b0;
-            is_jalr_xm_r   <= 1'b0;
-            is_branch_xm_r <= 1'b0;
-            is_ecall_xm_r  <= 1'b0;
-        end else begin
-            is_store_xm_r  <= is_store_x;
-            is_load_xm_r   <= is_load_x;
-            is_jal_xm_r    <= is_jal_x;
-            is_jalr_xm_r   <= is_jalr_x;
-            is_branch_xm_r <= is_branch_x;
-            is_ecall_xm_r  <= is_ecall_x;
-        end
+    else if (USE_MULTICYCLE_MULT && stall) begin
+        // While array_mult holds MUL in DX, inject a bubble into XM so
+        // instructions already past EX can drain through MW without being
+        // re-issued on every stall cycle.
+        is_store_xm_r  <= 1'b0;
+        is_load_xm_r   <= 1'b0;
+        is_jal_xm_r    <= 1'b0;
+        is_jalr_xm_r   <= 1'b0;
+        is_branch_xm_r <= 1'b0;
+        is_ecall_xm_r  <= 1'b0;
+    end 
+    else begin
+        is_store_xm_r  <= is_store_x;
+        is_load_xm_r   <= is_load_x;
+        is_jal_xm_r    <= is_jal_x;
+        is_jalr_xm_r   <= is_jalr_x;
+        is_branch_xm_r <= is_branch_x;
+        is_ecall_xm_r  <= is_ecall_x;
     end
 end
+
 
 // ==============================
 // MEMORY STAGE CONTROL SIGNALS

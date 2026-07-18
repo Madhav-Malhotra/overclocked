@@ -25,15 +25,15 @@ module pd #(
   // ===================
 
   // enable signals for each pipeline stage
-  wire fetch_en = 1;
-  wire fd_en_0 = 1;
-  wire fd_en_1 = 1;
-  wire dx_en_0 = 1;
-  wire dx_en_1 = 1;
-  wire xm_en_0 = 1;
-  wire xm_en_1 = 1;
-  wire mw_en_0 = 1;
-  wire mw_en_1 = 1;
+  // wire fetch_en = 1;
+  // wire fd_en_0 = 1;
+  // wire fd_en_1 = 1;
+  // wire dx_en_0 = 1;
+  // wire dx_en_1 = 1;
+  // wire xm_en_0 = 1;
+  // wire xm_en_1 = 1;
+  // wire mw_en_0 = 1;
+  // wire mw_en_1 = 1;
 
 
 // ================================ 
@@ -352,7 +352,7 @@ module pd #(
       pc_r_0 <= alu_out_w_0;
     end else if(br_taken_1) begin
       pc_r_0 <= alu_out_w_1;
-    end else if (stall_0 || stall_1 || !fetch_en) begin 
+    end else if (stall_0 || stall_1) begin 
       pc_r_0 <= pc_r_0;  
     end else begin 
       pc_r_0 <= pc8_f_w_0;      // default: pc + 8
@@ -373,7 +373,7 @@ always @(posedge clock) begin
       pc_r_1 <= alu_out_w_0 + 4;
     end else if (br_taken_1) begin
       pc_r_1 <= alu_out_w_1 + 4;
-    end else if (stall_0 || stall_1 || !fetch_en) begin  // stall way 1 if either way 0 stalls or way 1 has to stall 
+    end else if (stall_0 || stall_1) begin  // stall way 1 if either way 0 stalls or way 1 has to stall 
       pc_r_1 <= pc_r_1;  
     end else begin
       pc_r_1 <= pc8_f_w_1;    // default: pc + 8
@@ -398,11 +398,6 @@ always @(posedge clock) begin
       pc_fd_r_0 <= 0;
       prev_instr_0 <= 0;
       stall_fd_0 <= 1;
-    end
-    else if (!fd_en_0) begin
-        pc_fd_r_0 <= pc_fd_r_0;
-        prev_instr_0 <= prev_instr_0;
-        stall_fd_0 <= stall_fd_0;
     end
     else if (br_taken_0 || br_taken_1) begin
       pc_fd_r_0 <= pc_r_0;
@@ -437,11 +432,6 @@ always @(posedge clock) begin
       prev_instr_1 <= 0;
       stall_fd_1 <= 1;
     end
-    else if (!fd_en_0) begin
-        pc_fd_r_1 <= pc_fd_r_1;
-        prev_instr_1 <= prev_instr_1;
-        stall_fd_1 <= stall_fd_1;
-    end
     else if (br_taken_0 || br_taken_1) begin
       pc_fd_r_1 <= pc_r_1;
       prev_instr_1 <= NOP_INSTR;    // Insert NOP on branch taken
@@ -475,16 +465,6 @@ always @(posedge clock) begin
       addr_rs2_dx_r_0 <= 0;
       addr_rd_dx_r_0 <= 0;
       funct7_dx_r_0 <= 0;
-    end
-    else if (!dx_en_0) begin
-      pc_dx_r_0 <= pc_dx_r_0;
-      opcode_dx_r_0 <= opcode_dx_r_0;
-      funct3_dx_r_0 <= funct3_dx_r_0;
-      imm_dx_r_0 <= imm_dx_r_0;
-      addr_rs1_dx_r_0 <= addr_rs1_dx_r_0;
-      addr_rs2_dx_r_0 <= addr_rs2_dx_r_0;
-      addr_rd_dx_r_0 <= addr_rd_dx_r_0;
-      funct7_dx_r_0 <= funct7_dx_r_0;
     end
     else if (stall_0 || br_taken_0 || br_taken_1) begin 
       // Insert NOP only on branch taken
@@ -521,16 +501,6 @@ always @(posedge clock) begin
       addr_rs2_dx_r_1 <= 0;
       addr_rd_dx_r_1 <= 0;
       funct7_dx_r_1 <= 0;
-    end
-    else if (!dx_en_1) begin
-      pc_dx_r_1 <= pc_dx_r_1;
-      opcode_dx_r_1 <= opcode_dx_r_1;
-      funct3_dx_r_1 <= funct3_dx_r_1;
-      imm_dx_r_1 <= imm_dx_r_1;
-      addr_rs1_dx_r_1 <= addr_rs1_dx_r_1;
-      addr_rs2_dx_r_1 <= addr_rs2_dx_r_1;
-      addr_rd_dx_r_1 <= addr_rd_dx_r_1;
-      funct7_dx_r_1 <= funct7_dx_r_1;
     end
     else if (stall_0 || stall_1 || br_taken_0 || br_taken_1) begin
       // Insert NOP only on branch taken
@@ -569,16 +539,6 @@ always @(posedge clock) begin
       addr_rs2_xm_r_0 <= 0;
       addr_rd_xm_r_0 <= 0;
     end
-    else if (!xm_en_0) begin
-      pc_xm_r_0 <= pc_xm_r_0;
-      imm_xm_r_0 <= imm_xm_r_0;
-      funct3_xm_r_0 <= funct3_xm_r_0;
-      data_rs2_xm_r_0 <= data_rs2_xm_r_0;
-      alu_xm_r_0 <= 0;
-      opcode_xm_r_0 <= 0;
-      addr_rs2_xm_r_0 <= 0;
-      addr_rd_xm_r_0 <= 0;
-    end
     else begin
       pc_xm_r_0 <= pc_dx_r_0;             // Pipeline PC, rs2 data from last stage
       imm_xm_r_0 <= imm_dx_r_0; 
@@ -603,16 +563,7 @@ always @(posedge clock) begin
       addr_rs2_xm_r_1 <= 0;
       addr_rd_xm_r_1 <= 0;
     end
-    else if (!xm_en_1) begin
-      pc_xm_r_1 <= pc_xm_r_1;
-      imm_xm_r_1 <= imm_xm_r_1;
-      funct3_xm_r_1 <= funct3_xm_r_1;
-      data_rs2_xm_r_1 <= data_rs2_xm_r_1;
-      alu_xm_r_1 <= 0;
-      opcode_xm_r_1 <= 0;
-      addr_rs2_xm_r_1 <= 0;
-      addr_rd_xm_r_1 <= 0;
-    end else if (br_taken_0) begin
+    else if (br_taken_0) begin
       pc_xm_r_1 <= pc_dx_r_1;
       imm_xm_r_1 <= 0;
       funct3_xm_r_1 <= 0;
@@ -657,13 +608,6 @@ always @(posedge clock) begin
       alu_mw_r_0 <= 0;
       funct3_mw_r_0 <= 0;
     end 
-    else if (!mw_en_0) begin
-      pc_mw_r_0 <= pc_mw_r_0;
-      opcode_mw_r_0 <= opcode_mw_r_0;
-      addr_rd_mw_r_0 <= addr_rd_mw_r_0;
-      alu_mw_r_0 <= alu_mw_r_0;
-      funct3_mw_r_0 <= funct3_mw_r_0;
-    end
     else begin
       pc_mw_r_0 <= pc_xm_r_0;
       opcode_mw_r_0 <= opcode_xm_r_0;
@@ -684,14 +628,6 @@ always @(posedge clock) begin
       alu_mw_r_1 <= 0;
       funct3_mw_r_1 <= 0;
     end 
-    else if (!mw_en_1) begin
-      pc_mw_r_1 <= pc_mw_r_1;
-      opcode_mw_r_1 <= opcode_mw_r_1;
-      addr_rd_mw_r_1 <= addr_rd_mw_r_1;
-      pc_mw_r_1 <= pc_mw_r_1;
-      alu_mw_r_1 <= alu_mw_r_1;
-      funct3_mw_r_1 <= funct3_mw_r_1;
-    end
     else begin
       pc_mw_r_1 <= pc_xm_r_1;
       opcode_mw_r_1 <= opcode_xm_r_1;
@@ -778,9 +714,6 @@ always @(posedge clock) begin
   control_signals cs1(
     .clock(clock),
     .reset(reset),
-    .dx_en_0(dx_en_0),
-    .xm_en_0(xm_en_0),
-    .mw_en_0(mw_en_0),
     .opcode_dx_0(opcode_dx_r_0),      // input
     .opcode_xm_0(opcode_xm_r_0),      // input
     .opcode_mw_0(opcode_mw_r_0),      // input
@@ -805,9 +738,6 @@ always @(posedge clock) begin
     .wb_sel_0(wb_sel_0),              // output
 
 // way 1
-    .dx_en_1(dx_en_1),
-    .xm_en_1(xm_en_1),
-    .mw_en_1(mw_en_1),
     .opcode_dx_1(opcode_dx_r_1),      // input
     .opcode_xm_1(opcode_xm_r_1),      // input
     .opcode_mw_1(opcode_mw_r_1),      // input

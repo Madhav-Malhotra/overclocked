@@ -4,21 +4,34 @@
 //              Supports ADD, SUB, shifts (SLL/SRL/SRA), logical (XOR/OR/AND),
 //              comparisons (SLT/SLTU), NOP (pass-through idata2 for LUI), and
 //              MUL (low 32b product).
-// Inputs:      idata1, idata2  - 32-bit operands
-//              alu_sel         - 4-bit operation selector
-//              multicyc_sel    - 0: single-cycle multiply via * operator
-//                                1: multicycle selected; MUL result comes from
-//                                   array_mult in pd.v, ALU outputs 0 as placeholder
-// Outputs:     odata           - 32-bit result
+//
+//              Houses the multicycle array_mult unit used for MUL when
+//              multicyc_sel=1. The pipeline (pd.v) drives mult_start_pulse/
+//              mult_hold from EX-stage state and stalls on mult_busy; this
+//              module just forwards idata1/idata2 to array_mult and selects
+//              its result for MUL's odata.
+// Inputs:      idata1, idata2   - 32-bit operands
+//              alu_sel          - 4-bit operation selector
+//              multicyc_sel     - 0: single-cycle multiply via * operator
+//                                 1: multicycle multiply via array_mult
+//              mult_start_pulse - one-cycle pulse when MUL first enters EX
+//              mult_hold        - high while MUL occupies EX
+// Outputs:     odata            - 32-bit result
+//              mult_busy        - high while array_mult is computing
 // =============================================================================
 module alu #(
     parameter IDATAW = 32,
     parameter ODATAW = 32
 )(
-    input signed [IDATAW-1:0] idata1,
-    input signed [IDATAW-1:0] idata2,
-    input [3:0] alu_sel,
-    input        multicyc_sel,
+    input                          clock,
+    input                          reset,
+    input signed [IDATAW-1:0]      idata1,
+    input signed [IDATAW-1:0]      idata2,
+    input [3:0]                    alu_sel,
+    input                          multicyc_sel,
+    input                          mult_start_pulse,
+    input                          mult_hold,
+    output                         mult_busy,
     output reg signed [ODATAW-1:0] odata
 );
 
@@ -42,6 +55,22 @@ localparam DIV = 4'd12;
 localparam DIVU = 4'd13;
 
 reg [ODATAW-1:0] mask;
+
+// ====================
+// MULTICYCLE MULTIPLY
+// ====================
+wire [ODATAW-1:0] mult_array_out;
+
+array_mult array_mult1(
+    .clock(clock),
+    .reset(reset),
+    .start_pulse(mult_start_pulse),
+    .hold(mult_hold),
+    .op_a(idata1),
+    .op_b(idata2),
+    .result(mult_array_out),
+    .busy(mult_busy)
+);
 
 // ====================
 // COMBINATIONAL LOGIC
@@ -72,7 +101,9 @@ always @(*) begin
         SLT:  odata = (idata1 < idata2) ? 1 : 0;
         SLTU: odata = ($unsigned(idata1) < $unsigned(idata2)) ? 1 : 0;
          /* RISC-V M-Extension Instructions */
-        MUL: odata = multicyc_sel ? 32'd0 : ($signed(idata1) * $signed(idata2));
+        // multicyc_sel=0: compute with * (single-cycle).
+        // multicyc_sel=1: result comes from the internal array_mult unit.
+        MUL:  odata = multicyc_sel ? mult_array_out : ($signed(idata1) * $signed(idata2));
         DIV: begin // division by zero --> follow risc-v convention of setting to MAX_INT/-1
             if (idata2 == 32'h0) begin
                 odata = 32'hFFFFFFFF; // Division by zero --> set to -1

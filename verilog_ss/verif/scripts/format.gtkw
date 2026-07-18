@@ -1,15 +1,13 @@
 [*]
 [*] GTKWave Analyzer v3.3.116 (w)1999-2023 BSI
-[*] Sun Jun 28 01:39:38 2026
+[*] Sat Jul  4 21:28:45 2026
 [*]
-[dumpfile] "/home/peri/Desktop/CAPSTONE/overclocked/verilog_ss/verif/sim/verilator/test_pd/rv32ui-p-add.vcd"
-[dumpfile_mtime] "Sun Jun 28 01:31:40 2026"
-[dumpfile_size] 49694417
+[dumpfile] "(null)"
 [savefile] "/home/peri/Desktop/CAPSTONE/overclocked/verilog_ss/verif/scripts/format.gtkw"
-[timestart] 164
+[timestart] 218
 [size] 1920 1118
 [pos] -1 -1
-*-2.000000 173 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+*-2.000000 229 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
 [treeopen] TOP.
 [treeopen] TOP.top.
 [treeopen] TOP.top.dut.
@@ -28,24 +26,8 @@ TOP.top.dut.clock
 -Decoder
 @22
 [color] 2
-TOP.top.dut.core.dec1.opcode[6:0]
-@28
-[color] 2
-TOP.top.dut.core.dec1.funct3[2:0]
-@22
-[color] 2
-TOP.top.dut.core.dec1.funct7[6:0]
-[color] 2
-TOP.top.dut.core.dec1.imm[31:0]
-[color] 2
-TOP.top.dut.core.dec1.shamt[4:0]
-[color] 2
-TOP.top.dut.core.dec1.addr_rd[4:0]
-[color] 2
-TOP.top.dut.core.dec1.addr_rs1[4:0]
-[color] 2
-TOP.top.dut.core.dec1.addr_rs2[4:0]
 TOP.top.dut.core.pc_fd_r_0[31:0]
+[color] 2
 TOP.top.dut.core.pc_fd_r_1[31:0]
 @200
 -
@@ -57,20 +39,33 @@ TOP.top.dut.core.opcode_dx_r_0[6:0]
 TOP.top.dut.core.STORE_OPCODE[6:0]
 TOP.top.dut.core.BRANCH_OPCODE[6:0]
 TOP.top.dut.core.ECALL_OPCODE[6:0]
+[color] 2
 TOP.top.dut.core.pc_fd_r_0[31:0]
 @28
+TOP.top.dut.core.stall_0
 TOP.top.dut.core.load_stall_0
 TOP.top.dut.core.wd_stall_0
+@22
+TOP.top.dut.core.addr_rd_mw_r_0[4:0]
+TOP.top.dut.core.addr_rs1_w_0[4:0]
+@28
+TOP.top.dut.core.is_u_type_0
+TOP.top.dut.core.is_j_type_0
+TOP.top.dut.core.bypass_to_0
+@29
+TOP.top.dut.core.instr_mw_writes_reg_0
+@22
+[color] 7
+TOP.top.dut.core.addr_rd_dx_r_1[4:0]
+@28
 TOP.top.dut.core.store_rs2_stall_0
 TOP.top.dut.core.is_store_fd_0
 TOP.top.dut.core.is_i_type_1
 TOP.top.dut.core.dec2.is_lui
 TOP.top.dut.core.two_way_write_use_case
-@29
-TOP.top.dut.core.stall_0
-@28
 TOP.top.dut.core.stall_1
 @22
+[color] 2
 TOP.top.dut.core.pc_fd_r_1[31:0]
 TOP.top.dut.core.addr_rd_w_0[4:0]
 TOP.top.dut.core.addr_rs1_w_1[4:0]
@@ -93,13 +88,24 @@ TOP.top.dut.core.data_rd_w_1[31:0]
 -
 -ALU
 @22
+[color] 2
 TOP.top.dut.core.pc_dx_r_0[31:0]
+@28
+[color] 5
+TOP.top.dut.core.br_taken_0
+@22
+TOP.top.dut.core.data_rs1_w_0[31:0]
 TOP.top.dut.core.alu_in1_w_0[31:0]
 TOP.top.dut.core.alu_in2_w_0[31:0]
 @200
 -
 @22
+[color] 2
 TOP.top.dut.core.pc_dx_r_1[31:0]
+@28
+[color] 5
+TOP.top.dut.core.br_taken_1
+@22
 TOP.top.dut.core.alu_in1_w_1[31:0]
 TOP.top.dut.core.alu_in2_w_1[31:0]
 @28
@@ -127,11 +133,14 @@ TOP.top.dut.core.pc_xm_r_1[31:0]
 @200
 -
 @22
+[color] 2
 TOP.top.dut.core.pc_mw_r_0[31:0]
 TOP.top.dut.core.addr_rd_mw_r_0[4:0]
 TOP.top.dut.core.data_rd_w_0[31:0]
+[color] 2
 TOP.top.dut.core.pc_mw_r_1[31:0]
 TOP.top.dut.core.addr_rd_mw_r_1[4:0]
 TOP.top.dut.core.data_rd_w_1[31:0]
+TOP.top.dut.core.addr_rs1_dx_r_1[4:0]
 [pattern_trace] 1
 [pattern_trace] 0

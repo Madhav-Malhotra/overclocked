@@ -1,5 +1,5 @@
 # =============================================================================
-# mul_tests.S  —  Comprehensive RV32M MUL test suite
+# rv32uim-p-mul.s  —  Comprehensive RV32M MUL test suite
 #
 # Tests the MUL instruction only (lower 32-bit signed/unsigned product).
 #

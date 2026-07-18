@@ -68,8 +68,7 @@ module pd #(
   // ALU inputs
   wire [DATAW-1:0] alu_in1_w;
   wire [DATAW-1:0] alu_in2_w;
-  wire [DATAW-1:0] alu_comb_out;   // combinational ALU result
-  wire [DATAW-1:0] mult_array_out; // registered result from array_mult
+  wire [DATAW-1:0] alu_out_w;      // ALU result (MUL routed internally to/from array_mult)
 
   // Data memory unit
   wire [DATAW-1:0] data_mem_w;
@@ -478,27 +477,17 @@ module pd #(
      instr_mw_writes_reg)                                  ? data_rd_w :
                                                              data_rs2_w;
 
-  array_mult array_mult1(
+  alu al1(
     .clock(clock),
     .reset(reset),
-    .start_pulse(array_mult_start), // one-cycle pulse when MUL first enters EX
-    .hold(array_mult_hold),         // high while MUL occupies EX
-    .op_a(alu_in1_w),
-    .op_b(alu_in2_w),
-    .result(mult_array_out),
-    .busy(array_mult_busy)
-  );
-
-  // When USE_MULTICYCLE_MULT=1 and MUL is in EX, route the array_mult result.
-  // Otherwise use the combinational ALU output (which handles MUL with * when =0).
-  wire [DATAW-1:0] alu_out_w = (USE_MULTICYCLE_MULT && is_mul_exec) ? mult_array_out : alu_comb_out;
-
-  alu al1(
     .idata1(alu_in1_w),
     .idata2(alu_in2_w),
     .alu_sel(alu_sel),
-    .multicyc_sel(USE_MULTICYCLE_MULT[0]), // 1 = ALU outputs 0 for MUL (array_mult handles it)
-    .odata(alu_comb_out)
+    .multicyc_sel(USE_MULTICYCLE_MULT[0]), // 1 = MUL routed through the internal array_mult unit
+    .mult_start_pulse(array_mult_start),   // one-cycle pulse when MUL first enters EX
+    .mult_hold(array_mult_hold),           // high while MUL occupies EX
+    .mult_busy(array_mult_busy),
+    .odata(alu_out_w)
   );
 
   wire [1:0] mem_write_access_size = funct3_xm_r[1:0];     // For testbench

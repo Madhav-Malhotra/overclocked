@@ -11,15 +11,15 @@ all: make_sim_dir compile run
 
 # surround path with quotes
 MEM_PATH              ?= $(CL_ROOT)/verif/data/rv32ui-p-add.x
-MEM_PATH_NOT_DIR			:= $(notdir $(MEM_PATH))
+MEM_PATH_NOT_DIR            := $(notdir $(MEM_PATH))
 LINE_COUNT            ?= $(shell echo `wc -l < $(MEM_PATH)`)
 MEM_PATH_STR          ?= \"$(abspath $(MEM_PATH))\"
 MEM_DEPTH             ?= 1048576
 TEST_VECTOR           ?= $(CL_ROOT)/verif/data/test_vector.x
 TEST_VECTOR_STR       ?= \"$(TEST_VECTOR)\"
-TRACE_FILE				    ?= $(MEM_PATH_NOT_DIR:x=trace)
-VCD_FILE				      ?= $(MEM_PATH_NOT_DIR:x=vcd)
-VCD_FILE_STR			    ?= \"$(VCD_FILE)\"
+TRACE_FILE                  ?= $(MEM_PATH_NOT_DIR:x=trace)
+VCD_FILE                      ?= $(MEM_PATH_NOT_DIR:x=vcd)
+VCD_FILE_STR                ?= \"$(VCD_FILE)\"
 GEN_TRACE             ?= 1
 TIMEOUT               ?= 50000
 TRACE_FILE_STR        ?= \"$(TRACE_FILE)\"
@@ -54,9 +54,10 @@ BENCH_ROOT := $(shell if [ -d "$(CL_ROOT)/../../../rv32-benchmarks" ]; then \
 		echo "NOT_FOUND"; \
 	fi)
 
-BENCH_INDIVIDUAL := $(wildcard $(BENCH_ROOT)/individual-instructions/*.x)
-BENCH_SIMPLE := $(wildcard $(BENCH_ROOT)/simple-programs/*.x)
-ALL_BENCHMARKS := $(BENCH_INDIVIDUAL) $(BENCH_SIMPLE)
+BENCH_INDIVIDUAL  := $(wildcard $(BENCH_ROOT)/individual-instructions/*.x)
+BENCH_SUPERSCALAR := $(wildcard $(BENCH_ROOT)/superscalar-tests/*.x)
+BENCH_SIMPLE      := $(wildcard $(BENCH_ROOT)/simple-programs/*.x)
+ALL_BENCHMARKS    := $(BENCH_INDIVIDUAL) $(BENCH_SUPERSCALAR) $(BENCH_SIMPLE)
 
 # Debug: print benchmark list
 .PHONY: list_benchmarks
@@ -64,8 +65,10 @@ list_benchmarks:
 	@echo "CL_ROOT: $(CL_ROOT)"
 	@echo "BENCH_ROOT: $(BENCH_ROOT)"
 	@echo "Individual benchmarks path: $(BENCH_ROOT)/individual-instructions/"
+	@echo "Superscalar benchmarks path: $(BENCH_ROOT)/superscalar-tests/"
 	@echo "Simple benchmarks path: $(BENCH_ROOT)/simple-programs/"
 	@echo "Individual benchmarks found: $(words $(BENCH_INDIVIDUAL))"
+	@echo "Superscalar benchmarks found: $(words $(BENCH_SUPERSCALAR))"
 	@echo "Simple benchmarks found: $(words $(BENCH_SIMPLE))"
 	@echo "Total benchmarks: $(words $(ALL_BENCHMARKS))"
 	@echo ""
@@ -76,6 +79,7 @@ list_benchmarks:
 	@echo ""
 	@echo "Directory check:"
 	@ls -la $(BENCH_ROOT)/individual-instructions/ 2>&1 | head -10 || echo "Directory not found"
+	@ls -la $(BENCH_ROOT)/superscalar-tests/ 2>&1 | head -10 || echo "Directory not found"
 	@ls -la $(BENCH_ROOT)/simple-programs/ 2>&1 | head -10 || echo "Directory not found"
 
 
@@ -102,6 +106,8 @@ build_benchmarks:
 	@echo "Building benchmarks from source ($(JOBS) jobs)..."
 	@$(MAKE) -C $(BENCH_ROOT)/individual-instructions -f Makefile.new clean
 	@$(MAKE) -C $(BENCH_ROOT)/individual-instructions -f Makefile.new -j$(JOBS) all
+	@$(MAKE) -C $(BENCH_ROOT)/superscalar-tests -f Makefile.new clean
+	@$(MAKE) -C $(BENCH_ROOT)/superscalar-tests -f Makefile.new -j$(JOBS) all
 	@$(MAKE) -C $(BENCH_ROOT)/simple-programs -f Makefile.iss clean
 	@$(MAKE) -C $(BENCH_ROOT)/simple-programs -f Makefile.iss -j$(JOBS) all
 	@echo "Benchmarks built."
@@ -230,12 +236,15 @@ run_bench:
 	fi
 	@if [ -f "$(BENCH_ROOT)/individual-instructions/$(BENCH).x" ]; then \
 		$(MAKE) -s run TEST=test_pd MEM_PATH="$(BENCH_ROOT)/individual-instructions/$(BENCH).x"; \
+	elif [ -f "$(BENCH_ROOT)/superscalar-tests/$(BENCH).x" ]; then \
+		$(MAKE) -s run TEST=test_pd MEM_PATH="$(BENCH_ROOT)/superscalar-tests/$(BENCH).x"; \
 	elif [ -f "$(BENCH_ROOT)/simple-programs/$(BENCH).x" ]; then \
 		$(MAKE) -s run TEST=test_pd MEM_PATH="$(BENCH_ROOT)/simple-programs/$(BENCH).x"; \
 	else \
 		echo "Error: Benchmark $(BENCH) not found"; \
 		echo "Searched in:"; \
 		echo "  $(BENCH_ROOT)/individual-instructions/$(BENCH).x"; \
+		echo "  $(BENCH_ROOT)/superscalar-tests/$(BENCH).x"; \
 		echo "  $(BENCH_ROOT)/simple-programs/$(BENCH).x"; \
 		exit 1; \
 	fi

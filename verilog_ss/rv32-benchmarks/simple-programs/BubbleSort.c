@@ -88,4 +88,3 @@ int pass() {
 int fail() {
   return 0;
 }
-

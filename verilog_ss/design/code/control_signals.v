@@ -27,10 +27,6 @@ module control_signals #(
 (
     input clock,
     input reset,
-    // active high pipeline enables — freezes the corresponding pipeline reg
-    input dx_en_0,
-    input xm_en_0,
-    input mw_en_0,
     input [6:0] opcode_dx_0,
     input [6:0] opcode_xm_0,
     input [6:0] opcode_mw_0,
@@ -60,9 +56,6 @@ module control_signals #(
 
 
     //way 1
-    input dx_en_1,
-    input xm_en_1,
-    input mw_en_1,
     input [6:0] opcode_dx_1,
     input [6:0] opcode_xm_1,
     input [6:0] opcode_mw_1,
@@ -413,7 +406,7 @@ always @(posedge clock) begin
         is_branch_xm_r_0 <= 1'b0;
         is_ecall_xm_r_0 <= 1'b0;
     end
-    else if (xm_en_0) begin
+    else begin
         is_store_xm_r_0 <= is_store_x_0;
         is_load_xm_r_0 <= is_load_x_0;
         is_jal_xm_r_0 <= is_jal_x_0;
@@ -441,7 +434,7 @@ always @(posedge clock) begin
         is_branch_xm_r_1 <= 1'b0;
         is_ecall_xm_r_1 <= 1'b0;
     end
-    else if (xm_en_1) begin
+    else begin
         is_store_xm_r_1 <= is_store_x_1;
         is_load_xm_r_1 <= is_load_x_1;
         is_jal_xm_r_1 <= is_jal_x_1;
@@ -473,7 +466,7 @@ always @(posedge clock) begin
         is_jal_mw_r_0    <= 1'b0;
         is_jalr_mw_r_0   <= 1'b0;
     end
-    else if (mw_en_0) begin
+    else begin
         is_store_mw_r_0  <= is_store_xm_r_0;
         is_branch_mw_r_0 <= is_branch_xm_r_0;
         is_ecall_mw_r_0  <= is_ecall_xm_r_0;
@@ -493,7 +486,7 @@ always @(posedge clock) begin
         is_jal_mw_r_1    <= 1'b0;
         is_jalr_mw_r_1   <= 1'b0;
     end
-    else if (mw_en_1) begin
+    else begin
         is_store_mw_r_1  <= is_store_xm_r_1;
         is_branch_mw_r_1 <= is_branch_xm_r_1;
         is_ecall_mw_r_1  <= is_ecall_xm_r_1;

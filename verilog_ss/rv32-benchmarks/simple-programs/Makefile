@@ -25,10 +25,6 @@ LINKERFILE= -T ece320.ld
 
 all: $(ELFS) $(ASM) $(DMP) $(DMPNAT) $(BIN) $(RAW) $(X)
 
-%.elf: %.c
-	@echo "ELF-ing $^"
-	$(CC) $(CORE) $(CFLAGS) -o $@ $^ $(LINKERFILE)
-
 %.s: %.c
 	@echo "S-ing $^"
 	$(CC) $(CORE) $(CFLAGS) -S $^ $(LINKERFILE)

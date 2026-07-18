@@ -39,6 +39,10 @@ def find_elf(bench_name: str, bench_root: Path) -> Path | None:
     individual = bench_root / "individual-instructions" / f"{bench_name}.elf"
     if individual.exists():
         return individual
+    # Check the superscalar directory for matching ELFs
+    superscalar = bench_root / "superscalar-tests" / f"{bench_name}.elf"
+    if superscalar.exists():
+        return superscalar
     simple_iss = bench_root / "simple-programs" / f"{bench_name}.iss.elf"
     if simple_iss.exists():
         return simple_iss
@@ -323,7 +327,7 @@ def process_benchmark(
             p, s = proc_commits[i], spike_commits[i]
             if p != s:
                 mismatch_lines.append(f"    [{i}] PROC:  pc={p[0]} rd={p[1]} val={p[2]}")
-                mismatch_lines.append(f"    [{i}] SPIKE: pc={s[0]} rd={s[1]} val={s[2]}")
+                mismatch_lines.append(f"    [{i}] SPIKE: pc={s[s]} rd={s[1]} val={s[2]}")
                 shown += 1
         if mismatch_lines:
             result["message"] += "\n" + "\n".join(mismatch_lines)
@@ -336,9 +340,17 @@ def build_benchmarks(bench_root: Path, scripts_dir: Path, jobs: int):
     """Build .elf + .x from .s/.c sources (clean first)."""
     print("Building benchmarks from source...")
     individual = bench_root / "individual-instructions"
+    superscalar = bench_root / "superscalar-tests"
     simple = bench_root / "simple-programs"
 
-    for d, makefile in [(individual, "Makefile.new"), (simple, "Makefile.iss")]:
+    # Added superscalar directory and its respective Makefile setup
+    directories_config = [
+        (individual, "Makefile.new"),
+        (superscalar, "Makefile.new"),
+        (simple, "Makefile.iss")
+    ]
+
+    for d, makefile in directories_config:
         for target in ["clean", "all"]:
             r = subprocess.run(
                 ["make", "-C", str(d), "-f", makefile, f"-j{jobs}", target],
@@ -375,10 +387,11 @@ def main() -> int:
     if not args.skip_build:
         build_benchmarks(bench_root, scripts_dir, jobs)
 
-    # Discover benchmarks
+    # Discover benchmarks — now includes superscalar-tests path
     bench_individual = sorted((bench_root / "individual-instructions").glob("*.x"))
+    bench_superscalar = sorted((bench_root / "superscalar-tests").glob("*.x"))
     bench_simple = sorted((bench_root / "simple-programs").glob("*.x"))
-    all_benchmarks = bench_individual + bench_simple
+    all_benchmarks = bench_individual + bench_superscalar + bench_simple
 
     if not all_benchmarks:
         print("ERROR: No benchmarks found!")

@@ -605,13 +605,13 @@ always @(posedge clock) begin
   register_file rf1(
     .clock(clock),          // input
     // way 0
-    .write_enable(reg_wen_0), // input
-    .addr_rs1(addr_rs1_w_0),  // input
-    .addr_rs2(addr_rs2_w_0),  // input
-    .addr_rd(addr_rd_mw_r_0), // input
-    .data_rd(data_rd_w_0),    // input
-    .data_rs1(data_rs1_w_0),  // output
-    .data_rs2(data_rs2_w_0),   // output
+    .write_enable_0(reg_wen_0), // input
+    .addr_rs1_0(addr_rs1_w_0),  // input
+    .addr_rs2_0(addr_rs2_w_0),  // input
+    .addr_rd_0(addr_rd_mw_r_0), // input
+    .data_rd_0(data_rd_w_0),    // input
+    .data_rs1_0(data_rs1_w_0),  // output
+    .data_rs2_0(data_rs2_w_0),   // output
 
     //way 1
     .write_enable_1(reg_wen_1), // input

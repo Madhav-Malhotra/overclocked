@@ -70,7 +70,7 @@ bridge:
 		$(OBJ_DIR)/Vdesign_wrapper*.cpp \
 		bridge.cpp
 	$(CXX) $(CXXFLAGS) -o $(SS_LIB_NAME) \
-		-I $(OBJ_DIR) \
+		-I $(SS_OBJ_DIR) \
 		-I $(VERILATOR_INC) \
 		-I $(VERILATOR_INC)/vltstd \
 		$(VERILATOR_INC)/verilated.cpp \

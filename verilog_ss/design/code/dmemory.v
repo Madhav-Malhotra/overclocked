@@ -20,7 +20,7 @@ module dmemory #(
     input  [31:0] address_0,
     input  [31:0] data_in_0,
     output reg [31:0] data_out_0,
-    
+
     //way 2
     input         read_write_1,
     input  [1:0]  access_size_1,

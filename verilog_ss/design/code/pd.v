@@ -844,11 +844,11 @@ Way 1:
   dmemory dmem1(
     .clock(clock),               // input
     // way 0
-    .read_write(data_mem_rw_0),   // input
-    .access_size(mem_write_access_size_0),   // input
-    .address(alu_xm_r_0),          // input
-    .data_in(dmem_data_in_0),      // input
-    .data_out(data_mem_w_0),        // output
+    .read_write_0(data_mem_rw_0),   // input
+    .access_size_0(mem_write_access_size_0),   // input
+    .address_0(alu_xm_r_0),          // input
+    .data_in_0(dmem_data_in_0),      // input
+    .data_out_0(data_mem_w_0),        // output
 
     //way 1
     .read_write_1(data_mem_rw_1),    // input

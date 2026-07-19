@@ -15,11 +15,11 @@ module dmemory #(
 )
 (
     input         clock,
-    input         read_write,
-    input  [1:0]  access_size,
-    input  [31:0] address,
-    input  [31:0] data_in,
-    output reg [31:0] data_out,
+    input         read_write_0,
+    input  [1:0]  access_size_0,
+    input  [31:0] address_0,
+    input  [31:0] data_in_0,
+    output reg [31:0] data_out_0,
     
     //way 2
     input         read_write_1,

@@ -227,7 +227,7 @@ public class VerilatorClientSuperscalar : IDisposable, ICPU
      *
      * @param path  Path to the hex program file (see writeIMem for format details).
      */
-    public VerilatorClient(string path)
+    public VerilatorClientSuperscalar(string path)
     {
         this.state = new CPUState();
         init_design_wrapper();
@@ -281,7 +281,7 @@ public class VerilatorClientSuperscalar : IDisposable, ICPU
     // does not get called.
     // It gives your base class the opportunity to finalize.
     // Do not provide finalizer in types derived from this class.
-    ~VerilatorClient()
+    ~VerilatorClientSuperscalar()
     {
         // Do not re-create Dispose clean-up code here.
         // Calling Dispose(disposing: false) is optimal in terms of

@@ -15,9 +15,9 @@ class Program
         //ICPU myCpu = CPUFactory.Create("level1.txt", CPUFactory.ImplementationType.FPGA);
 
         // UPDATED EXAMPLES (with new CPUArchitecture selection):
-        ICPU myCpu = CPUFactory.CPUArchitecture("level1.txt", CPUFactory.ImplementationType.Verilator, CPUFactory.CPUArchitecture.Basic);
-        ICPU myCpu = CPUFactory.CPUArchitecture("level1.txt", CPUFactory.ImplementationType.Verilator, CPUFactory.CPUArchitecture.Superscalar);
-        ICPU myCpu = CPUFactory.CPUArchitecture("level1.txt", CPUFactory.ImplementationType.FPGA, CPUFactory.CPUArchitecture.Superscalar);
+        ICPU myCpu = CPUFactory.Create("level1.txt", CPUFactory.ImplementationType.Verilator, CPUFactory.CPUArchitecture.Basic);
+        // ICPU myCpu = CPUFactory.Create("level1.txt", CPUFactory.ImplementationType.Verilator, CPUFactory.CPUArchitecture.Superscalar);
+        // ICPU myCpu = CPUFactory.Create("level1.txt", CPUFactory.ImplementationType.FPGA, CPUFactory.CPUArchitecture.Superscalar);
 
 
 

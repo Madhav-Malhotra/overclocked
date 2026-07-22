@@ -21,16 +21,16 @@ public class FPGAClientSuperscalar : IDisposable, ICPU
      * @param json      JSON payload used in POST requests
      * @return          JSON string containing the webserver's response
      */
-    private string makeRequest(string endpoint, string json = "", int way = null)
+    private string makeRequest(string endpoint, string json = "", int way = -1)
     {
         // Append ?way=X to the endpoint string (or append to query parameters if applicable)
         string formattedEndpoint = endpoint;
 
-        if (way.HasValue)
+        if (way >= 0) // way is defined
         {
             formattedEndpoint = endpoint.Contains("?") 
-                ? $"{endpoint}&way={way.Value}" 
-                : $"{endpoint}?way={way.Value}";
+                ? $"{endpoint}&way={way}" 
+                : $"{endpoint}?way={way}";
         }
         
         HttpRequestMessage req;
@@ -145,7 +145,7 @@ public class FPGAClientSuperscalar : IDisposable, ICPU
      */
     public CPUState GetState(int way = 0)
     {
-        string res = makeRequest("/outputs/status");
+        string res = makeRequest("/outputs/status", way: way);
         var opts = new JsonSerializerOptions
         {
             PropertyNameCaseInsensitive = true,
@@ -163,7 +163,7 @@ public class FPGAClientSuperscalar : IDisposable, ICPU
      */
     public uint GetPC(int way = 0)
     {
-        return GetState().pc;
+        return GetState(way).pc;
     }
 
     /*
@@ -173,7 +173,7 @@ public class FPGAClientSuperscalar : IDisposable, ICPU
      */
     public uint GetInstruction(int way = 0)
     {
-        return GetState().instruction;
+        return GetState(way).instruction;
     }
 
     /*
@@ -183,7 +183,7 @@ public class FPGAClientSuperscalar : IDisposable, ICPU
      */
     public uint GetALUOut(int way = 0)
     {
-        return GetState().alu_out;
+        return GetState(way).alu_out;
     }
 
     /*
@@ -258,7 +258,7 @@ public class FPGAClientSuperscalar : IDisposable, ICPU
     /*
      * FPGAClient - static constructor to initialize the HTTPClient reused for all web requests
      */
-    static FPGAClient()
+    static FPGAClientSuperscalar()
     {
         DotNetEnv.Env.Load();
         string host = DotNetEnv.Env.GetString("HOST", "localhost");
@@ -274,7 +274,7 @@ public class FPGAClientSuperscalar : IDisposable, ICPU
      *
      * @param path Path to the hex program file.
      */
-    public FPGAClient(string path)
+    public FPGAClientSuperscalar(string path)
     {
         this.state = new CPUState();
         writeIMem(path);
@@ -296,7 +296,7 @@ public class FPGAClientSuperscalar : IDisposable, ICPU
             disposed = true;
         }
     }
-    ~FPGAClient()
+    ~FPGAClientSuperscalar()
     {
         Dispose(disposing: false);
     }

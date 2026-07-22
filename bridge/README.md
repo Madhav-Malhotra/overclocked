@@ -27,3 +27,5 @@ The following files should be copied to the Unity assets folder, so the C# can b
 - CPU.cs 
 - VerilatorClient.cs
 - FPGAClient.cs
+- VerilatorClientSuperscalar.cs
+- FPGAClientSuperscalar.cs

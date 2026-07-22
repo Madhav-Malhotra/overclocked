@@ -7,7 +7,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using DotNetEnv;
 
-public class FPGAClient : IDisposable, ICPU
+public class FPGAClientSuperscalar : IDisposable, ICPU
 {
     public CPUState state { get; private set; }
     private bool disposed = false;
@@ -21,8 +21,18 @@ public class FPGAClient : IDisposable, ICPU
      * @param json      JSON payload used in POST requests
      * @return          JSON string containing the webserver's response
      */
-    private string makeRequest(string endpoint, string json = "")
+    private string makeRequest(string endpoint, string json = "", int way = null)
     {
+        // Append ?way=X to the endpoint string (or append to query parameters if applicable)
+        string formattedEndpoint = endpoint;
+
+        if (way.HasValue)
+        {
+            formattedEndpoint = endpoint.Contains("?") 
+                ? $"{endpoint}&way={way.Value}" 
+                : $"{endpoint}?way={way.Value}";
+        }
+        
         HttpRequestMessage req;
         HttpResponseMessage res = new HttpResponseMessage();
         try
@@ -32,7 +42,7 @@ public class FPGAClient : IDisposable, ICPU
                 // GET endpoints
                 case "/controls/status":
                 case "/outputs/status":
-                    req = new HttpRequestMessage(HttpMethod.Get, endpoint);
+                    req = new HttpRequestMessage(HttpMethod.Get, formattedEndpoint);
                     res = client.Send(req);
                     break;
                 // POST endpoints
@@ -43,7 +53,7 @@ public class FPGAClient : IDisposable, ICPU
                 case "/controls/dxEn/update":
                 case "/controls/xmEn/update":
                 case "/controls/mwEn/update":
-                    req = new HttpRequestMessage(HttpMethod.Post, endpoint);
+                    req = new HttpRequestMessage(HttpMethod.Post, formattedEndpoint);
                     req.Content = new StringContent(json, Encoding.UTF8, "application/json");
                     res = client.Send(req);
                     break;
@@ -55,7 +65,7 @@ public class FPGAClient : IDisposable, ICPU
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"API Error on {endpoint}: {ex.Message}");
+            Console.WriteLine($"API Error on {endpoint}: {ex.Message} for Way: {way}");
             return string.Empty;
         }
         return res.Content.ReadAsStringAsync().Result;
@@ -119,7 +129,7 @@ public class FPGAClient : IDisposable, ICPU
      */
     public void PrintState(int way = 0)
     {
-        GetState();
+        GetState(way);
         Console.WriteLine(this.state);
         return;
     }

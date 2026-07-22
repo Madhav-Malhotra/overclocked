@@ -157,7 +157,7 @@ enum Operation : byte
     NOP = 10,
 }
 
-// Bridge CPU interface to abstract FPGA/Verilator backend from Unity.
+// Bridge CPU interface to abstract FPGA/Verilator backend from Unity. - Used for basic and superscalar (way is ignored in basic case)
 public interface ICPU
 {
     // CPUState struct representing all module outputs.
@@ -167,39 +167,45 @@ public interface ICPU
     // writeIMem loads a hex-encoded program file into instruction memory.
     void writeIMem(string path);
     // PrintState outputs the `state` for debugging.
-    void PrintState();
+    void PrintState(int way = 0);
     // GetState() retrieves `state` from CPU.
-    CPUState GetState();
+    CPUState GetState(int way = 0);
     // DON'T USE (deprecated):  retrieve the PC from the appropriate pipeline stage struct
-    uint GetPC();
+    uint GetPC(int way = 0);
     // DON'T USE (deprecated):  retrieve the Instruction from the appropriate pipeline stage struct
-    uint GetInstruction();
+    uint GetInstruction(int way = 0);
     // DON'T USE (deprecated):  retrieve the ALU output from the appropriate pipeline stage struct
-    uint GetALUOut();
+    uint GetALUOut(int way = 0);
     // GetFetch retrieves a snapshot of Fetch stage outputs.
-    Fetch GetFetch();
+    Fetch GetFetch(int way = 0);
     // GetFd retrieves a snapshot of Fd stage outputs.
-    Fd GetFd();
+    Fd GetFd(int way = 0);
     // GetDx retrieves a snapshot of Dx stage outputs.
-    Dx GetDx();
+    Dx GetDx(int way = 0);
     // GetXm retrieves a snapshot of Xm stage outputs.
-    Xm GetXm();
+    Xm GetXm(int way = 0);
     // GetMw retrieves a snapshot of Mw stage outputs.
-    Mw GetMw();
+    Mw GetMw(int way = 0);
 }
 
 public static class CPUFactory
 {
     // We use an Enum instead of a string to avoid typos.
     public enum ImplementationType { Verilator, FPGA }
+    public enum CPUArchitecture { Basic, Superscalar }
 
-    public static ICPU Create(string levelPath, ImplementationType type = ImplementationType.Verilator)
+    public static ICPU Create(string levelPath, ImplementationType type = ImplementationType.Verilator, CPUArchitecture cpu_arch = CPUArchitecture.Basic)
     {
-        return type switch
-        {
-            ImplementationType.Verilator => new VerilatorClient(levelPath),
-            ImplementationType.FPGA => new FPGAClient(levelPath),
-            _ => throw new System.ArgumentException("Invalid Implementation Type")
-        };
+        return (type, cpu_arch) switch
+            {
+                // Basic RISC-V CPU:
+                (ImplementationType.Verilator, CPUArchitecture.Basic)       => new VerilatorClient(levelPath),
+                (ImplementationType.FPGA,      CPUArchitecture.Basic)       => new FPGAClient(levelPath),
+                // Superscalar CPU:
+                (ImplementationType.Verilator, CPUArchitecture.Superscalar) => new VerilatorClientSuperscalar(levelPath),
+                (ImplementationType.FPGA,      CPUArchitecture.Superscalar) => new FPGAClientSuperscalar(levelPath),
+                // OOO added below (in future):
+                _ => throw new System.ArgumentException($"Invalid configuration: {type}, {cpu_arch}")
+            };
     }
 }

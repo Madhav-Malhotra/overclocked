@@ -23,14 +23,14 @@ class Program
 
         Action printAllStages = delegate () // use for pretty-printing all pipeline stages in debugging
         {
-            Console.WriteLine(
-                    $"{myCpu.GetFetch(0),-30}" + // only needs to be wide enough for the instruction in PC
-                    $"{myCpu.GetFd(0),-75}" +
-                    $"{myCpu.GetDx(0),-40}" +
-                    $"{myCpu.GetXm(0),-50}" +
-                    $"{myCpu.GetMw(0),-40}"
-                    );
-            Console.WriteLine("=============");
+            // Console.WriteLine(
+            //         $"{myCpu.GetFetch(0),-30}" + // only needs to be wide enough for the instruction in PC
+            //         $"{myCpu.GetFd(0),-75}" +
+            //         $"{myCpu.GetDx(0),-40}" +
+            //         $"{myCpu.GetXm(0),-50}" +
+            //         $"{myCpu.GetMw(0),-40}"
+            //         );
+            // Console.WriteLine("=============");
 
             // // for superscalar 
             // Console.WriteLine(
@@ -40,7 +40,7 @@ class Program
             //         $"{myCpu.GetXm(1),-50}" +
             //         $"{myCpu.GetMw(1),-40}"
                     // );
-            Console.WriteLine("=============");
+            // Console.WriteLine("=============");
         };
         Action printOutput = delegate () // use for pretty-printing all outputs in debugging
         {

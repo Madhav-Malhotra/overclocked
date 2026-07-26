@@ -15,8 +15,8 @@ class Program
         //ICPU myCpu = CPUFactory.Create("level1.txt", CPUFactory.ImplementationType.FPGA);
 
         // UPDATED EXAMPLES (with new CPUArchitecture selection):
-        ICPU myCpu = CPUFactory.Create("level1.txt", CPUFactory.ImplementationType.Verilator, CPUFactory.CPUArchitecture.Basic);
-        // ICPU myCpu = CPUFactory.Create("level1.txt", CPUFactory.ImplementationType.Verilator, CPUFactory.CPUArchitecture.Superscalar);
+        // ICPU myCpu = CPUFactory.Create("level1.txt", CPUFactory.ImplementationType.Verilator, CPUFactory.CPUArchitecture.Basic);
+        ICPU myCpu = CPUFactory.Create("level1.txt", CPUFactory.ImplementationType.Verilator, CPUFactory.CPUArchitecture.Superscalar);
         // ICPU myCpu = CPUFactory.Create("level1.txt", CPUFactory.ImplementationType.FPGA, CPUFactory.CPUArchitecture.Superscalar);
 
 
@@ -24,17 +24,31 @@ class Program
         Action printAllStages = delegate () // use for pretty-printing all pipeline stages in debugging
         {
             Console.WriteLine(
-                    $"{myCpu.GetFetch(),-30}" + // only needs to be wide enough for the instruction in PC
-                    $"{myCpu.GetFd(),-75}" +
-                    $"{myCpu.GetDx(),-40}" +
-                    $"{myCpu.GetXm(),-50}" +
-                    $"{myCpu.GetMw(),-40}"
+                    $"{myCpu.GetFetch(0),-30}" + // only needs to be wide enough for the instruction in PC
+                    $"{myCpu.GetFd(0),-75}" +
+                    $"{myCpu.GetDx(0),-40}" +
+                    $"{myCpu.GetXm(0),-50}" +
+                    $"{myCpu.GetMw(0),-40}"
+                    );
+            Console.WriteLine("=============");
+
+            // for superscalar 
+            Console.WriteLine(
+                    $"{myCpu.GetFetch(1),-30}" + // only needs to be wide enough for the instruction in PC
+                    $"{myCpu.GetFd(1),-75}" +
+                    $"{myCpu.GetDx(1),-40}" +
+                    $"{myCpu.GetXm(1),-50}" +
+                    $"{myCpu.GetMw(1),-40}"
                     );
             Console.WriteLine("=============");
         };
         Action printOutput = delegate () // use for pretty-printing all outputs in debugging
         {
-            myCpu.PrintState();
+            myCpu.PrintState(0);
+
+            // for superscalar
+            myCpu.PrintState(1);
+            
             Console.WriteLine("=============");
         };
         printOutput();

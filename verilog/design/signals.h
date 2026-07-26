@@ -47,3 +47,10 @@
 // ----- design -----
 `define TOP_MODULE                 pd
 // ----- design -----
+
+// ----- macros -----
+`define MEM_PATH            "../verif/data/rv32ui-p-add.x"
+`define LINE_COUNT          357
+`define MEM_DEPTH           1024
+// ----- macros -----
+

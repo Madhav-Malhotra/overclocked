@@ -19,7 +19,8 @@ module pd #(
 )
 (
   input clock,
-  input reset
+  input reset,
+  output [31:0] pc
 );
 
   // ===================
@@ -87,6 +88,7 @@ module pd #(
   // Fetch Decode
   reg [DATAW-1:0] pc_fd_r;
   reg [DATAW-1:0] pc_dx_r;
+  (* dont_touch = "true" *) assign pc = pc_fd_r;
 
   // Decode Execute
   reg [6:0] opcode_dx_r;
@@ -95,10 +97,10 @@ module pd #(
   reg [ADDRW-1:0] addr_rs1_dx_r;
   reg [ADDRW-1:0] addr_rs2_dx_r;
   reg [ADDRW-1:0] addr_rd_dx_r;
-  reg [6:0] funct7_dx_r; 
-  
+  reg [6:0] funct7_dx_r;
+
   // Execute Memory
-  reg [DATAW-1:0] pc_xm_r;   
+  reg [DATAW-1:0] pc_xm_r;
   reg [DATAW-1:0] imm_xm_r;
   reg [2:0] funct3_xm_r;
   reg [DATAW-1:0] alu_xm_r;
@@ -133,18 +135,18 @@ module pd #(
 
 
   // stalls due to load hazard - load in X to rd, read rd in D
-  wire load_stall = is_load_dx && 
-               ((addr_rd_dx_r == addr_rs1_w && !is_u_type && !is_j_type) || 
+  wire load_stall = is_load_dx &&
+               ((addr_rd_dx_r == addr_rs1_w && !is_u_type && !is_j_type) ||
                 (addr_rd_dx_r == addr_rs2_w && !is_u_type && !is_j_type && !is_store_fd && !is_i_type));
 
   // stalls due to write data hazard (no WD forward path)
   // Doesn't involve x0 + is an opcode that writes to an rd
-  wire instr_mw_writes_reg = (addr_rd_mw_r != 0) && 
-    !(opcode_mw_r == STORE_OPCODE || opcode_mw_r == BRANCH_OPCODE || opcode_mw_r == ECALL_OPCODE); 
+  wire instr_mw_writes_reg = (addr_rd_mw_r != 0) &&
+    !(opcode_mw_r == STORE_OPCODE || opcode_mw_r == BRANCH_OPCODE || opcode_mw_r == ECALL_OPCODE);
   // + is an opcode that uses rs1/2
   wire wd_stall = !is_nop_mw && (addr_rd_mw_r != addr_rd_xm_r) && (addr_rd_mw_r != addr_rd_dx_r) && instr_mw_writes_reg && (
-    (addr_rd_mw_r == addr_rs1_w && addr_rs1_w != 0 && !is_u_type && !is_j_type) || 
-    (addr_rd_mw_r == addr_rs2_w && addr_rs2_w != 0 && !is_u_type && !is_j_type && !is_i_type) 
+    (addr_rd_mw_r == addr_rs1_w && addr_rs1_w != 0 && !is_u_type && !is_j_type) ||
+    (addr_rd_mw_r == addr_rs2_w && addr_rs2_w != 0 && !is_u_type && !is_j_type && !is_i_type)
   );
 
    // stalls for load-store extreme dependency
@@ -152,9 +154,9 @@ module pd #(
     (addr_rd_xm_r == addr_rs1_w) && (addr_rd_xm_r == addr_rs2_w);
 
   // Some instruction in mem stage writing to rs2 of store
-  wire instr_xm_writes_reg = (addr_rd_xm_r != 0) && 
-    !(opcode_xm_r == STORE_OPCODE || opcode_xm_r == BRANCH_OPCODE || opcode_xm_r == ECALL_OPCODE);   
-  wire store_rs2_stall = is_store_fd && (addr_rd_xm_r == addr_rs2_w) 
+  wire instr_xm_writes_reg = (addr_rd_xm_r != 0) &&
+    !(opcode_xm_r == STORE_OPCODE || opcode_xm_r == BRANCH_OPCODE || opcode_xm_r == ECALL_OPCODE);
+  wire store_rs2_stall = is_store_fd && (addr_rd_xm_r == addr_rs2_w)
     && instr_xm_writes_reg && !is_nop_xm;
 
 
@@ -212,15 +214,15 @@ module pd #(
     else begin
       pc_r <= (pc_sel == 1) ? alu_out_w : pc4_f_w;
     end
-  end 
+  end
 
-  
+
   // ===================
   // PIPELINE LOGIC
   // ===================
-  
+
   // Fetch-Decode stage
-  reg stall_fd; 
+  reg stall_fd;
   reg [DATAW-1:0] prev_instr;
 
   always @(posedge clock) begin
@@ -246,7 +248,7 @@ module pd #(
     end
   end
 
-  wire [DATAW-1:0] instr_fd_w = (stall_fd) ? prev_instr : instr_w; 
+  wire [DATAW-1:0] instr_fd_w = (stall_fd) ? prev_instr : instr_w;
 
   // Decode-Execute stage
   always @(posedge clock) begin
@@ -347,7 +349,7 @@ module pd #(
       pc_mw_r <= 0;
       alu_mw_r <= 0;
       funct3_mw_r <= 0;
-    end 
+    end
     else begin
       pc_mw_r <= pc_xm_r;
       opcode_mw_r <= opcode_xm_r;
@@ -367,7 +369,7 @@ module pd #(
     .address(pc_r),          // input
     .data_in(imem_in_r),     // input
     .read_write(imem_rw_w),  // input (hardcoded to 0)
-    .enable(imem_enable),    // input 
+    .enable(imem_enable),    // input
     .data_out(instr_w)       // output
   );
 
@@ -495,9 +497,9 @@ module pd #(
   // WM bypass logic
   wire is_store_xm = (opcode_xm_r == STORE_OPCODE);  // Store instruction in XM stage
 
-  wire wm_forward = is_store_xm && 
-                    (addr_rs2_xm_r == addr_rd_mw_r) && 
-                    (addr_rd_mw_r != 0) && 
+  wire wm_forward = is_store_xm &&
+                    (addr_rs2_xm_r == addr_rd_mw_r) &&
+                    (addr_rd_mw_r != 0) &&
                     instr_mw_writes_reg;
 
   // Data memory instantiation based on forwarding logic
@@ -520,11 +522,11 @@ module pd #(
   localparam WORD_OP = 2'b10;
   wire is_unsigned = funct3_mw_r[2];
 
-  wire [DATAW-1:0] data_mem_w_sized = 
-    (mem_read_access_size == BYTE_OP) ? 
+  wire [DATAW-1:0] data_mem_w_sized =
+    (mem_read_access_size == BYTE_OP) ?
       (is_unsigned) ? {24'b0, data_mem_w[7:0]} :                             // LBU
       {{24{data_mem_w[7]}}, data_mem_w[7:0]} :                               // LB
-    (mem_read_access_size == HALF_OP) ? 
+    (mem_read_access_size == HALF_OP) ?
       (is_unsigned) ? {16'b0, data_mem_w[15:0]} :                            // LHU
       {{16{data_mem_w[15]}}, data_mem_w[15:0]} :                             // LH
     (mem_read_access_size == WORD_OP) ? data_mem_w : data_mem_w;             // LW

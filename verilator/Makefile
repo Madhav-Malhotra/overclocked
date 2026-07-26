@@ -5,7 +5,7 @@
 # VERILATOR_INC = ${VERILATOR_ROOT}/include
 
 MEM_PATH   ?= "../verilog/verif/data/rv32ui-p-add.x"
-LINE_COUNT := $(shell wc -l < $(MEM_PATH))
+LINE_COUNT := $(strip $(shell wc -l < $(MEM_PATH)))
 MEM_DEPTH  ?= 1048576
 
 # Variables for paths and flags
@@ -94,6 +94,6 @@ dll:
 
 # Utility to clean up generated verilator, shared library files (not Unity)
 clean:
-	rm -rf $(OBJ_DIR) $(LIB_NAME) design_wrapper.dll
+	rm -rf $(OBJ_DIR) $(LIB_NAME) design_wrapper.dll $(SS_OBJ_DIR) $(SS_LIB_NAME)
 
 .PHONY: all verilog bridge dll clean

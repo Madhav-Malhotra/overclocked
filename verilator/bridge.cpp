@@ -31,6 +31,10 @@
 static Vdesign_wrapper * design = nullptr;
 static VerilatedContext* contextp = nullptr;
 
+// Required by verilated.cpp (declared as a weak extern in verilated_funcs.h).
+// We don't use SystemC, so simulation time isn't tracked here; some linkers
+// (unfortunately macOS's ld) require this weak symbol to be resolved explicitly.
+double sc_time_stamp() { return 0; }
 
 extern "C" {
 // Making sure memory alignment matches what C# in Unity expects

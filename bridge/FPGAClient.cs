@@ -29,19 +29,13 @@ public class FPGAClient : IDisposable, ICPU
             switch (endpoint)
             {
                 // GET endpoints
-                case "/controls/status":
                 case "/outputs/status":
                     req = new HttpRequestMessage(HttpMethod.Get, endpoint);
                     res = client.SendAsync(req).GetAwaiter().GetResult();
                     break;
                 // POST endpoints
+                case "/tick":
                 case "/imem/update":
-                case "/controls/update":
-                case "/controls/fetchEn/update":
-                case "/controls/fdEn/update":
-                case "/controls/dxEn/update":
-                case "/controls/xmEn/update":
-                case "/controls/mwEn/update":
                     req = new HttpRequestMessage(HttpMethod.Post, endpoint);
                     req.Content = new StringContent(json, Encoding.UTF8, "application/json");
                     res = client.SendAsync(req).GetAwaiter().GetResult();
@@ -64,13 +58,10 @@ public class FPGAClient : IDisposable, ICPU
     /*
      * Tick - Advances the clock.
      *
-     * TODO (diana) We want to synchronize the hardware clock with the in-game clock.
-     * This can be achieved by combining a game-clock with the hardware clk signal, but requires changes to verilog.
-     * Stub function added here as a placeholder to satisfy the ICPU interface.
      */
     public void Tick()
     {
-        Console.WriteLine("NOT IMPLEMENTED");
+        makeRequest("/tick");
         return;
     }
 
@@ -107,7 +98,8 @@ public class FPGAClient : IDisposable, ICPU
         }
         Dictionary<string, List<uint>> args = new() { ["mem"] = instructions };
         string argsJson = JsonConvert.SerializeObject(args);
-        makeRequest("/imem/update", argsJson);
+        //makeRequest("/imem/update", argsJson);
+        makeRequest("/imem/update"); // TODO (diana) temp. hardcoding the imem start up configuration
         return;
     }
 

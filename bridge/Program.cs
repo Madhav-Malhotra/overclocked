@@ -15,8 +15,8 @@ class Program
         //ICPU myCpu = CPUFactory.Create("level1.txt", CPUFactory.ImplementationType.FPGA);
 
         // UPDATED EXAMPLES (with new CPUArchitecture selection):
-        // ICPU myCpu = CPUFactory.Create("level1.txt", CPUFactory.ImplementationType.Verilator, CPUFactory.CPUArchitecture.Basic);
-        ICPU myCpu = CPUFactory.Create("level1.txt", CPUFactory.ImplementationType.Verilator, CPUFactory.CPUArchitecture.Superscalar);
+        ICPU myCpu = CPUFactory.Create("level1.txt", CPUFactory.ImplementationType.Verilator, CPUFactory.CPUArchitecture.Basic);
+        // ICPU myCpu = CPUFactory.Create("level1.txt", CPUFactory.ImplementationType.Verilator, CPUFactory.CPUArchitecture.Superscalar);
         // ICPU myCpu = CPUFactory.Create("level1.txt", CPUFactory.ImplementationType.FPGA, CPUFactory.CPUArchitecture.Superscalar);
 
 
@@ -32,14 +32,14 @@ class Program
                     );
             Console.WriteLine("=============");
 
-            // for superscalar 
-            Console.WriteLine(
-                    $"{myCpu.GetFetch(1),-30}" + // only needs to be wide enough for the instruction in PC
-                    $"{myCpu.GetFd(1),-75}" +
-                    $"{myCpu.GetDx(1),-40}" +
-                    $"{myCpu.GetXm(1),-50}" +
-                    $"{myCpu.GetMw(1),-40}"
-                    );
+            // // for superscalar 
+            // Console.WriteLine(
+            //         $"{myCpu.GetFetch(1),-30}" + // only needs to be wide enough for the instruction in PC
+            //         $"{myCpu.GetFd(1),-75}" +
+            //         $"{myCpu.GetDx(1),-40}" +
+            //         $"{myCpu.GetXm(1),-50}" +
+            //         $"{myCpu.GetMw(1),-40}"
+                    // );
             Console.WriteLine("=============");
         };
         Action printOutput = delegate () // use for pretty-printing all outputs in debugging
@@ -47,8 +47,8 @@ class Program
             myCpu.PrintState(0);
 
             // for superscalar
-            myCpu.PrintState(1);
-            
+            // myCpu.PrintState(1);
+
             Console.WriteLine("=============");
         };
         printOutput();

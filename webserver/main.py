@@ -1,11 +1,13 @@
 from typing import List, Optional
 
 from fastapi import FastAPI
+from hw_cfg import Board, ControlSignal
 from pydantic import BaseModel, Field
 
 """ This file contains the minimal fastAPI server used to set variables in memory shared with the FPGA """
 app = FastAPI()
 
+board = Board()
 # var naming: snake_case within python variables, but presenting camelCase to API
 # using camelCase in the API endpoints as well to keep consistency with the value
 
@@ -170,17 +172,33 @@ def read_root():
     return {"Hello": "World"}
 
 
+@app.get("/tick")
+def tick():
+    """Tick 1 clock cycle"""
+    board.tick()
+
+
 @app.get("/outputs/status", response_model=Outputs)
 def get_state():
     """Return all modules' output signals"""
     # TODO (diana) retrieve outputs from FPGA board
+    for signal, mmio in board.output_mmios.items():
+        setattr(outputs, signal.value.field_name, mmio.read())
+        print(signal.name, hex(mmio.read()))
     return outputs
 
 
+# @app.post("/imem/update", response_model=IMem)
+# def update_imem(payload: IMem):
 @app.post("/imem/update", response_model=IMem)
-def update_imem(payload: IMem):
+def update_imem():
     """Update imem contents to payload"""
-    imem.mem = payload.mem
+    # payload should contain the name of a level file, for which there is also a .bit and .hwh file copied onto the webserver
+    # after calling Overlay(), this should call start(), which disables the tick()
+    # right now, hard code this to the design_1_wrapper?
+    # imem.mem = payload.mem
+    board.setup()
+    board.start()
     # print([f"0x{num:08X}" for num in imem.mem]) # debugging
     return imem
 

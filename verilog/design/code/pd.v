@@ -20,7 +20,57 @@ module pd #(
 (
   input clock,
   input reset,
-  output [31:0] pc
+  /*
+  output [31:0] pc_o,
+  output [31:0] instruction_o,
+  output [DATAW-1:0] alu_out_o,
+  output br_eq_o,
+  output br_lt_o,
+  output [1:0] branch_comp_data1_sel_o,
+  output [1:0] branch_comp_data2_sel_o,
+  output br_taken_o,
+  output pc_sel_o,
+  output br_un_o,
+  output [1:0] a_sel_o,
+  output [1:0] b_sel_o,
+  output [3:0] alu_sel_o,
+  output mem_rw_o,
+  output reg_wen_o,
+  output [1:0] wb_sel_o,
+  output [6:0] opcode_o,
+  output [ADDRW-1:0] addr_rd_o,
+  output [ADDRW-1:0] addr_rs1_o,
+  output [ADDRW-1:0] addr_rs2_o,
+  output [2:0] funct3_o,
+  output [6:0] funct7_o,
+  output [DATAW-1:0] imm_o,
+  output [N_BITS-1:0] shamt_o,
+  output is_u_type_w_o,
+  output is_j_type_w_o,
+  output is_i_type_w_o,
+  output [DATAW-1:0] dmem_data_out_o,
+  output [DATAW-1:0] imem_data_out_o,
+  output [DATAW-1:0] data_rs1_o,
+  output [DATAW-1:0] data_rs2_o,
+  output [DATAW-1:0] wb_data_o,
+  */
+  output [DATAW-1:0] fd_pc_o,
+  output [DATAW-1:0] fd_pc4_o,
+  output [6:0] opcode_fd_o,
+  output [ADDRW-1:0] addr_rd_fd_o,
+  output [6:0] opcode_dx_o,
+  output [ADDRW-1:0] addr_rd_dx_o,
+  output [DATAW-1:0] dx_pc_o,
+  output [DATAW-1:0] dmem_data_in_o,
+  output [6:0] opcode_xm_o,
+  output [ADDRW-1:0] addr_rd_xm_o,
+  output [DATAW-1:0] xm_pc_o,
+  output [DATAW-1:0] wb_in_alu_o,
+  output [DATAW-1:0] mem_o,
+  output [DATAW-1:0] mw_pc4_o,
+  output [6:0] opcode_mw_o,
+  output [ADDRW-1:0] addr_rd_mw_o,
+  output [DATAW-1:0] mw_pc_o
 );
 
   // ===================
@@ -81,14 +131,12 @@ module pd #(
   // PC + 4
   wire [DATAW-1:0] pc4_f_w = pc_r + 4;
 
-
   // ====================
   // PIPELINE REGSITERS
   // ====================
   // Fetch Decode
   reg [DATAW-1:0] pc_fd_r;
   reg [DATAW-1:0] pc_dx_r;
-  (* dont_touch = "true" *) assign pc = pc_fd_r;
 
   // Decode Execute
   reg [6:0] opcode_dx_r;
@@ -540,4 +588,73 @@ module pd #(
     .wb_data(data_rd_w)             // output
   );
 
-endmodule
+
+  // ====================
+   // EXTERNAL SIGNALS
+   // ====================
+   /*
+   assign pc_o = pc_fd_r;
+   assign instruction_o           = instr_fd_w;
+   // --- alu.v ---
+   assign alu_out_o               = alu_xm_r;
+   // --- branch_comp.v ---
+   assign br_eq_o                 = br_eq;
+   assign br_lt_o                 = br_lt;
+   // --- control_signals.v ---
+   assign branch_comp_data1_sel_o = branch_comp_data1_sel;
+   assign branch_comp_data2_sel_o = branch_comp_data2_sel;
+   assign br_taken_o              = br_taken;
+   assign pc_sel_o                = pc_sel;
+   assign br_un_o                 = br_un;
+   assign a_sel_o                 = a_sel;
+   assign b_sel_o                 = b_sel;
+   assign alu_sel_o               = alu_sel;
+   assign mem_rw_o                = data_mem_rw;
+   assign reg_wen_o               = reg_wen;
+   assign wb_sel_o                = wb_sel;
+   // --- decoder.v ---
+   assign opcode_o                = opcode_dx_r;
+   assign addr_rd_o               = addr_rd_dx_r;
+   assign addr_rs1_o              = addr_rs1_dx_r;
+   assign addr_rs2_o              = addr_rs2_dx_r;
+   assign funct3_o                = funct3_dx_r;
+   assign funct7_o                = funct7_dx_r;
+   assign imm_o                   = imm_dx_r;
+   assign shamt_o                 = shamt_w;
+   assign is_u_type_w_o           = is_u_type;
+   assign is_j_type_w_o           = is_j_type;
+   assign is_i_type_w_o           = is_i_type;
+   // --- dmemory.v ---
+   assign dmem_data_out_o         = data_mem_w;
+   // --- imemory.v ---
+   assign imem_data_out_o         = instr_w;
+   // --- register_file.v ---
+   assign data_rs1_o              = data_rs1_w;
+   assign data_rs2_o              = data_rs2_w;
+   // --- writeback.v ---
+   assign wb_data_o               = data_rd_w;
+   */
+   // --- Pipeline Stages ---
+   // fd stage
+   assign fd_pc_o                 = pc_r;
+   assign fd_pc4_o                = pc4_f_w;
+   assign opcode_fd_o             = opcode_w;
+   assign addr_rd_fd_o            = addr_rd_w;
+   // dx stage
+   assign opcode_dx_o             = opcode_dx_r;
+   assign addr_rd_dx_o            = addr_rd_dx_r;
+   assign dx_pc_o                 = pc_dx_r;
+   // xm stage
+   assign dmem_data_in_o          = dmem_data_in;
+   assign opcode_xm_o             = opcode_xm_r;
+   assign addr_rd_xm_o            = addr_rd_xm_r;
+   assign xm_pc_o                 = pc_xm_r;
+   // mw stage
+   assign wb_in_alu_o             = alu_mw_r;
+   assign mem_o                   = data_mem_w_sized;
+   assign mw_pc4_o                = pc4_mw_r;
+   assign opcode_mw_o             = opcode_mw_r;
+   assign addr_rd_mw_o            = addr_rd_mw_r;
+   assign mw_pc_o                 = pc_mw_r;
+
+   endmodule

@@ -5,6 +5,8 @@
 //              Implements hazard detection (load, write-data, load-store, store-rs2, inter-way stalls),
 //              MX/WX/WM data forwarding, and branch resolution in the execute stage
 //              (predict not-taken, 1-cycle penalty on taken branch) Same-cycle reads, 1-cycle writes. 
+//              Each way owns an independent multicycle array_mult unit (instanced inside its ALU),
+//              so a MUL in one way does not block the other way's multiplier hardware.
 // Inputs:      clock - processor clock
 //              reset - synchronous reset; returns PC to BASE_ADDR
 // Outputs:     (none - all state is internal; testbench probes internal signals)
@@ -13,7 +15,9 @@ module pd #(
   parameter DATAW = 32,
   parameter BASE_ADDR = 32'h01000000,
   parameter ADDRW = $clog2(DATAW),
-  parameter N_BITS = $clog2(DATAW)
+  parameter N_BITS = $clog2(DATAW),
+  // 1: multicycle array_mult (stalls pipeline); 0: single-cycle MUL in ALU
+  parameter USE_MULTICYCLE_MULT = 1'b0
 )
 (
   input clock,
@@ -23,6 +27,9 @@ module pd #(
 // ================================ 
 // INPUTS/OUTPUTS TO MODULES: 
 // ================================
+
+  localparam MUL_ALU = 4'd11;   // alu_sel encoding for MUL (used to detect MUL in EX)
+
   // IMEMORY INPUTS
   reg [DATAW-1:0] pc_r_0; // each way has own pc value (to reflect instruction being processed)
   reg [DATAW-1:0] pc_r_1;
@@ -32,8 +39,8 @@ module pd #(
 
   reg [DATAW-1:0] imem_in_r;      // unused input to imem
   wire imem_rw_w = 0;             // always 0 (read-only)
-  wire imem_en = !(stall_0 || stall_1);
-  
+  wire imem_en = !(fetch_stall);
+
   // Decoder unit signals
     // way0
   wire [6:0] opcode_w_0;
@@ -61,7 +68,7 @@ module pd #(
   wire is_j_type_1;
   wire is_i_type_1;
 
-  // Stalling Signals Unit
+  // Stalling Signals Unit (data-hazard stalls only; multicycle-mult stalls are separate)
   wire stall_0;
   wire stall_1;
   wire instr_mw_writes_reg_0;
@@ -103,6 +110,9 @@ module pd #(
     // way 1
   wire [DATAW-1:0] data_rs1_w_1;     
   wire [DATAW-1:0] data_rs2_w_1;     
+
+  wire [DATAW-1:0] data_rs1_dx_1;
+  wire [DATAW-1:0] data_rs2_dx_1;
 
   // ALU inputs
     // way 0
@@ -203,6 +213,61 @@ module pd #(
   localparam NOP_OPCODE = 7'b0010011;  // Opcode for ADDI
   localparam STORE_OPCODE = 7'b0100011;
 
+  // ------------------------------------------------------------------
+  // Multicycle multiply stall (per way)
+  // ------------------------------------------------------------------
+
+  // way 0
+  wire is_mul_exec_0     = (alu_sel_0 == MUL_ALU);
+  wire array_mult_hold_0 = USE_MULTICYCLE_MULT && is_mul_exec_0;
+  wire array_mult_busy_0;
+  reg  array_mult_busy_d1_0;
+  reg  prev_is_mul_0;
+  reg  [DATAW-1:0] prev_pc_dx_r_0;
+  always @(posedge clock) begin
+    if (reset) begin
+      array_mult_busy_d1_0 <= 1'b0;
+      prev_is_mul_0        <= 1'b0;
+      prev_pc_dx_r_0        <= {DATAW{1'b0}};
+    end else begin
+      array_mult_busy_d1_0 <= array_mult_busy_0;
+      prev_is_mul_0        <= is_mul_exec_0;
+      prev_pc_dx_r_0        <= pc_dx_r_0;
+    end
+  end
+  wire mul_just_started_0 = USE_MULTICYCLE_MULT && is_mul_exec_0 &&
+      (!prev_is_mul_0 || (pc_dx_r_0 != prev_pc_dx_r_0));
+  wire array_mult_start_0 = USE_MULTICYCLE_MULT && mul_just_started_0;
+  wire mul_stall_0 = USE_MULTICYCLE_MULT &&
+    (array_mult_busy_0 || array_mult_busy_d1_0 || mul_just_started_0);
+
+  // way 1
+  wire is_mul_exec_1     = (alu_sel_1 == MUL_ALU);
+  wire array_mult_hold_1 = USE_MULTICYCLE_MULT && is_mul_exec_1;
+  wire array_mult_busy_1;
+  reg  array_mult_busy_d1_1;
+  reg  prev_is_mul_1;
+  reg  [DATAW-1:0] prev_pc_dx_r_1;
+  always @(posedge clock) begin
+    if (reset) begin
+      array_mult_busy_d1_1 <= 1'b0;
+      prev_is_mul_1        <= 1'b0;
+      prev_pc_dx_r_1        <= {DATAW{1'b0}};
+    end else begin
+      array_mult_busy_d1_1 <= array_mult_busy_1;
+      prev_is_mul_1        <= is_mul_exec_1;
+      prev_pc_dx_r_1        <= pc_dx_r_1;
+    end
+  end
+  wire mul_just_started_1 = USE_MULTICYCLE_MULT && is_mul_exec_1 &&
+      (!prev_is_mul_1 || (pc_dx_r_1 != prev_pc_dx_r_1));
+  wire array_mult_start_1 = USE_MULTICYCLE_MULT && mul_just_started_1;
+  wire mul_stall_1 = USE_MULTICYCLE_MULT &&
+    (array_mult_busy_1 || array_mult_busy_d1_1 || mul_just_started_1);
+
+  // Either way's MUL freezes fetch (the two ways must stay fetch-paired).
+  wire fetch_stall = stall_0 || stall_1 || mul_stall_0 || mul_stall_1;
+
   // ===================
   // CONTROL/FSMs
   // ===================
@@ -217,7 +282,7 @@ module pd #(
       pc_r_0 <= alu_out_w_0;
     end else if(br_taken_1) begin
       pc_r_0 <= alu_out_w_1;
-    end else if (stall_0 || stall_1) begin 
+    end else if (fetch_stall) begin
       pc_r_0 <= pc_r_0;  
     end else begin 
       pc_r_0 <= pc8_f_w_0;      // default: pc + 8
@@ -238,17 +303,17 @@ always @(posedge clock) begin
       pc_r_1 <= alu_out_w_0 + 4;
     end else if (br_taken_1) begin
       pc_r_1 <= alu_out_w_1 + 4;
-    end else if (stall_0 || stall_1) begin  // stall way 1 if either way 0 stalls or way 1 has to stall 
+    end else if (fetch_stall) begin  // stall way 1 if either way 0 stalls or way 1 has to stall 
       pc_r_1 <= pc_r_1;  
     end else begin
       pc_r_1 <= pc8_f_w_1;    // default: pc + 8
     end
   end 
-  
+
   // ===================
   // PIPELINE LOGIC
   // ===================
-  
+
   // Fetch-Decode stage
   reg stall_fd_0;
   reg stall_fd_1;
@@ -269,20 +334,19 @@ always @(posedge clock) begin
       prev_instr_0 <= NOP_INSTR;    // Insert NOP on any taken branch taken (either way)
       stall_fd_0 <= 1;
     end
-    else if (stall_0) begin
+    else if (stall_0 || mul_stall_0) begin
       pc_fd_r_0 <= pc_fd_r_0;          // Hold FD pipeline registers during stall
       prev_instr_0 <= (!stall_fd_0) ? instr_w_0 : prev_instr_0;
       stall_fd_0 <= 1;
-    end else if(stall_1 && !stall_0) begin
+    end else if (mul_stall_1) begin
+      pc_fd_r_0 <= pc_fd_r_0;
+      prev_instr_0 <= (!stall_fd_0) ? instr_w_0 : prev_instr_0;
+      stall_fd_0 <= 1;
+    end else if (stall_1 && !stall_0) begin
       pc_fd_r_0 <= pc_fd_r_0;
       prev_instr_0 <= NOP_INSTR;
       stall_fd_0 <= 1;
     end
-    // else if (!stall_fd_0 && stall_fd_1) begin 
-    //   pc_fd_r_0 <= pc_fd_r_0;
-    //   prev_instr_0 <= prev_instr_0;    // Insert NOP on branch taken
-    //   stall_fd_0 <= 0;
-    // end
     else begin
       pc_fd_r_0 <= pc_r_0;
       prev_instr_0 <= instr_w_0;
@@ -302,7 +366,7 @@ always @(posedge clock) begin
       prev_instr_1 <= NOP_INSTR;    // Insert NOP on branch taken
       stall_fd_1 <= 1;
     end
-    else if (stall_0 || stall_1) begin
+    else if (stall_0 || stall_1 || mul_stall_0 || mul_stall_1) begin
       pc_fd_r_1 <= pc_fd_r_1;          // Hold FD pipeline registers during stall
       prev_instr_1 <= (!stall_fd_1) ? instr_w_1 : prev_instr_1;
       stall_fd_1 <= 1;
@@ -331,8 +395,18 @@ always @(posedge clock) begin
       addr_rd_dx_r_0 <= 0;
       funct7_dx_r_0 <= 0;
     end
-    else if (stall_0 || br_taken_0 || br_taken_1) begin 
-      // Insert NOP only on branch taken
+    else if (mul_stall_0) begin
+      // Hold MUL in EX (way 0) while its array_mult computes; do not advance to XM.
+      pc_dx_r_0 <= pc_dx_r_0;
+      opcode_dx_r_0 <= opcode_dx_r_0;
+      funct3_dx_r_0 <= funct3_dx_r_0;
+      imm_dx_r_0 <= imm_dx_r_0;
+      addr_rs1_dx_r_0 <= addr_rs1_dx_r_0;
+      addr_rs2_dx_r_0 <= addr_rs2_dx_r_0;
+      addr_rd_dx_r_0 <= addr_rd_dx_r_0;
+      funct7_dx_r_0 <= funct7_dx_r_0;
+    end
+    else if (stall_0 || mul_stall_1 || br_taken_0 || br_taken_1) begin
       pc_dx_r_0 <= pc_fd_r_0;
       opcode_dx_r_0 <= NOP_OPCODE;
       funct3_dx_r_0 <= 0;
@@ -366,6 +440,30 @@ always @(posedge clock) begin
       addr_rs2_dx_r_1 <= 0;
       addr_rd_dx_r_1 <= 0;
       funct7_dx_r_1 <= 0;
+    end
+    else if (mul_stall_1) begin
+      // Hold MUL in EX (way 1) while its array_mult computes; do not advance to XM.
+      pc_dx_r_1 <= pc_dx_r_1;
+      opcode_dx_r_1 <= opcode_dx_r_1;
+      funct3_dx_r_1 <= funct3_dx_r_1;
+      imm_dx_r_1 <= imm_dx_r_1;
+      addr_rs1_dx_r_1 <= addr_rs1_dx_r_1;
+      addr_rs2_dx_r_1 <= addr_rs2_dx_r_1;
+      addr_rd_dx_r_1 <= addr_rd_dx_r_1;
+      funct7_dx_r_1 <= funct7_dx_r_1;
+    end
+    else if (mul_stall_0) begin
+      // Way 0's MUL is stalling. Hold way 1's already-latched partner here
+      // (do not advance to XM) so it retires alongside the MUL instead of
+      // racing ahead of it
+      pc_dx_r_1 <= pc_dx_r_1;
+      opcode_dx_r_1 <= opcode_dx_r_1;
+      funct3_dx_r_1 <= funct3_dx_r_1;
+      imm_dx_r_1 <= imm_dx_r_1;
+      addr_rs1_dx_r_1 <= addr_rs1_dx_r_1;
+      addr_rs2_dx_r_1 <= addr_rs2_dx_r_1;
+      addr_rd_dx_r_1 <= addr_rd_dx_r_1;
+      funct7_dx_r_1 <= funct7_dx_r_1;
     end
     else if (stall_0 || stall_1 || br_taken_0 || br_taken_1) begin
       // Insert NOP only on branch taken
@@ -404,6 +502,18 @@ always @(posedge clock) begin
       addr_rs2_xm_r_0 <= 0;
       addr_rd_xm_r_0 <= 0;
     end
+    else if (mul_stall_0) begin
+      // Inject a bubble into XM (way 0) so the instruction that was in XM can
+      // drain into MW without the in-flight MUL being re-latched every cycle.
+      pc_xm_r_0 <= 0;
+      imm_xm_r_0 <= 0;
+      funct3_xm_r_0 <= 0;
+      data_rs2_xm_r_0 <= 0;
+      alu_xm_r_0 <= 0;
+      opcode_xm_r_0 <= 0;
+      addr_rs2_xm_r_0 <= 0;
+      addr_rd_xm_r_0 <= 0;
+    end
     else begin
       pc_xm_r_0 <= pc_dx_r_0;             // Pipeline PC, rs2 data from last stage
       imm_xm_r_0 <= imm_dx_r_0; 
@@ -419,6 +529,31 @@ always @(posedge clock) begin
 // way 1
     always @(posedge clock) begin
     if (reset) begin
+      pc_xm_r_1 <= 0;
+      imm_xm_r_1 <= 0;
+      funct3_xm_r_1 <= 0;
+      data_rs2_xm_r_1 <= 0;
+      alu_xm_r_1 <= 0;
+      opcode_xm_r_1 <= 0;
+      addr_rs2_xm_r_1 <= 0;
+      addr_rd_xm_r_1 <= 0;
+    end
+    else if (mul_stall_1) begin
+      // Inject a bubble into XM (way 1) so the instruction that was in XM can
+      // drain into MW without the in-flight MUL being re-latched every cycle.
+      pc_xm_r_1 <= 0;
+      imm_xm_r_1 <= 0;
+      funct3_xm_r_1 <= 0;
+      data_rs2_xm_r_1 <= 0;
+      alu_xm_r_1 <= 0;
+      opcode_xm_r_1 <= 0;
+      addr_rs2_xm_r_1 <= 0;
+      addr_rd_xm_r_1 <= 0;
+    end
+    else if (mul_stall_0) begin
+      // Way 0's MUL is stalling and way 1's partner is being held in DX
+      // (see DX1 above), not advancing -- bubble XM1 too so it isn't
+      // re-latched with the same (unchanged) DX1 contents every cycle.
       pc_xm_r_1 <= 0;
       imm_xm_r_1 <= 0;
       funct3_xm_r_1 <= 0;
@@ -620,7 +755,13 @@ always @(posedge clock) begin
     .addr_rd_1(addr_rd_mw_r_1), // input
     .data_rd_1(data_rd_w_1),    // input
     .data_rs1_1(data_rs1_w_1),  // output
-    .data_rs2_1(data_rs2_w_1)   // output
+    .data_rs2_1(data_rs2_w_1),  // output
+
+    // way 1 DX-stage combinational read (see data_rs1_dx_1 declaration above)
+    .addr_rs1_dx_1(addr_rs1_dx_r_1), // input
+    .addr_rs2_dx_1(addr_rs2_dx_r_1), // input
+    .data_rs1_dx_1(data_rs1_dx_1),   // output
+    .data_rs2_dx_1(data_rs2_dx_1)    // output
   );
 
   wire [DATAW-1:0] data_rs1_stall_w = data_rs1_w_0;
@@ -629,6 +770,8 @@ always @(posedge clock) begin
   control_signals cs1(
     .clock(clock),
     .reset(reset),
+    .mul_stall_0(mul_stall_0),        // input: way 0 MUL stall so cs1 can bubble its XM regs
+    .mul_stall_1(mul_stall_1),        // input: way 1 MUL stall so cs1 can bubble its XM regs
     .opcode_dx_0(opcode_dx_r_0),      // input
     .opcode_xm_0(opcode_xm_r_0),      // input
     .opcode_mw_0(opcode_mw_r_0),      // input
@@ -711,13 +854,13 @@ always @(posedge clock) begin
                                   (branch_comp_data1_sel_1 == WX_BYPASS_1) ? data_rd_w_1 :
                                   (branch_comp_data1_sel_1 == MX_BYPASS_0) ? alu_xm_r_0 :
                                   (branch_comp_data1_sel_1 == MX_BYPASS_1) ? alu_xm_r_1 :
-                                        data_rs1_w_1;
+                                        data_rs1_dx_1;
 
   wire [DATAW-1:0] bc_idata2_in_1 =  (branch_comp_data2_sel_1 == WX_BYPASS_0) ? data_rd_w_0:
                                   (branch_comp_data2_sel_1 == WX_BYPASS_1) ? data_rd_w_1 :
                                   (branch_comp_data2_sel_1 == MX_BYPASS_0) ? alu_xm_r_0 :
                                   (branch_comp_data2_sel_1 == MX_BYPASS_1) ? alu_xm_r_1 :
-                                        data_rs2_w_1;
+                                        data_rs2_dx_1;
 //way 0
   branch_comp bc1(
     .idata1(bc_data1_in_0),
@@ -760,7 +903,7 @@ always @(posedge clock) begin
                         (a_sel_1 == WX_BYPASS_1) ? data_rd_w_1 :
                         (a_sel_1 == MX_BYPASS_0) ? alu_xm_r_0 :
                         (a_sel_1 == MX_BYPASS_1) ? alu_xm_r_1 :
-                                                  data_rs1_w_1 ; // default --> use decoded way 1 rs1 value
+                                                  data_rs1_dx_1 ; // default --> use decoded way 1 rs1 value
 
   // B sel definitions (determines ALU input 2)
   assign alu_in2_w_1 = 
@@ -769,20 +912,32 @@ always @(posedge clock) begin
                      (b_sel_1 == WX_BYPASS_1) ? data_rd_w_1 :
                      (b_sel_1 == MX_BYPASS_0) ? alu_xm_r_0 :
                      (b_sel_1 == MX_BYPASS_1) ? alu_xm_r_1 :
-                                             data_rs2_w_1 ; // default --> use decoded way 1 rs2 value
+                                             data_rs2_dx_1 ; // default --> DX-stage regfile read for way 1 rs2
   // way 0
   alu al1(
+    .clock(clock),
+    .reset(reset),
     .idata1(alu_in1_w_0),
     .idata2(alu_in2_w_0),
     .alu_sel(alu_sel_0),
+    .multicyc_sel(USE_MULTICYCLE_MULT[0]), // 1 = MUL routed through this way's internal array_mult unit
+    .mult_start_pulse(array_mult_start_0),  // one-cycle pulse when MUL first enters EX (way 0)
+    .mult_hold(array_mult_hold_0),          // high while MUL occupies EX (way 0)
+    .mult_busy(array_mult_busy_0),
     .odata(alu_out_w_0)
   );
 
-  //way 2
+  //way 1
   alu al2(
+    .clock(clock),
+    .reset(reset),
     .idata1(alu_in1_w_1),
     .idata2(alu_in2_w_1),
     .alu_sel(alu_sel_1),
+    .multicyc_sel(USE_MULTICYCLE_MULT[0]), // 1 = MUL routed through this way's internal array_mult unit
+    .mult_start_pulse(array_mult_start_1),  // one-cycle pulse when MUL first enters EX (way 1)
+    .mult_hold(array_mult_hold_1),          // high while MUL occupies EX (way 1)
+    .mult_busy(array_mult_busy_1),
     .odata(alu_out_w_1)
   );
 

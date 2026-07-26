@@ -27,6 +27,11 @@ module control_signals #(
 (
     input clock,
     input reset,
+    // mul_stall_0/1 from pd.v: high while that way's array_mult is computing;
+    // used to inject a bubble into that way's XM stage so instructions behind
+    // an in-flight MUL aren't re-committed on every stall cycle.
+    input mul_stall_0,
+    input mul_stall_1,
     input [6:0] opcode_dx_0,
     input [6:0] opcode_xm_0,
     input [6:0] opcode_mw_0,
@@ -406,6 +411,17 @@ always @(posedge clock) begin
         is_branch_xm_r_0 <= 1'b0;
         is_ecall_xm_r_0 <= 1'b0;
     end
+    else if (mul_stall_0) begin
+        // While array_mult (way 0) holds MUL in DX, inject a bubble into XM so
+        // instructions already past EX can drain through MW without being
+        // re-issued on every stall cycle.
+        is_store_xm_r_0 <= 1'b0;
+        is_load_xm_r_0 <= 1'b0;
+        is_jal_xm_r_0 <= 1'b0;
+        is_jalr_xm_r_0 <= 1'b0;
+        is_branch_xm_r_0 <= 1'b0;
+        is_ecall_xm_r_0 <= 1'b0;
+    end
     else begin
         is_store_xm_r_0 <= is_store_x_0;
         is_load_xm_r_0 <= is_load_x_0;
@@ -426,7 +442,30 @@ always @(posedge clock) begin
         is_jalr_xm_r_1 <= 1'b0;
         is_branch_xm_r_1 <= 1'b0;
         is_ecall_xm_r_1 <= 1'b0;
-    end else if (br_taken_0) begin
+    end
+    else if (mul_stall_1) begin
+        // While array_mult (way 1) holds MUL in DX, inject a bubble into XM so
+        // instructions already past EX can drain through MW without being
+        // re-issued on every stall cycle.
+        is_store_xm_r_1 <= 1'b0;
+        is_load_xm_r_1 <= 1'b0;
+        is_jal_xm_r_1 <= 1'b0;
+        is_jalr_xm_r_1 <= 1'b0;
+        is_branch_xm_r_1 <= 1'b0;
+        is_ecall_xm_r_1 <= 1'b0;
+    end
+    else if (mul_stall_0) begin
+        // Way 0's MUL is stalling and way 1's partner is being held in DX
+        // (not advancing) -- bubble XM1 too so it isn't re-latched with the
+        // same (unchanged) DX1 contents every cycle.
+        is_store_xm_r_1 <= 1'b0;
+        is_load_xm_r_1 <= 1'b0;
+        is_jal_xm_r_1 <= 1'b0;
+        is_jalr_xm_r_1 <= 1'b0;
+        is_branch_xm_r_1 <= 1'b0;
+        is_ecall_xm_r_1 <= 1'b0;
+    end
+    else if (br_taken_0) begin
         is_store_xm_r_1 <= 1'b0;
         is_load_xm_r_1 <= 1'b0;
         is_jal_xm_r_1 <= 1'b0;

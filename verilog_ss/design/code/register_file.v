@@ -29,7 +29,7 @@ module register_file #(
     input  [DATAW-1:0] data_rd,
     output [DATAW-1:0] data_rs1,
     output [DATAW-1:0] data_rs2,
-    
+
     // way 2
     input write_enable_1,
     input  [ADDRW-1:0] addr_rs1_1,
@@ -37,7 +37,14 @@ module register_file #(
     input  [ADDRW-1:0] addr_rd_1,
     input  [DATAW-1:0] data_rd_1,
     output [DATAW-1:0] data_rs1_1,
-    output [DATAW-1:0] data_rs2_1
+    output [DATAW-1:0] data_rs2_1,
+
+    // Combinational (unregistered) read port for way 1, keyed by the
+    // DX-stage rs1/rs2 addresses instead of the decode-stage ones. 
+    input  [ADDRW-1:0] addr_rs1_dx_1,
+    input  [ADDRW-1:0] addr_rs2_dx_1,
+    output [DATAW-1:0] data_rs1_dx_1,
+    output [DATAW-1:0] data_rs2_dx_1
 );
 
 // ====================
@@ -91,5 +98,9 @@ assign data_rs2 = data_rs2_r;
 // way 2
 assign data_rs1_1 = data_rs1_r_2;
 assign data_rs2_1 = data_rs2_r_2;
+
+// way 2 DX-stage combinational read
+assign data_rs1_dx_1 = regs[addr_rs1_dx_1];
+assign data_rs2_dx_1 = regs[addr_rs2_dx_1];
 
 endmodule

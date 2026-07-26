@@ -1,4 +1,5 @@
 alu.v
+array_mult.v
 branch_comp.v
 control_signals.v
 decoder.v

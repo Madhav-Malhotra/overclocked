@@ -104,6 +104,11 @@ struct CPUState {
     uint8_t  opcode_mw;
     uint8_t  addr_rd_mw;
     uint32_t mw_pc;
+
+    // multi-cycle multiplier
+    uint8_t mult_start_pulse;
+    uint8_t mult_hold;
+    uint8_t mult_busy;
 };
 #pragma pack(pop)
 
@@ -182,6 +187,11 @@ void get_cpu_state(CPUState* out_state) {
     out_state->opcode_mw   = design->rootp->design_wrapper__DOT__core__DOT__opcode_mw_r;
     out_state->addr_rd_mw  = design->rootp->design_wrapper__DOT__core__DOT__addr_rd_mw_r;
     out_state->mw_pc       = design->rootp->design_wrapper__DOT__core__DOT__pc_mw_r;
+
+    // multi-cycle multiplier
+    out_state->mult_start_pulse = design->rootp->design_wrapper__DOT__core__DOT__al1__DOT__mult_start_pulse;
+    out_state->mult_hold = design->rootp->design_wrapper__DOT__core__DOT__al1__DOT__mult_hold;
+    out_state->mult_busy = design->rootp->design_wrapper__DOT__core__DOT__al1__DOT__mult_busy; 
 }
 
 

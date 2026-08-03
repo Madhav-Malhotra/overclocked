@@ -1,11 +1,10 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Net.Http;
 using System.Runtime.InteropServices;
 using System.Text;
-using System.Text.Json;
-using System.Text.Json.Serialization;
-using DotNetEnv;
+using Newtonsoft.Json;
 
 public class FPGAClient : IDisposable, ICPU
 {
@@ -33,7 +32,7 @@ public class FPGAClient : IDisposable, ICPU
                 case "/controls/status":
                 case "/outputs/status":
                     req = new HttpRequestMessage(HttpMethod.Get, endpoint);
-                    res = client.Send(req);
+                    res = client.SendAsync(req).GetAwaiter().GetResult();
                     break;
                 // POST endpoints
                 case "/imem/update":
@@ -45,7 +44,7 @@ public class FPGAClient : IDisposable, ICPU
                 case "/controls/mwEn/update":
                     req = new HttpRequestMessage(HttpMethod.Post, endpoint);
                     req.Content = new StringContent(json, Encoding.UTF8, "application/json");
-                    res = client.Send(req);
+                    res = client.SendAsync(req).GetAwaiter().GetResult();
                     break;
                 default:
                     Console.WriteLine($"unsupported endpoint: {endpoint}");
@@ -107,8 +106,38 @@ public class FPGAClient : IDisposable, ICPU
 
         }
         Dictionary<string, List<uint>> args = new() { ["mem"] = instructions };
-        string argsJson = JsonSerializer.Serialize(args);
+        string argsJson = JsonConvert.SerializeObject(args);
         makeRequest("/imem/update", argsJson);
+        return;
+    }
+
+    /*
+     * writeIMem - Load already-assembled hex instructions directly into instruction memory.
+     *
+     * TODO (diana): the /imem/update endpoint used by writeIMem(string path) assumes a file was
+     * read locally and its hex words assembled into a List<uint> before this call. It's unconfirmed
+     * whether the same endpoint accepts pre-assembled hex directly from the caller, or whether a new
+     * endpoint is needed. Confirm with Diana; until then this overload is a stub to satisfy ICPU.
+     *
+     * @param hexInstructions  Array of 32-bit hex-encoded instruction words.
+     */
+    public void writeIMem(string[] hexInstructions)
+    {
+        Console.WriteLine("NOT IMPLEMENTED");
+        return;
+    }
+
+    /*
+     * Reset - Re-initialize the CPU to a clean post-reset state.
+     *
+     * TODO (diana): the webserver protocol has no known reset endpoint today
+     * (unlike Verilator's finish_reset()/clear_imem() P/Invoke calls). Confirm
+     * with Diana whether one exists or needs to be added; until then this is a
+     * stub to satisfy ICPU.
+     */
+    public void Reset()
+    {
+        Console.WriteLine("NOT IMPLEMENTED");
         return;
     }
 
@@ -136,13 +165,9 @@ public class FPGAClient : IDisposable, ICPU
     public CPUState GetState()
     {
         string res = makeRequest("/outputs/status");
-        var opts = new JsonSerializerOptions
-        {
-            PropertyNameCaseInsensitive = true,
-            IncludeFields = true
-        };
-        opts.Converters.Add(new JsonBooleanToByteConverter());
-        this.state = JsonSerializer.Deserialize<CPUState>(res, opts);
+        var settings = new JsonSerializerSettings();
+        settings.Converters.Add(new JsonBooleanToByteConverter());
+        this.state = JsonConvert.DeserializeObject<CPUState>(res, settings);
         return this.state;
     }
 
@@ -250,9 +275,9 @@ public class FPGAClient : IDisposable, ICPU
      */
     static FPGAClient()
     {
-        DotNetEnv.Env.Load();
-        string host = DotNetEnv.Env.GetString("HOST", "localhost");
-        string port = DotNetEnv.Env.GetString("PORT", "8080");
+        // Hardcoded for simplicity for now. Should be set via in-game config in future
+        string host = "localhost";
+        string port = "8080";
         client = new HttpClient
         {
             BaseAddress = new Uri($"http://{host}:{port}")
@@ -268,6 +293,19 @@ public class FPGAClient : IDisposable, ICPU
     {
         this.state = new CPUState();
         writeIMem(path);
+        this.state = GetState();
+        Console.WriteLine(this.state);
+    }
+
+    /*
+     * FPGAClient - Load already-assembled hex instructions into instruction memory and initialize CPU state.
+     *
+     * @param hexInstructions  Array of 32-bit hex-encoded instruction words.
+     */
+    public FPGAClient(string[] hexInstructions)
+    {
+        this.state = new CPUState();
+        writeIMem(hexInstructions);
         this.state = GetState();
         Console.WriteLine(this.state);
     }
@@ -296,22 +334,23 @@ public class FPGAClient : IDisposable, ICPU
      * > The JSON value could not be converted to System.Byte.
      * > Cannot get the value of a token type 'True' as a number.
      */
-    private class JsonBooleanToByteConverter : JsonConverter<byte>
+    private class JsonBooleanToByteConverter : JsonConverter
     {
-        public override byte Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+        public override bool CanConvert(Type objectType) => objectType == typeof(byte);
+
+        public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
         {
-            // If the JSON value is boolean 'true', return 1
-            if (reader.TokenType == JsonTokenType.True) return 1;
-            // If the JSON value is boolean 'false', return 0
-            if (reader.TokenType == JsonTokenType.False) return 0;
+            // If the JSON value is boolean 'true'/'false', map to 1/0
+            if (reader.TokenType == JsonToken.Boolean) return (bool)reader.Value ? (byte)1 : (byte)0;
             // If it's already a standard number, read it normally
-            if (reader.TokenType == JsonTokenType.Number) return reader.GetByte();
-            throw new JsonException($"Unexpected token type {reader.TokenType} when converting to byte.");
+            if (reader.TokenType == JsonToken.Integer) return Convert.ToByte(reader.Value);
+            throw new JsonSerializationException($"Unexpected token type {reader.TokenType} when converting to byte.");
         }
-        public override void Write(Utf8JsonWriter writer, byte value, JsonSerializerOptions options)
+
+        public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
         {
             // When sending data back, write it as a normal number
-            writer.WriteNumberValue(value);
+            writer.WriteValue((byte)value);
         }
     }
 }

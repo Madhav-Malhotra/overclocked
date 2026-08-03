@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using System.Runtime.InteropServices;
 
 public class VerilatorClient : IDisposable, ICPU
@@ -10,6 +11,9 @@ public class VerilatorClient : IDisposable, ICPU
     public static extern void init_design_wrapper();
 
     [DllImport(NativeLib, CallingConvention = CallingConvention.Cdecl)]
+    public static extern void finish_reset();
+
+    [DllImport(NativeLib, CallingConvention = CallingConvention.Cdecl)]
     public static extern void tick();
 
     [DllImport(NativeLib, CallingConvention = CallingConvention.Cdecl)]
@@ -17,6 +21,9 @@ public class VerilatorClient : IDisposable, ICPU
 
     [DllImport(NativeLib, CallingConvention = CallingConvention.Cdecl)]
     public static extern void get_cpu_state(out CPUState state);
+
+    [DllImport(NativeLib, CallingConvention = CallingConvention.Cdecl)]
+    public static extern void clear_imem();
 
     [DllImport(NativeLib, CallingConvention = CallingConvention.Cdecl)]
     public static extern void set_imem(uint addr, uint instruction);
@@ -56,6 +63,7 @@ public class VerilatorClient : IDisposable, ICPU
     {
         try
         {
+            clear_imem();
             string[] lines = File.ReadAllLines(path);
             uint currentAddr = 0x01000000; // Base addr of imem
             foreach (string line in lines)
@@ -75,6 +83,40 @@ public class VerilatorClient : IDisposable, ICPU
         {
             Console.WriteLine($"Error loading hex file: {ex.Message}");
         }
+    }
+
+    /*
+     * writeIMem — Load already-assembled hex instructions directly into instruction memory.
+     *
+     * Writes each hex string (optionally "0x"-prefixed) to imem via set_imem(),
+     * starting at the base address 0x01000000. No file I/O; callers assemble the
+     * program themselves (e.g. from level JSON) and pass the hex words directly.
+     *
+     * @param hexInstructions  Array of 32-bit hex-encoded instruction words.
+     */
+    public void writeIMem(string[] hexInstructions)
+    {
+        clear_imem();
+        uint currentAddr = 0x01000000; // Base addr of imem
+        foreach (string hex in hexInstructions)
+        {
+            string cleanHex = hex.StartsWith("0x") ? hex.Substring(2) : hex;
+            uint instruction = uint.Parse(cleanHex, System.Globalization.NumberStyles.HexNumber);
+            set_imem(currentAddr, instruction);
+            currentAddr += 4;
+        }
+        Console.WriteLine($"Successfully loaded {hexInstructions.Length} instructions into IMEM.");
+    }
+
+    /*
+     * Reset — Re-initialize the CPU to a clean post-reset state.
+     *
+     * Calls finish_reset() to complete the reset sequence started by
+     * init_design_wrapper(), leaving the design ready to run from imem.
+     */
+    public void Reset()
+    {
+        finish_reset();
     }
 
     /*
@@ -232,6 +274,23 @@ public class VerilatorClient : IDisposable, ICPU
         this.state = new CPUState();
         init_design_wrapper();
         writeIMem(path);
+        Reset();
+    }
+
+    /*
+     * VerilatorClient — Initialize the Verilated model and load already-assembled hex instructions.
+     *
+     * Calls init_design_wrapper() to reset the simulation, then writeIMem() to
+     * populate imem directly from the given hex words.
+     *
+     * @param hexInstructions  Array of 32-bit hex-encoded instruction words.
+     */
+    public VerilatorClient(string[] hexInstructions)
+    {
+        this.state = new CPUState();
+        init_design_wrapper();
+        writeIMem(hexInstructions);
+        Reset();
     }
 
     // Diposable interface from https://learn.microsoft.com/en-us/dotnet/api/system.idisposable?view=net-10.0

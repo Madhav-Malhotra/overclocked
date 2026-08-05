@@ -108,41 +108,77 @@ public struct CPUState
 
 // output structs after each corresponding enable signal is high
 // returned in the get_${stage} functions
-public record struct Fetch(uint pc)
+public struct Fetch
 {
+    public uint pc;
+
+    public Fetch(uint pc)
+    {
+        this.pc = pc;
+    }
+
     public override string ToString()
     {
         return $"Fetch {{ pc = 0x{pc:X8} }}";
     }
-};
+}
 
-public record struct Fd(
-    uint fd_pc,
-    uint fd_pc4,
-    uint instruction
-    )
+public struct Fd
 {
+    public uint fd_pc;
+    public uint fd_pc4;
+    public uint instruction;
+
+    public Fd(uint fd_pc, uint fd_pc4, uint instruction)
+    {
+        this.fd_pc = fd_pc;
+        this.fd_pc4 = fd_pc4;
+        this.instruction = instruction;
+    }
+
     public override string ToString()
     {
         return $"Fd {{ fd_pc = 0x{fd_pc:X8}, fd_pc = 0x{fd_pc4:X8}, instruction = 0x{instruction:X8} }}";
     }
-};
+}
 
-public record struct Dx(
-    uint addr_rs1,
-    uint addr_rs2
-);
+public struct Dx
+{
+    public uint addr_rs1;
+    public uint addr_rs2;
 
-public record struct Xm(
-    uint alu_out,
-    uint dmem_data_in
-);
+    public Dx(uint addr_rs1, uint addr_rs2)
+    {
+        this.addr_rs1 = addr_rs1;
+        this.addr_rs2 = addr_rs2;
+    }
+}
 
-public record struct Mw(
-    uint pc4,
-    uint wb_in_alu,
-    uint mem
-);
+public struct Xm
+{
+    public uint alu_out;
+    public uint dmem_data_in;
+
+    public Xm(uint alu_out, uint dmem_data_in)
+    {
+        this.alu_out = alu_out;
+        this.dmem_data_in = dmem_data_in;
+    }
+}
+
+public struct Mw
+{
+    public uint pc4;
+    public uint wb_in_alu;
+    public uint mem;
+
+    public Mw(uint pc4, uint wb_in_alu, uint mem)
+    {
+        this.pc4 = pc4;
+        this.wb_in_alu = wb_in_alu;
+        this.mem = mem;
+    }
+}
 enum Operation : byte
 {
     ADD = 0,
@@ -166,6 +202,10 @@ public interface ICPU
     void Tick();
     // writeIMem loads a hex-encoded program file into instruction memory.
     void writeIMem(string path);
+    // writeIMem loads already-assembled hex instructions directly into instruction memory.
+    void writeIMem(string[] hexInstructions);
+    // Reset re-initializes the CPU to a clean post-reset state, ready to run from address 0x01000000.
+    void Reset();
     // PrintState outputs the `state` for debugging.
     void PrintState();
     // GetState() retrieves `state` from CPU.
@@ -199,6 +239,17 @@ public static class CPUFactory
         {
             ImplementationType.Verilator => new VerilatorClient(levelPath),
             ImplementationType.FPGA => new FPGAClient(levelPath),
+            _ => throw new System.ArgumentException("Invalid Implementation Type")
+        };
+    }
+
+    // Create an ICPU from already-assembled hex instructions rather than a file path.
+    public static ICPU Create(string[] hexInstructions, ImplementationType type = ImplementationType.Verilator)
+    {
+        return type switch
+        {
+            ImplementationType.Verilator => new VerilatorClient(hexInstructions),
+            ImplementationType.FPGA => new FPGAClient(hexInstructions),
             _ => throw new System.ArgumentException("Invalid Implementation Type")
         };
     }

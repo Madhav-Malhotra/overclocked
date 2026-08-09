@@ -16,7 +16,24 @@ class SignalConfig:
 class OutputSignal(Enum):
     # RO outputs
     # should have 1 output signal for each field of the Outputs model
-    PC = SignalConfig("pc", 0x4120_0000)
+    # PC = SignalConfig("pc", 0x4120_0000)
+    FD_PC = SignalConfig("fd_pc", 0x413C0000)
+    FD_PC4 = SignalConfig("fd_pc4", 0x413D0000)
+    OPCODE_FD = SignalConfig("opcode_fd", 0x413E0000)
+    ADDR_RD_FD = SignalConfig("addr_rd_fd", 0x413F0000)
+    OPCODE_DX = SignalConfig("opcode_dx", 0x41400000)
+    ADDR_RD_DX = SignalConfig("addr_rd_dx", 0x41410000)
+    DX_PC = SignalConfig("dx_pc", 0x41430000)
+    DMEM_DATA_IN = SignalConfig("dmem_data_in", 0x41440000)
+    OPCODE_XM = SignalConfig("opcode_xm", 0x41450000)
+    ADDR_RD_XM = SignalConfig("addr_rd_xm", 0x41460000)
+    XM_PC = SignalConfig("xm_pc", 0x41470000)
+    WB_IN_ALU = SignalConfig("wb_in_alu", 0x41480000)
+    MEM = SignalConfig("mem", 0x41490000)
+    MW_PC = SignalConfig("mw_pc", 0x41200000)
+    MW_PC4 = SignalConfig("mw_pc4", 0x414A0000)
+    OPCODE_MW = SignalConfig("opcode_mw", 0x414B0000)
+    ADDR_RD_MW = SignalConfig("addr_rd_mw", 0x414C0000)
 
     def __init__(self, config: SignalConfig):
         self.config = config

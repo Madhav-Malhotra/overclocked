@@ -147,6 +147,7 @@ outputs = Outputs(
     data_rs1=0x0,
     data_rs2=0x0,
     wb_data=0x0,
+    # only signals after here are populated in GPIO, since they are used in the validation
     fd_pc=0x0,
     fd_pc4=0x4,
     opcode_fd=0x0,
@@ -172,7 +173,7 @@ def read_root():
     return {"Hello": "World"}
 
 
-@app.get("/tick")
+@app.post("/tick")
 def tick():
     """Tick 1 clock cycle"""
     board.tick()
@@ -181,10 +182,10 @@ def tick():
 @app.get("/outputs/status", response_model=Outputs)
 def get_state():
     """Return all modules' output signals"""
-    # TODO (diana) retrieve outputs from FPGA board
     for signal, mmio in board.output_mmios.items():
-        setattr(outputs, signal.value.field_name, mmio.read())
-        print(signal.name, hex(mmio.read()))
+        val = mmio.read()
+        setattr(outputs, signal.value.field_name, val)
+        print(signal.name, hex(val))
     return outputs
 
 

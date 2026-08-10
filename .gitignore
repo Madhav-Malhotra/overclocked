@@ -1,4 +1,6 @@
-verilog/verif/sim/
+verilog/verif/sim/*
+verilog_ss/verif/sim/*
+
 .claude/
 
 # rv32-benchmarks build artifacts
@@ -7,7 +9,6 @@ verilog/rv32-benchmarks/**/*.x
 verilog/rv32-benchmarks/**/*.bin
 verilog/rv32-benchmarks/**/*.raw
 verilog/rv32-benchmarks/**/*.dnum
-verilog/rv32-benchmarks/**/*.d
 verilog/rv32-benchmarks/**/*.spike.log
 verilog/rv32-benchmarks/simple-programs/spike_test.log
 # Extensionless compiled ELF binaries in individual-instructions
@@ -15,7 +16,21 @@ verilog/rv32-benchmarks/individual-instructions/rv32ui-p-*.x
 verilog/rv32-benchmarks/individual-instructions/rv32ui-p-*.elf
 verilog/rv32-benchmarks/individual-instructions/test-*
 
-verilog/verif/diffs/spike/*
+verilog_ss/rv32-benchmarks/**/*.elf
+verilog_ss/rv32-benchmarks/**/*.x
+verilog_ss/rv32-benchmarks/**/*.bin
+verilog_ss/rv32-benchmarks/**/*.raw
+verilog_ss/rv32-benchmarks/**/*.dnum
+verilog_ss/rv32-benchmarks/**/*.spike.log
+verilog_ss/rv32-benchmarks/simple-programs/spike_test.log
+# Extensionless compiled ELF binaries in individual-instructions
+verilog_ss/rv32-benchmarks/individual-instructions/rv32ui-p-*.x
+verilog_ss/rv32-benchmarks/individual-instructions/rv32ui-p-*.elf
+verilog_ss/rv32-benchmarks/individual-instructions/test-*
+
+verilog_ss/verif/diffs/spike/*
+verilog_ss/verif/diffs/spike/*
+
 .DS_Store
 
 # C# stuff

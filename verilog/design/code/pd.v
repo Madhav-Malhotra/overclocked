@@ -147,8 +147,7 @@ module pd #(
     (addr_rd_mw_r == addr_rs2_w && addr_rs2_w != 0 && !is_u_type && !is_j_type && !is_i_type) 
   );
 
-  // stalls for load-store extreme dependency
-  wire load_store_stall = is_load_xm && is_store_fd &&
+    wire load_store_stall = is_load_xm && is_store_fd &&
     (addr_rd_xm_r == addr_rs1_w) && (addr_rd_xm_r == addr_rs2_w);
 
   // Some instruction in mem stage writing to rs2 of store
@@ -459,14 +458,14 @@ module pd #(
   assign alu_in1_w = (a_sel == REG) ? data_rs1_w :
                      (a_sel == PC) ? pc_dx_r :
                      (a_sel == WX_BYPASS) ? data_rd_w :
-                                            alu_xm_r;
+                                            alu_xm_r; // MX bypass
 
   // B sel definitions (determines ALU input 2)
   localparam IMM  = 2'b01;
   assign alu_in2_w = (b_sel == REG) ? data_rs2_w :
                      (b_sel == IMM) ? imm_dx_r :
                      (b_sel == WX_BYPASS) ? data_rd_w :
-                                            alu_xm_r;
+                                            alu_xm_r; // MX bypass
 
   // Store write-data forwarding: b_sel uses the address offset immediate for stores,
   // so rs2 payload (the value being stored) needs its own forwarding path.

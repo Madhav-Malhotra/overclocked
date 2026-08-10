@@ -84,7 +84,7 @@ public class VerilatorClient : IDisposable, ICPU
      * Calls GetState() internally to refresh state.
      * To access fields of full signal snapshot use GetState().
      */
-    public void PrintState()
+    public void PrintState(int way = 0) // NOTE: way is used for superscalar getState, default way = 0 is ignored here
     {
         GetState();
         Console.WriteLine(this.state);
@@ -99,7 +99,7 @@ public class VerilatorClient : IDisposable, ICPU
      *
      * @return  A CPUState struct populated with the current simulation state.
      */
-    public CPUState GetState()
+    public CPUState GetState(int way = 0)
     {
         CPUState state;
         get_cpu_state(out state);
@@ -112,7 +112,7 @@ public class VerilatorClient : IDisposable, ICPU
      *
      * @return  The pc field from the refreshed CPUState.
      */
-    public uint GetPC()
+    public uint GetPC(int way = 0)
     {
         GetState();
         return this.state.pc;
@@ -123,7 +123,7 @@ public class VerilatorClient : IDisposable, ICPU
      *
      * @return  The instruction field from the refreshed CPUState.
      */
-    public uint GetInstruction()
+    public uint GetInstruction(int way = 0)
     {
         GetState();
         return this.state.instruction;
@@ -134,7 +134,7 @@ public class VerilatorClient : IDisposable, ICPU
      *
      * @return  The alu_out field from the refreshed CPUState.
      */
-    public uint GetALUOut()
+    public uint GetALUOut(int way = 0)
     {
         GetState();
         return this.state.alu_out;
@@ -145,7 +145,7 @@ public class VerilatorClient : IDisposable, ICPU
      *
      * @return  A Fetch record containing the current PC.
      */
-    public Fetch GetFetch()
+    public Fetch GetFetch(int way = 0)
     {
         GetState();
         return new Fetch
@@ -159,7 +159,7 @@ public class VerilatorClient : IDisposable, ICPU
      *
      * @return  An Fd record containing fd_pc, fd_pc4, and the instruction word.
      */
-    public Fd GetFd()
+    public Fd GetFd(int way = 0)
     {
         GetState();
         return new Fd
@@ -175,7 +175,7 @@ public class VerilatorClient : IDisposable, ICPU
      *
      * @return  A Dx record containing the source register addresses (addr_rs1, addr_rs2).
      */
-    public Dx GetDx()
+    public Dx GetDx(int way = 0)
     {
         GetState();
         return new Dx
@@ -190,7 +190,7 @@ public class VerilatorClient : IDisposable, ICPU
      *
      * @return  An Xm record containing alu_out and the data memory write value (dmem_data_in).
      */
-    public Xm GetXm()
+    public Xm GetXm(int way = 0)
     {
         GetState();
         return new Xm
@@ -205,7 +205,7 @@ public class VerilatorClient : IDisposable, ICPU
      *
      * @return  An Mw record containing pc4, wb_in_alu, and the memory read value (mem).
      */
-    public Mw GetMw()
+    public Mw GetMw(int way = 0)
     {
         GetState();
         return new Mw

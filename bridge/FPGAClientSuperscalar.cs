@@ -1,0 +1,327 @@
+using System;
+using System.Collections.Generic;
+using System.Net.Http;
+using System.Runtime.InteropServices;
+using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using DotNetEnv;
+
+public class FPGAClientSuperscalar : IDisposable, ICPU
+{
+    public CPUState state { get; private set; }
+    private bool disposed = false;
+    private static readonly HttpClient client;
+    /*
+     * makeRequest - utility function to make an HTTP request to the webserver.
+     *
+     * The mapping of endpoint to GET/POST request is hardcoded in the switch statement.
+     *
+     * @param endpoint  API endpoint to call
+     * @param json      JSON payload used in POST requests
+     * @return          JSON string containing the webserver's response
+     */
+    private string makeRequest(string endpoint, string json = "", int way = -1)
+    {
+        // Append ?way=X to the endpoint string (or append to query parameters if applicable)
+        string formattedEndpoint = endpoint;
+
+        if (way >= 0) // way is defined
+        {
+            formattedEndpoint = endpoint.Contains("?") 
+                ? $"{endpoint}&way={way}" 
+                : $"{endpoint}?way={way}";
+        }
+        
+        HttpRequestMessage req;
+        HttpResponseMessage res = new HttpResponseMessage();
+        try
+        {
+            switch (endpoint)
+            {
+                // GET endpoints
+                case "/controls/status":
+                case "/outputs/status":
+                    req = new HttpRequestMessage(HttpMethod.Get, formattedEndpoint);
+                    res = client.Send(req);
+                    break;
+                // POST endpoints
+                case "/imem/update":
+                case "/controls/update":
+                case "/controls/fetchEn/update":
+                case "/controls/fdEn/update":
+                case "/controls/dxEn/update":
+                case "/controls/xmEn/update":
+                case "/controls/mwEn/update":
+                    req = new HttpRequestMessage(HttpMethod.Post, formattedEndpoint);
+                    req.Content = new StringContent(json, Encoding.UTF8, "application/json");
+                    res = client.Send(req);
+                    break;
+                default:
+                    Console.WriteLine($"unsupported endpoint: {endpoint}");
+                    break;
+            }
+            res.EnsureSuccessStatusCode();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"API Error on {endpoint}: {ex.Message} for Way: {way}");
+            return string.Empty;
+        }
+        return res.Content.ReadAsStringAsync().Result;
+    }
+
+
+    /*
+     * Tick - Advances the clock.
+     *
+     * TODO (diana) We want to synchronize the hardware clock with the in-game clock.
+     * This can be achieved by combining a game-clock with the hardware clk signal, but requires changes to verilog.
+     * Stub function added here as a placeholder to satisfy the ICPU interface.
+     */
+    public void Tick()
+    {
+        Console.WriteLine("NOT IMPLEMENTED");
+        return;
+    }
+
+    /*
+     * writeIMem - Load a hex-encoded program file into instruction memory.
+     *
+     * Reads each line of the file at `path`, strips comments and optional "0x"
+     * prefixes, parses the remaining text as a 32-bit hex instruction.
+     * Calls the /imem/update endpoint with the list of 32-bit hex instructions as JSON content.
+     * Blank lines and comment-only lines are skipped.
+     *
+     * @param path  Path to the hex file (one instruction word per line).
+     */
+    public void writeIMem(string path)
+    {
+        List<uint> instructions = new List<uint>();
+        try
+        {
+            string[] lines = File.ReadAllLines(path);
+            foreach (string line in lines)
+            {
+                string cleanLine = line.Split("//")[0].Trim();
+                if (string.IsNullOrEmpty(cleanLine)) continue;
+                if (cleanLine.StartsWith("0x")) cleanLine = cleanLine.Substring(2); // cut off 0x
+                // Parse hex string to 32-bit uint
+                uint instruction = uint.Parse(cleanLine, System.Globalization.NumberStyles.HexNumber);
+                instructions.Add(instruction);
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading hex file: {ex.Message}");
+
+        }
+        Dictionary<string, List<uint>> args = new() { ["mem"] = instructions };
+        string argsJson = JsonSerializer.Serialize(args);
+        makeRequest("/imem/update", argsJson);
+        return;
+    }
+
+    /*
+     * PrintState — Print a human-readable summary of key CPU signals to stdout.
+     *
+     * Calls GetState() internally to refresh state.
+     */
+    public void PrintState(int way = 0)
+    {
+        GetState(way);
+        Console.WriteLine(this.state);
+        return;
+    }
+
+    /*
+     * GetState — Return a full snapshot of CPU signals in CPUState.
+     *
+     * Makes /outputs/status request to refresh and returns the raw CPUState struct.
+     * Prefer the typed stage helpers (GetFetch, GetFd, …) when only one
+     * pipeline stage's signals are needed.
+     *
+     * @return  A CPUState struct populated with the current simulation state.
+     */
+    public CPUState GetState(int way = 0)
+    {
+        string res = makeRequest("/outputs/status", way: way);
+        var opts = new JsonSerializerOptions
+        {
+            PropertyNameCaseInsensitive = true,
+            IncludeFields = true
+        };
+        opts.Converters.Add(new JsonBooleanToByteConverter());
+        this.state = JsonSerializer.Deserialize<CPUState>(res, opts);
+        return this.state;
+    }
+
+    /*
+     * GetPC — Return the current program counter value.
+     *
+     * @return  The pc field from the refreshed CPUState.
+     */
+    public uint GetPC(int way = 0)
+    {
+        return GetState(way).pc;
+    }
+
+    /*
+     * GetInstruction — Return the instruction word currently in the Fetch/Decode register.
+     *
+     * @return  The instruction field from the refreshed CPUState.
+     */
+    public uint GetInstruction(int way = 0)
+    {
+        return GetState(way).instruction;
+    }
+
+    /*
+     * GetALUOut — Return the ALU result register value (alu_xm_r).
+     *
+     * @return  The alu_out field from the refreshed CPUState.
+     */
+    public uint GetALUOut(int way = 0)
+    {
+        return GetState(way).alu_out;
+    }
+
+    /*
+     * GetFetch — Return a typed snapshot of the Fetch stage outputs.
+     *
+     * @return  A Fetch record containing the current PC.
+     */
+    public Fetch GetFetch(int way = 0)
+    {
+        return new Fetch
+        {
+            pc = this.state.pc,
+        };
+    }
+    /*
+     * GetFd — Return a typed snapshot of the Fetch→Decode register contents.
+     *
+     * @return  An Fd record containing fd_pc, fd_pc4, and the instruction word.
+     */
+    public Fd GetFd(int way = 0)
+    {
+        return new Fd
+        {
+            fd_pc = this.state.fd_pc,
+            fd_pc4 = this.state.fd_pc4,
+            instruction = this.state.instruction,
+        };
+    }
+
+    /*
+     * GetDx — Return a typed snapshot of the Decode→Execute register contents.
+     *
+     * @return  A Dx record containing the source register addresses (addr_rs1, addr_rs2).
+     */
+    public Dx GetDx(int way = 0)
+    {
+        return new Dx
+        {
+            addr_rs1 = this.state.addr_rs1,
+            addr_rs2 = this.state.addr_rs2,
+        };
+    }
+
+    /*
+     * GetXm — Return a typed snapshot of the Execute→Memory register contents.
+     *
+     * @return  An Xm record containing alu_out and the data memory write value (dmem_data_in).
+     */
+    public Xm GetXm(int way = 0)
+    {
+        return new Xm
+        {
+            alu_out = this.state.alu_out,
+            dmem_data_in = this.state.dmem_data_in,
+        };
+    }
+
+    /*
+     * GetMw — Return a typed snapshot of the Memory→Writeback register contents.
+     *
+     * @return  An Mw record containing pc4, wb_in_alu, and the memory read value (mem).
+     */
+    public Mw GetMw(int way = 0)
+    {
+        return new Mw
+        {
+            pc4 = this.state.mw_pc4,
+            wb_in_alu = this.state.wb_in_alu,
+        };
+    }
+
+    /*
+     * FPGAClient - static constructor to initialize the HTTPClient reused for all web requests
+     */
+    static FPGAClientSuperscalar()
+    {
+        DotNetEnv.Env.Load();
+        string host = DotNetEnv.Env.GetString("HOST", "localhost");
+        string port = DotNetEnv.Env.GetString("PORT", "8080");
+        client = new HttpClient
+        {
+            BaseAddress = new Uri($"http://{host}:{port}")
+        };
+    }
+
+    /*
+     * FPGAClient - Load a program into instruction memory with an /imem/update API call and initialize CPU state.
+     *
+     * @param path Path to the hex program file.
+     */
+    public FPGAClientSuperscalar(string path)
+    {
+        this.state = new CPUState();
+        writeIMem(path);
+        this.state = GetState();
+        Console.WriteLine(this.state);
+    }
+
+    // Implement IDisposable.
+    // Diposable interface from https://learn.microsoft.com/en-us/dotnet/api/system.idisposable?view=net-10.0
+    public void Dispose()
+    {
+        Dispose(disposing: true);
+        GC.SuppressFinalize(this);
+    }
+    protected virtual void Dispose(bool disposing)
+    {
+        if (!this.disposed)
+        {
+            disposed = true;
+        }
+    }
+    ~FPGAClientSuperscalar()
+    {
+        Dispose(disposing: false);
+    }
+
+    /* JsonBooleanToByteConverter for conversion because the webserver stores JSON types (bool) but CPUState is explicitly defined in bytes and uint32 for alignment.
+     * Without this conversion, we will encounter
+     * > The JSON value could not be converted to System.Byte.
+     * > Cannot get the value of a token type 'True' as a number.
+     */
+    private class JsonBooleanToByteConverter : JsonConverter<byte>
+    {
+        public override byte Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+        {
+            // If the JSON value is boolean 'true', return 1
+            if (reader.TokenType == JsonTokenType.True) return 1;
+            // If the JSON value is boolean 'false', return 0
+            if (reader.TokenType == JsonTokenType.False) return 0;
+            // If it's already a standard number, read it normally
+            if (reader.TokenType == JsonTokenType.Number) return reader.GetByte();
+            throw new JsonException($"Unexpected token type {reader.TokenType} when converting to byte.");
+        }
+        public override void Write(Utf8JsonWriter writer, byte value, JsonSerializerOptions options)
+        {
+            // When sending data back, write it as a normal number
+            writer.WriteNumberValue(value);
+        }
+    }
+}

@@ -1,0 +1,146 @@
+[*]
+[*] GTKWave Analyzer v3.3.116 (w)1999-2023 BSI
+[*] Sat Jul  4 21:28:45 2026
+[*]
+[dumpfile] "(null)"
+[savefile] "/home/peri/Desktop/CAPSTONE/overclocked/verilog_ss/verif/scripts/format.gtkw"
+[timestart] 218
+[size] 1920 1118
+[pos] -1 -1
+*-2.000000 229 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] TOP.
+[treeopen] TOP.top.
+[treeopen] TOP.top.dut.
+[treeopen] TOP.top.dut.core.
+[sst_width] 297
+[signals_width] 369
+[sst_expanded] 1
+[sst_vpaned_height] 338
+@28
+TOP.top.dut.reset
+TOP.top.dut.clock
+@200
+-
+-
+-
+-Decoder
+@22
+[color] 2
+TOP.top.dut.core.pc_fd_r_0[31:0]
+[color] 2
+TOP.top.dut.core.pc_fd_r_1[31:0]
+@200
+-
+-Control Signals
+@28
+TOP.top.dut.core.insn_writes_reg_fd_0
+@22
+TOP.top.dut.core.opcode_dx_r_0[6:0]
+TOP.top.dut.core.STORE_OPCODE[6:0]
+TOP.top.dut.core.BRANCH_OPCODE[6:0]
+TOP.top.dut.core.ECALL_OPCODE[6:0]
+[color] 2
+TOP.top.dut.core.pc_fd_r_0[31:0]
+@28
+TOP.top.dut.core.stall_0
+TOP.top.dut.core.load_stall_0
+TOP.top.dut.core.wd_stall_0
+@22
+TOP.top.dut.core.addr_rd_mw_r_0[4:0]
+TOP.top.dut.core.addr_rs1_w_0[4:0]
+@28
+TOP.top.dut.core.is_u_type_0
+TOP.top.dut.core.is_j_type_0
+TOP.top.dut.core.bypass_to_0
+@29
+TOP.top.dut.core.instr_mw_writes_reg_0
+@22
+[color] 7
+TOP.top.dut.core.addr_rd_dx_r_1[4:0]
+@28
+TOP.top.dut.core.store_rs2_stall_0
+TOP.top.dut.core.is_store_fd_0
+TOP.top.dut.core.is_i_type_1
+TOP.top.dut.core.dec2.is_lui
+TOP.top.dut.core.two_way_write_use_case
+TOP.top.dut.core.stall_1
+@22
+[color] 2
+TOP.top.dut.core.pc_fd_r_1[31:0]
+TOP.top.dut.core.addr_rd_w_0[4:0]
+TOP.top.dut.core.addr_rs1_w_1[4:0]
+@200
+-
+-BranchComp
+@28
+TOP.top.dut.core.br_eq_1
+TOP.top.dut.core.branch_comp_data1_sel_1[2:0]
+@22
+TOP.top.dut.core.data_rs1_w_1[31:0]
+TOP.top.dut.core.bc_idata1_in_1[31:0]
+TOP.top.dut.core.bc_idata2_in_1[31:0]
+@28
+TOP.top.dut.core.branch_comp_data2_sel_1[2:0]
+@22
+TOP.top.dut.core.data_rs2_w_1[31:0]
+TOP.top.dut.core.data_rd_w_1[31:0]
+@200
+-
+-ALU
+@22
+[color] 2
+TOP.top.dut.core.pc_dx_r_0[31:0]
+@28
+[color] 5
+TOP.top.dut.core.br_taken_0
+@22
+TOP.top.dut.core.data_rs1_w_0[31:0]
+TOP.top.dut.core.alu_in1_w_0[31:0]
+TOP.top.dut.core.alu_in2_w_0[31:0]
+@200
+-
+@22
+[color] 2
+TOP.top.dut.core.pc_dx_r_1[31:0]
+@28
+[color] 5
+TOP.top.dut.core.br_taken_1
+@22
+TOP.top.dut.core.alu_in1_w_1[31:0]
+TOP.top.dut.core.alu_in2_w_1[31:0]
+@28
+TOP.top.dut.core.a_sel_1[2:0]
+@22
+TOP.top.dut.core.alu_xm_r_0[31:0]
+@28
+TOP.top.dut.core.stall_occured
+@200
+-
+-Dmem
+@22
+[color] 7
+TOP.top.dut.core.dmem1.address[31:0]
+[color] 7
+TOP.top.dut.core.dmem1.data_in[31:0]
+@28
+[color] 7
+TOP.top.dut.core.dmem1.access_size[1:0]
+@22
+[color] 7
+TOP.top.dut.core.dmem1.data_out[31:0]
+TOP.top.dut.core.pc_xm_r_0[31:0]
+TOP.top.dut.core.pc_xm_r_1[31:0]
+@200
+-
+@22
+[color] 2
+TOP.top.dut.core.pc_mw_r_0[31:0]
+TOP.top.dut.core.addr_rd_mw_r_0[4:0]
+TOP.top.dut.core.data_rd_w_0[31:0]
+[color] 2
+TOP.top.dut.core.pc_mw_r_1[31:0]
+TOP.top.dut.core.addr_rd_mw_r_1[4:0]
+TOP.top.dut.core.data_rd_w_1[31:0]
+TOP.top.dut.core.addr_rs1_dx_r_1[4:0]
+[pattern_trace] 1
+[pattern_trace] 0

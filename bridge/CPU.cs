@@ -250,13 +250,18 @@ public static class CPUFactory
     }
 
     // Create an ICPU from already-assembled hex instructions rather than a file path.
-    public static ICPU Create(string[] hexInstructions, ImplementationType type = ImplementationType.Verilator)
+    public static ICPU Create(string[] hexInstructions, ImplementationType type = ImplementationType.Verilator, CPUArchitecture cpu_arch = CPUArchitecture.Basic)
     {
-        return type switch
-        {
-            ImplementationType.Verilator => new VerilatorClient(hexInstructions),
-            ImplementationType.FPGA => new FPGAClient(hexInstructions),
-            _ => throw new System.ArgumentException("Invalid Implementation Type")
-        };
+        return (type, cpu_arch) switch
+            {
+                // Basic RISC-V CPU:
+                (ImplementationType.Verilator, CPUArchitecture.Basic)       => new VerilatorClient(hexInstructions),
+                (ImplementationType.FPGA,      CPUArchitecture.Basic)       => new FPGAClient(hexInstructions),
+                // Superscalar CPU:
+                (ImplementationType.Verilator, CPUArchitecture.Superscalar) => new VerilatorClientSuperscalar(hexInstructions),
+                (ImplementationType.FPGA,      CPUArchitecture.Superscalar) => new FPGAClientSuperscalar(hexInstructions),
+                // OOO added below (in future):
+                _ => throw new System.ArgumentException($"Invalid configuration: {type}, {cpu_arch}")
+            };
     }
 }

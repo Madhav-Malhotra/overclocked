@@ -5,6 +5,8 @@
 //              Implements hazard detection (load, write-data, load-store, store-rs2, inter-way stalls),
 //              MX/WX/WM data forwarding, and branch resolution in the execute stage
 //              (predict not-taken, 1-cycle penalty on taken branch) Same-cycle reads, 1-cycle writes. 
+//              Each way owns an independent multicycle array_mult unit (instanced inside its ALU),
+//              so a MUL in one way does not block the other way's multiplier hardware.
 // Inputs:      clock - processor clock
 //              reset - synchronous reset; returns PC to BASE_ADDR
 // Outputs:     (none - all state is internal; testbench probes internal signals)
@@ -38,7 +40,7 @@ module pd #(
   reg [DATAW-1:0] imem_in_r;      // unused input to imem
   wire imem_rw_w = 0;             // always 0 (read-only)
   wire imem_en = !(fetch_stall);
-  
+
   // Decoder unit signals
     // way0
   wire [6:0] opcode_w_0;
@@ -738,13 +740,13 @@ always @(posedge clock) begin
   register_file rf1(
     .clock(clock),          // input
     // way 0
-    .write_enable(reg_wen_0), // input
-    .addr_rs1(addr_rs1_w_0),  // input
-    .addr_rs2(addr_rs2_w_0),  // input
-    .addr_rd(addr_rd_mw_r_0), // input
-    .data_rd(data_rd_w_0),    // input
-    .data_rs1(data_rs1_w_0),  // output
-    .data_rs2(data_rs2_w_0),   // output
+    .write_enable_0(reg_wen_0), // input
+    .addr_rs1_0(addr_rs1_w_0),  // input
+    .addr_rs2_0(addr_rs2_w_0),  // input
+    .addr_rd_0(addr_rd_mw_r_0), // input
+    .data_rd_0(data_rd_w_0),    // input
+    .data_rs1_0(data_rs1_w_0),  // output
+    .data_rs2_0(data_rs2_w_0),   // output
 
     //way 1
     .write_enable_1(reg_wen_1), // input
@@ -997,11 +999,11 @@ Way 1:
   dmemory dmem1(
     .clock(clock),               // input
     // way 0
-    .read_write(data_mem_rw_0),   // input
-    .access_size(mem_write_access_size_0),   // input
-    .address(alu_xm_r_0),          // input
-    .data_in(dmem_data_in_0),      // input
-    .data_out(data_mem_w_0),        // output
+    .read_write_0(data_mem_rw_0),   // input
+    .access_size_0(mem_write_access_size_0),   // input
+    .address_0(alu_xm_r_0),          // input
+    .data_in_0(dmem_data_in_0),      // input
+    .data_out_0(data_mem_w_0),        // output
 
     //way 1
     .read_write_1(data_mem_rw_1),    // input

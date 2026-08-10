@@ -9,11 +9,7 @@ According to Project Specifications, this Bridge should automatically determine 
 The CPU Architecture can be selected with CPUFactory.CPUArchitecture.[Basic or Superscalar]
 
 ```
-<<<<<<< HEAD
 ICPU myCpu = CPUFactory.Create(CPUFactory.ImplementationType.Verilator, "level1.txt", CPUFactory.CPUArchitetcure.Basic);
-=======
-ICPU myCpu = CPUFactory.Create("level1.txt", CPUFactory.ImplementationType.Verilator);
->>>>>>> origin/main
 ```
 
 `CPUFactory.Create` also has a `string[]` overload for callers that already have assembled hex
@@ -34,14 +30,6 @@ dotnet run
 
 ## To use in Unity
 
-<<<<<<< HEAD
-The following files should be copied to the Unity assets folder, so the C# can be called from Unity scripts.
-- CPU.cs 
-- VerilatorClient.cs
-- FPGAClient.cs
-- VerilatorClientSuperscalar.cs
-- FPGAClientSuperscalar.cs
-=======
 `bridge/` is the sole source of truth for `CPU.cs`, `VerilatorClient.cs`, and `FPGAClient.cs` —
 never hand-edit the copies under `unity/Assets/CPUWrapper/`. To publish changes to Unity, run
 from this directory:
@@ -58,4 +46,3 @@ Unity-only needs (e.g. adapting `InstructionData[]`, a Unity level-JSON type, in
 `string[]` hex overloads above) live in a separate, hand-maintained, non-generated file,
 `unity/Assets/CPUWrapper/CPUUnityExtensions.cs` — add new Unity-specific logic there, not inside
 the generated files.
->>>>>>> origin/main

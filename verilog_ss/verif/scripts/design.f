@@ -1,11 +1,5 @@
 alu.v
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
 array_mult.v
->>>>>>> origin/main
-=======
->>>>>>> origin/bridge/superscalar
 branch_comp.v
 control_signals.v
 decoder.v

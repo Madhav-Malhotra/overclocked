@@ -1,4 +1,8 @@
 alu.v
+<<<<<<< HEAD
+=======
+array_mult.v
+>>>>>>> origin/main
 branch_comp.v
 control_signals.v
 decoder.v

@@ -147,7 +147,8 @@ module pd #(
     (addr_rd_mw_r == addr_rs2_w && addr_rs2_w != 0 && !is_u_type && !is_j_type && !is_i_type) 
   );
 
-    wire load_store_stall = is_load_xm && is_store_fd &&
+   // stalls for load-store extreme dependency
+  wire load_store_stall = is_load_xm && is_store_fd &&
     (addr_rd_xm_r == addr_rs1_w) && (addr_rd_xm_r == addr_rs2_w);
 
   // Some instruction in mem stage writing to rs2 of store

@@ -12,8 +12,8 @@
  *   - Clock control: tick() drives one full rising+falling edge.
  *   - State snapshot: get_cpu_state() copies every observable wire/register
  *     into a flat CPUState struct that C# can marshal by value.
- *   - Memory access: set_imem / peek_imem / dump_imem / dump_dmem allow the
- *     host to load programs and inspect memory contents.
+ *   - Memory access: clear_imem / set_imem / peek_imem / dump_imem / dump_dmem
+ *     allow the host to load programs and inspect memory contents.
  *
  * ⚠️ Update this file whenever:
  *   - The Verilog design is re-Verilated (internal signal paths may change).
@@ -210,12 +210,26 @@ void tick() {
 }
 
 /*
- * init_design_wrapper — Create and reset the Verilated CPU model.
+ * init_design_wrapper — Create the Verilated CPU model (if needed) and
+ * assert reset, without ticking the clock.
  *
- * Allocates the VerilatedContext and Vdesign_wrapper singletons.
- * Applies a synchronous reset for one tick so the pipeline starts in a known
- * state, then deasserts reset and evaluates combinational logic without ticking
- * again (to avoid advancing the PC before the caller has loaded instruction memory).
+ * Allocates the VerilatedContext and Vdesign_wrapper singletons on first
+ * call only (they are process-lifetime singletons; see cleanup_design_wrapper
+ * for why they are never torn down in normal operation). Does NOT drive a
+ * clock edge here — the caller must load instruction memory (clear_imem +
+ * set_imem) and then call finish_reset() to perform the reset clock edge.
+ * This ordering guarantees the first synchronous imem read latches the
+ * freshly-loaded program, not whatever was previously in mem[] (either the
+ * compiled-in $readmemh contents on first construction, or a stale previous
+ * level's instructions on subsequent Play Mode sessions/scene reloads).
+ *
+ * reset must be asserted BEFORE eval() here, not after. On a reused `design`
+ * (second+ level load), the model still holds the previous level's live
+ * pipeline state (non-zero PC/registers/control signals) going into this
+ * call. Evaluating combinational logic first with reset still deasserted
+ * re-derives outputs from that stale state, which was observed to corrupt
+ * Verilator's internal eval scheduling and crash on the next level
+ * transition (segfault inside eval_step, several frames deep).
  *
  * Must be called before any other bridge function.
  */
@@ -224,8 +238,18 @@ void init_design_wrapper() {
         contextp = new VerilatedContext;
         design = new Vdesign_wrapper(contextp);
     }
-    design->eval();
     design->reset = 1;
+    design->eval();
+}
+
+/*
+ * finish_reset — Perform the reset clock edge and deassert reset.
+ *
+ * Must be called after init_design_wrapper() AND after instruction memory
+ * has been fully loaded (clear_imem + set_imem calls), so the reset tick's
+ * synchronous imem read latches the correct first instruction.
+ */
+void finish_reset() {
     tick();
     design->reset = 0;
     design->eval();
@@ -288,6 +312,24 @@ void set_imem(uint32_t real_addr, uint32_t instruction) {
     if (real_addr >= START_ADDR) {
         uint32_t ea = (real_addr - START_ADDR) >> 2;
         design->rootp->design_wrapper__DOT__core__DOT__imem1__DOT__mem[ea] = instruction;
+    }
+}
+
+/*
+ * clear_imem — Zero the entire instruction memory array.
+ *
+ * Must be called before set_imem() on every CPU construction (fresh or
+ * reused `design` singleton) so addresses beyond the level's own program
+ * read as zero instead of leftover words from the compiled-in $readmemh
+ * program or a previously-loaded level. MEM_DEPTH/4 (word count) is
+ * hardcoded here to match verilator/Makefile's MEM_DEPTH=1048576 — it is a
+ * Verilog-only preprocessor define (passed via V_FLAGS to `verilator -cc`,
+ * Makefile:18,46-47) and is not visible to this translation unit.
+ */
+void clear_imem() {
+    const uint32_t MEM_WORDS = 1048576 / 4;
+    for (uint32_t i = 0; i < MEM_WORDS; i++) {
+        design->rootp->design_wrapper__DOT__core__DOT__imem1__DOT__mem[i] = 0;
     }
 }
 

@@ -56,8 +56,8 @@ module register_file #(
 reg [DATAW-1:0] data_rs1_r_0;
 reg [DATAW-1:0] data_rs2_r_0;
 // way 2
-reg [DATAW-1:0] data_rs1_r_2;
-reg [DATAW-1:0] data_rs2_r_2;
+reg [DATAW-1:0] data_rs1_r_1;
+reg [DATAW-1:0] data_rs2_r_1;
 integer i;
 
 initial begin
@@ -85,8 +85,8 @@ always @(posedge clock) begin
     if (write_enable_1) begin
         regs[addr_rd_1] <= data_rd_1;
     end
-    data_rs1_r_2 <= regs[addr_rs1_1];
-    data_rs2_r_2 <= regs[addr_rs2_1];
+    data_rs1_r_1 <= regs[addr_rs1_1];
+    data_rs2_r_1 <= regs[addr_rs2_1];
 
 
 end
@@ -96,8 +96,8 @@ assign data_rs1_0 = data_rs1_r_0;
 assign data_rs2_0 = data_rs2_r_0;
 
 // way 2
-assign data_rs1_1 = data_rs1_r_2;
-assign data_rs2_1 = data_rs2_r_2;
+assign data_rs1_1 = data_rs1_r_1;
+assign data_rs2_1 = data_rs2_r_1;
 
 // way 2 DX-stage combinational read
 assign data_rs1_dx_1 = regs[addr_rs1_dx_1];

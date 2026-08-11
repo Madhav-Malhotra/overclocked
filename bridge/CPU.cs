@@ -89,6 +89,13 @@ public struct CPUState
     public byte opcode_mw;
     public byte addr_rd_mw;
     public uint mw_pc;
+
+    // add multicycle multiplier signals
+    public byte mult_start_pulse;
+    public byte mult_hold;
+    public byte mult_busy; 
+
+
     // overriding the ToString() function so the string representation is easier to read during debugging
     public override string ToString()
     {
@@ -102,7 +109,8 @@ public struct CPUState
             $"Signals -> eq: 0x{br_eq:X}, lt: 0x{br_lt:X}, un: 0x{br_un:X}, taken: 0x{br_taken:X} | bc_sel1: 0x{branch_comp_data1_sel:X}, bc_sel2: 0x{branch_comp_data2_sel:X} | pc_sel: 0x{pc_sel:X}, a_sel: 0x{a_sel:X}, b_sel: 0x{b_sel:X}, alu_sel: 0x{alu_sel:X1}, mem_rw: 0x{mem_rw:X}, reg_wen: 0x{reg_wen:X}, wb_sel: 0x{wb_sel:X}\n" +
             $"Decode  -> rd: 0x{addr_rd:X2}, rs1: 0x{addr_rs1:X2}, rs2: 0x{addr_rs2:X2}, f3: 0x{funct3:X1}, f7: 0x{funct7:X2}, imm: 0x{imm:X8}, shamt: 0x{shamt:X2} | types(u/j/i): {is_u_type_w}/{is_j_type_w}/{is_i_type_w}\n" +
             $"Memory  -> imem_out: 0x{imem_data_out:X8}, dmem_in: 0x{dmem_data_in:X8}, dmem_out: 0x{dmem_data_out:X8}\n" +
-            $"Pipeline-> wb_data: 0x{wb_data:X8}, wb_in_alu: 0x{wb_in_alu:X8}, mem: 0x{mem:X8}, pc4: 0x{mw_pc4:X8}";
+            $"Pipeline-> wb_data: 0x{wb_data:X8}, wb_in_alu: 0x{wb_in_alu:X8}, mem: 0x{mem:X8}, pc4: 0x{mw_pc4:X8}\n" + 
+            $"Multi-cycle Mult signals -> mult_start_pulse: 0x{mult_start_pulse:X8}, mult_hold: 0x{mult_hold:X8}, mult_busy: 0x{mult_busy:X8}";
     }
 }
 

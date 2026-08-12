@@ -459,7 +459,7 @@ module pd #(
   assign alu_in1_w = (a_sel == REG) ? data_rs1_w :
                      (a_sel == PC) ? pc_dx_r :
                      (a_sel == WX_BYPASS) ? data_rd_w :
-                                            alu_xm_r; // MX bypass 
+                                            alu_xm_r; // MX bypass
 
   // B sel definitions (determines ALU input 2)
   localparam IMM  = 2'b01;

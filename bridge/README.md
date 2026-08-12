@@ -5,8 +5,11 @@ Unified C# interface to interact with each CPU backend. Supported backends:
 - FPGA board (synthesized design running on PYNQ-Z2)
 
 According to Project Specifications, this Bridge should automatically determine if a PYNQ-Z2 is connected to the host machine. While this functionality is being implemented, the desired `ImplementationType` can be specified when instantiating the bridge. 
+
+The CPU Architecture can be selected with CPUFactory.CPUArchitecture.[Basic or Superscalar]
+
 ```
-ICPU myCpu = CPUFactory.Create("level1.txt", CPUFactory.ImplementationType.Verilator);
+ICPU myCpu = CPUFactory.Create(CPUFactory.ImplementationType.Verilator, "level1.txt", CPUFactory.CPUArchitetcure.Basic);
 ```
 
 `CPUFactory.Create` also has a `string[]` overload for callers that already have assembled hex
@@ -17,7 +20,7 @@ an example (`unity/Assets/CPUWrapper/CPUUnityExtensions.cs`).
 
 `Program.cs` contains example usage of the Bridge.
 
-To run, 
+To run, cd into the bridge directory and run:
 ```
 dotnet build
 

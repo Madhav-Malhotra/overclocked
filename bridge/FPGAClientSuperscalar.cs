@@ -6,7 +6,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using Newtonsoft.Json;
 
-public class FPGAClient : IDisposable, ICPU
+public class FPGAClientSuperscalar : IDisposable, ICPU
 {
     public CPUState state { get; private set; }
     private bool disposed = false;
@@ -20,8 +20,18 @@ public class FPGAClient : IDisposable, ICPU
      * @param json      JSON payload used in POST requests
      * @return          JSON string containing the webserver's response
      */
-    private string makeRequest(string endpoint, string json = "")
+    private string makeRequest(string endpoint, string json = "", int way = -1)
     {
+        // Append ?way=X to the endpoint string (or append to query parameters if applicable)
+        string formattedEndpoint = endpoint;
+
+        if (way >= 0) // way is defined
+        {
+            formattedEndpoint = endpoint.Contains("?") 
+                ? $"{endpoint}&way={way}" 
+                : $"{endpoint}?way={way}";
+        }
+        
         HttpRequestMessage req;
         HttpResponseMessage res = new HttpResponseMessage();
         try
@@ -31,8 +41,8 @@ public class FPGAClient : IDisposable, ICPU
                 // GET endpoints
                 case "/controls/status":
                 case "/outputs/status":
-                    req = new HttpRequestMessage(HttpMethod.Get, endpoint);
-                    res = client.SendAsync(req).GetAwaiter().GetResult();
+                    req = new HttpRequestMessage(HttpMethod.Get, formattedEndpoint);
+                    res = client.Send(req);
                     break;
                 // POST endpoints
                 case "/imem/update":
@@ -42,9 +52,9 @@ public class FPGAClient : IDisposable, ICPU
                 case "/controls/dxEn/update":
                 case "/controls/xmEn/update":
                 case "/controls/mwEn/update":
-                    req = new HttpRequestMessage(HttpMethod.Post, endpoint);
+                    req = new HttpRequestMessage(HttpMethod.Post, formattedEndpoint);
                     req.Content = new StringContent(json, Encoding.UTF8, "application/json");
-                    res = client.SendAsync(req).GetAwaiter().GetResult();
+                    res = client.Send(req);
                     break;
                 default:
                     Console.WriteLine($"unsupported endpoint: {endpoint}");
@@ -54,7 +64,7 @@ public class FPGAClient : IDisposable, ICPU
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"API Error on {endpoint}: {ex.Message}");
+            Console.WriteLine($"API Error on {endpoint}: {ex.Message} for Way: {way}");
             return string.Empty;
         }
         return res.Content.ReadAsStringAsync().Result;
@@ -148,7 +158,7 @@ public class FPGAClient : IDisposable, ICPU
      */
     public void PrintState(int way = 0)
     {
-        GetState();
+        GetState(way);
         Console.WriteLine(this.state);
         return;
     }
@@ -164,7 +174,7 @@ public class FPGAClient : IDisposable, ICPU
      */
     public CPUState GetState(int way = 0)
     {
-        string res = makeRequest("/outputs/status");
+        string res = makeRequest("/outputs/status", way: way);
         var settings = new JsonSerializerSettings();
         settings.Converters.Add(new JsonBooleanToByteConverter());
         this.state = JsonConvert.DeserializeObject<CPUState>(res, settings);
@@ -178,7 +188,7 @@ public class FPGAClient : IDisposable, ICPU
      */
     public uint GetPC(int way = 0)
     {
-        return GetState().pc;
+        return GetState(way).pc;
     }
 
     /*
@@ -188,7 +198,7 @@ public class FPGAClient : IDisposable, ICPU
      */
     public uint GetInstruction(int way = 0)
     {
-        return GetState().instruction;
+        return GetState(way).instruction;
     }
 
     /*
@@ -198,7 +208,7 @@ public class FPGAClient : IDisposable, ICPU
      */
     public uint GetALUOut(int way = 0)
     {
-        return GetState().alu_out;
+        return GetState(way).alu_out;
     }
 
     /*
@@ -273,7 +283,7 @@ public class FPGAClient : IDisposable, ICPU
     /*
      * FPGAClient - static constructor to initialize the HTTPClient reused for all web requests
      */
-    static FPGAClient()
+    static FPGAClientSuperscalar()
     {
         // Hardcoded for simplicity for now. Should be set via in-game config in future
         string host = "localhost";
@@ -289,7 +299,7 @@ public class FPGAClient : IDisposable, ICPU
      *
      * @param path Path to the hex program file.
      */
-    public FPGAClient(string path)
+    public FPGAClientSuperscalar(string path)
     {
         this.state = new CPUState();
         writeIMem(path);
@@ -302,7 +312,7 @@ public class FPGAClient : IDisposable, ICPU
      *
      * @param hexInstructions  Array of 32-bit hex-encoded instruction words.
      */
-    public FPGAClient(string[] hexInstructions)
+    public FPGAClientSuperscalar(string[] hexInstructions)
     {
         this.state = new CPUState();
         writeIMem(hexInstructions);
@@ -324,7 +334,7 @@ public class FPGAClient : IDisposable, ICPU
             disposed = true;
         }
     }
-    ~FPGAClient()
+    ~FPGAClientSuperscalar()
     {
         Dispose(disposing: false);
     }

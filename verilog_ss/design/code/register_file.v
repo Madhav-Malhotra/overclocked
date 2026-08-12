@@ -22,13 +22,13 @@ module register_file #(
 (
     input clock,
     // way 1
-    input write_enable,
-    input  [ADDRW-1:0] addr_rs1,
-    input  [ADDRW-1:0] addr_rs2,
-    input  [ADDRW-1:0] addr_rd,
-    input  [DATAW-1:0] data_rd,
-    output [DATAW-1:0] data_rs1,
-    output [DATAW-1:0] data_rs2,
+    input write_enable_0,
+    input  [ADDRW-1:0] addr_rs1_0,
+    input  [ADDRW-1:0] addr_rs2_0,
+    input  [ADDRW-1:0] addr_rd_0,
+    input  [DATAW-1:0] data_rd_0,
+    output [DATAW-1:0] data_rs1_0,
+    output [DATAW-1:0] data_rs2_0,
 
     // way 2
     input write_enable_1,
@@ -53,11 +53,11 @@ module register_file #(
 (* ram_style = "block" *) reg [DATAW-1:0] regs [0:NUM_REGS-1];
 
 // way 1
-reg [DATAW-1:0] data_rs1_r;
-reg [DATAW-1:0] data_rs2_r;
+reg [DATAW-1:0] data_rs1_r_0;
+reg [DATAW-1:0] data_rs2_r_0;
 // way 2
-reg [DATAW-1:0] data_rs1_r_2;
-reg [DATAW-1:0] data_rs2_r_2;
+reg [DATAW-1:0] data_rs1_r_1;
+reg [DATAW-1:0] data_rs2_r_1;
 integer i;
 
 initial begin
@@ -74,30 +74,30 @@ end
 always @(posedge clock) begin
     // x0 write guard is handled by reg_wen in control_signals.v
     
-    // way 1
-    if (write_enable) begin
-        regs[addr_rd] <= data_rd;
+    // way 0
+    if (write_enable_0) begin
+        regs[addr_rd_0] <= data_rd_0;
     end
-    data_rs1_r <= regs[addr_rs1];
-    data_rs2_r <= regs[addr_rs2];
+    data_rs1_r_0 <= regs[addr_rs1_0];
+    data_rs2_r_0 <= regs[addr_rs2_0];
 
-    // way 2
+    // way 1
     if (write_enable_1) begin
         regs[addr_rd_1] <= data_rd_1;
     end
-    data_rs1_r_2 <= regs[addr_rs1_1];
-    data_rs2_r_2 <= regs[addr_rs2_1];
+    data_rs1_r_1 <= regs[addr_rs1_1];
+    data_rs2_r_1 <= regs[addr_rs2_1];
 
 
 end
 
 // way 1
-assign data_rs1 = data_rs1_r;
-assign data_rs2 = data_rs2_r;
+assign data_rs1_0 = data_rs1_r_0;
+assign data_rs2_0 = data_rs2_r_0;
 
 // way 2
-assign data_rs1_1 = data_rs1_r_2;
-assign data_rs2_1 = data_rs2_r_2;
+assign data_rs1_1 = data_rs1_r_1;
+assign data_rs2_1 = data_rs2_r_1;
 
 // way 2 DX-stage combinational read
 assign data_rs1_dx_1 = regs[addr_rs1_dx_1];

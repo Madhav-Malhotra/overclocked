@@ -13,6 +13,10 @@
       <Pack>false</Pack>
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
+    <Content Include="../verilator/libdesign_wrapper_ss.so">
+      <Pack>false</Pack>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
 
   <ItemGroup>

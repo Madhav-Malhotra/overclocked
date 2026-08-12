@@ -17,7 +17,7 @@ module pd #(
   parameter ADDRW = $clog2(DATAW),
   parameter N_BITS = $clog2(DATAW),
   // 1: multicycle array_mult (stalls pipeline); 0: single-cycle MUL in ALU
-  parameter USE_MULTICYCLE_MULT = 1'b0
+  parameter USE_MULTICYCLE_MULT = 1'b1
 )
 (
   input clock,
@@ -740,13 +740,13 @@ always @(posedge clock) begin
   register_file rf1(
     .clock(clock),          // input
     // way 0
-    .write_enable(reg_wen_0), // input
-    .addr_rs1(addr_rs1_w_0),  // input
-    .addr_rs2(addr_rs2_w_0),  // input
-    .addr_rd(addr_rd_mw_r_0), // input
-    .data_rd(data_rd_w_0),    // input
-    .data_rs1(data_rs1_w_0),  // output
-    .data_rs2(data_rs2_w_0),   // output
+    .write_enable_0(reg_wen_0), // input
+    .addr_rs1_0(addr_rs1_w_0),  // input
+    .addr_rs2_0(addr_rs2_w_0),  // input
+    .addr_rd_0(addr_rd_mw_r_0), // input
+    .data_rd_0(data_rd_w_0),    // input
+    .data_rs1_0(data_rs1_w_0),  // output
+    .data_rs2_0(data_rs2_w_0),   // output
 
     //way 1
     .write_enable_1(reg_wen_1), // input
@@ -999,11 +999,11 @@ Way 1:
   dmemory dmem1(
     .clock(clock),               // input
     // way 0
-    .read_write(data_mem_rw_0),   // input
-    .access_size(mem_write_access_size_0),   // input
-    .address(alu_xm_r_0),          // input
-    .data_in(dmem_data_in_0),      // input
-    .data_out(data_mem_w_0),        // output
+    .read_write_0(data_mem_rw_0),   // input
+    .access_size_0(mem_write_access_size_0),   // input
+    .address_0(alu_xm_r_0),          // input
+    .data_in_0(dmem_data_in_0),      // input
+    .data_out_0(data_mem_w_0),        // output
 
     //way 1
     .read_write_1(data_mem_rw_1),    // input

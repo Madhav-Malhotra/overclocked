@@ -1,6 +1,6 @@
 // =============================================================================
 // Module:      dmemory
-// Description: Byte-address_0able data memory for RV32I load/store instructions.
+// Description: Byte-addressable data memory for RV32I load/store instructions.
 //              Supports byte (SB/LB), halfword (SH/LH), and word (SW/LW) access.
 //              Initialised from MEM_PATH at simulation start.
 // Inputs:      clock       - write clock

@@ -18,6 +18,7 @@ V_FLAGS += -DMEM_PATH="\$(MEM_PATH)\"
 V_FLAGS += -DMEM_DEPTH=$(MEM_DEPTH)
 V_FLAGS += -DLINE_COUNT=$(LINE_COUNT)
 V_FLAGS += -I../verilog/design/ -I../verilog/design/code/
+V_FLAGS += -Wno-DEFOVERRIDE
 VERILOG_TOP = ../verilog/design/design_wrapper.v
 
 SS_V_FLAGS = --public-flat-rw

@@ -77,6 +77,7 @@ bridge:
 		$(VERILATOR_INC)/verilated_threads.cpp \
 		$(SS_OBJ_DIR)/Vdesign_wrapper*.cpp \
 		bridge_superscalar.cpp
+	cp $(SS_LIB_NAME) $(UNITY_PLUGINS_DIR)/$(SS_LIB_NAME)
 
 # Build a Windows DLL (via MinGW cross-compiler) and copy it to Unity's Plugins folder.
 # Run this from WSL when bridge.cpp changes and Unity is running on Windows.
@@ -91,9 +92,18 @@ dll:
 		$(OBJ_DIR)/Vdesign_wrapper*.cpp \
 		bridge.cpp
 	cp design_wrapper.dll $(UNITY_PLUGINS_DIR)/design_wrapper.dll
+	$(MINGW_CXX) -O3 -shared -o design_wrapper_ss.dll \
+		-I $(SS_OBJ_DIR) \
+		-I $(VERILATOR_INC) \
+		-I $(VERILATOR_INC)/vltstd \
+		$(VERILATOR_INC)/verilated.cpp \
+		$(VERILATOR_INC)/verilated_threads.cpp \
+		$(SS_OBJ_DIR)/Vdesign_wrapper*.cpp \
+		bridge_superscalar.cpp
+	cp design_wrapper_ss.dll $(UNITY_PLUGINS_DIR)/design_wrapper_ss.dll
 
 # Utility to clean up generated verilator, shared library files (not Unity)
 clean:
-	rm -rf $(OBJ_DIR) $(LIB_NAME) design_wrapper.dll $(SS_OBJ_DIR) $(SS_LIB_NAME)
+	rm -rf $(OBJ_DIR) $(LIB_NAME) design_wrapper.dll $(SS_OBJ_DIR) $(SS_LIB_NAME) design_wrapper_ss.dll
 
 .PHONY: all verilog bridge dll clean

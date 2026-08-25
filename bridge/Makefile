@@ -1,5 +1,5 @@
 UNITY_DEST := ../unity/Assets/CPUWrapper
-SYNC_FILES := CPU.cs VerilatorClient.cs FPGAClient.cs
+SYNC_FILES := CPU.cs VerilatorClient.cs FPGAClient.cs VerilatorClientSuperscalar.cs FPGAClientSuperscalar.cs
 HEADER_TMPL := AUTO-GENERATED from bridge/%s — DO NOT EDIT DIRECTLY.\nEdit the source in bridge/ and re-run `make sync-unity` from the bridge/ directory.
 
 .PHONY: sync-unity

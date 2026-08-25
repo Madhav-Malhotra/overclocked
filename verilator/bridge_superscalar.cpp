@@ -108,6 +108,10 @@ struct CPUState {
     uint8_t mult_start_pulse;
     uint8_t mult_hold;
     uint8_t mult_busy;
+
+    // superscalar inter-way stalls (stall_signals.v)
+    uint8_t stall_0;
+    uint8_t stall_1;
 };
 #pragma pack(pop)
 
@@ -195,8 +199,11 @@ void get_cpu_state(CPUState* out_state, int way) {
         // multi-cycle multiplier
         out_state->mult_start_pulse = design->rootp->design_wrapper__DOT__core__DOT__al1__DOT__mult_start_pulse;
         out_state->mult_hold = design->rootp->design_wrapper__DOT__core__DOT__al1__DOT__mult_hold;
-        out_state->mult_busy = design->rootp->design_wrapper__DOT__core__DOT__al1__DOT__mult_busy; 
+        out_state->mult_busy = design->rootp->design_wrapper__DOT__core__DOT__al1__DOT__mult_busy;
 
+        // inter-way stalls (same wires regardless of which way is queried)
+        out_state->stall_0 = design->rootp->design_wrapper__DOT__core__DOT__stall_0;
+        out_state->stall_1 = design->rootp->design_wrapper__DOT__core__DOT__stall_1;
 
     } else if (way == 1) {
         out_state->pc          = design->rootp->design_wrapper__DOT__core__DOT__pc_r_1;
@@ -271,7 +278,11 @@ void get_cpu_state(CPUState* out_state, int way) {
         // multi-cycle multiplier
         out_state->mult_start_pulse = design->rootp->design_wrapper__DOT__core__DOT__al2__DOT__mult_start_pulse;
         out_state->mult_hold = design->rootp->design_wrapper__DOT__core__DOT__al2__DOT__mult_hold;
-        out_state->mult_busy = design->rootp->design_wrapper__DOT__core__DOT__al2__DOT__mult_busy; 
+        out_state->mult_busy = design->rootp->design_wrapper__DOT__core__DOT__al2__DOT__mult_busy;
+
+        // inter-way stalls (same wires regardless of which way is queried)
+        out_state->stall_0 = design->rootp->design_wrapper__DOT__core__DOT__stall_0;
+        out_state->stall_1 = design->rootp->design_wrapper__DOT__core__DOT__stall_1;
     }
 }
 

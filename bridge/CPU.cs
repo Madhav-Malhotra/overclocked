@@ -93,7 +93,11 @@ public struct CPUState
     // add multicycle multiplier signals
     public byte mult_start_pulse;
     public byte mult_hold;
-    public byte mult_busy; 
+    public byte mult_busy;
+
+    // superscalar inter-way stalls (stall_signals.v) — always 0 for the basic (non-superscalar) bridge
+    public byte stall_0;
+    public byte stall_1;
 
 
     // overriding the ToString() function so the string representation is easier to read during debugging

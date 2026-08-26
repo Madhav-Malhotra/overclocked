@@ -109,6 +109,10 @@ struct CPUState {
     uint8_t mult_start_pulse;
     uint8_t mult_hold;
     uint8_t mult_busy;
+
+    // superscalar inter-way stalls (stall_signals.v) — always 0 for this single-issue bridge
+    uint8_t stall_0;
+    uint8_t stall_1;
 };
 #pragma pack(pop)
 
@@ -191,7 +195,11 @@ void get_cpu_state(CPUState* out_state) {
     // multi-cycle multiplier
     out_state->mult_start_pulse = design->rootp->design_wrapper__DOT__core__DOT__al1__DOT__mult_start_pulse;
     out_state->mult_hold = design->rootp->design_wrapper__DOT__core__DOT__al1__DOT__mult_hold;
-    out_state->mult_busy = design->rootp->design_wrapper__DOT__core__DOT__al1__DOT__mult_busy; 
+    out_state->mult_busy = design->rootp->design_wrapper__DOT__core__DOT__al1__DOT__mult_busy;
+
+    // single-issue design has no inter-way stalls
+    out_state->stall_0 = 0;
+    out_state->stall_1 = 0;
 }
 
 

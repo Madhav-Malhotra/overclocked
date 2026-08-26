@@ -15,16 +15,19 @@ module pd #(
   parameter ADDRW = $clog2(DATAW),
   parameter N_BITS = $clog2(DATAW),
   // 1: multicycle array_mult (stalls pipeline); 0: single-cycle MUL in ALU
-  parameter USE_MULTICYCLE_MULT = 1'b1
+  // parameter USE_MULTICYCLE_MULT = 1'b1
 )
 (
   input clock,
-  input reset
+  input reset,
+  input USE_MULTICYCLE_MULT
 );
 
   // ===================
   // INSTANTIATE SIGNALS
   // ===================
+
+  // localparam USE_MULTICYCLE_MULT = 1'b1;
 
   localparam MUL_ALU = 4'd11;   // alu_sel encoding for MUL (used to detect MUL in EX)
 
@@ -401,11 +404,13 @@ module pd #(
   wire [DATAW-1:0] data_rs1_stall_w = data_rs1_w;
   wire [DATAW-1:0] data_rs2_stall_w =  data_rs2_w;
 
-  control_signals #(
-    .USE_MULTICYCLE_MULT(USE_MULTICYCLE_MULT)
-  ) cs1(
+  // control_signals #(
+  //   .USE_MULTICYCLE_MULT(USE_MULTICYCLE_MULT)
+  // ) cs1(
+  control_signals cs1(
     .clock(clock),
     .reset(reset),
+    .USE_MULTICYCLE_MULT(USE_MULTICYCLE_MULT),
     .stall(mul_stall),            // input: mul stall so cs1 can bubble its XM regs
     .opcode_dx(opcode_dx_r),      // input
     .opcode_xm(opcode_xm_r),      // input

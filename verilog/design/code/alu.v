@@ -61,7 +61,9 @@ reg [ODATAW-1:0] mask;
 // ====================
 wire [ODATAW-1:0] mult_array_out;
 
-array_mult array_mult1(
+array_mult #(
+    .DATAW(IDATAW) //use ALU's bitwidth
+) array_mult1(
     .clock(clock),
     .reset(reset),
     .start_pulse(mult_start_pulse),

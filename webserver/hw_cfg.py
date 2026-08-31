@@ -16,7 +16,7 @@ class SignalConfig:
 class OutputSignal(Enum):
     # RO outputs
     # should have 1 output signal for each field of the Outputs model
-    # PC = SignalConfig("pc", 0x4120_0000)
+    PC = SignalConfig("pc", 0x41230000)
     FD_PC = SignalConfig("fd_pc", 0x413C0000)
     FD_PC4 = SignalConfig("fd_pc4", 0x413D0000)
     OPCODE_FD = SignalConfig("opcode_fd", 0x413E0000)

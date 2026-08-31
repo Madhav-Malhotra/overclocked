@@ -1,6 +1,5 @@
 ######################################################################################
 # This is a generated CSV file representing the addressing in design design_1
-# Regenerate from `wired` project -> Block Diagram -> Address Editor -> right click -> Export to CSV
 #
 # Format:
 # Master Segment Name, Address Space, Slave Segment, Offset, Range ...
@@ -13,6 +12,7 @@
 SEG_axi_gpio_mw_pc_Reg,/cortex_a9_processor/Data,/axi_gpio_mw_pc/S_AXI/Reg,0x41200000,64K
 SEG_axi_gpio_1_Reg,/cortex_a9_processor/Data,/axi_gpio_reset/S_AXI/Reg,0x41210000,64K
 SEG_axi_gpio_2_Reg,/cortex_a9_processor/Data,/axi_gpio_clock/S_AXI/Reg,0x41220000,64K
+SEG_axi_gpio_pc_Reg,/cortex_a9_processor/Data,/axi_gpio_pc/S_AXI/Reg,0x41230000,64K
 SEG_axi_gpio_34_Reg,/cortex_a9_processor/Data,/axi_gpio_fd_pc/S_AXI/Reg,0x413C0000,64K
 SEG_axi_gpio_35_Reg,/cortex_a9_processor/Data,/axi_gpio_fd_pc4/S_AXI/Reg,0x413D0000,64K
 SEG_axi_gpio_36_Reg,/cortex_a9_processor/Data,/axi_gpio_opcode_fd/S_AXI/Reg,0x413E0000,64K

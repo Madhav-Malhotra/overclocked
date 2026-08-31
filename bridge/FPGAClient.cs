@@ -126,7 +126,7 @@ public class FPGAClient : IDisposable, ICPU
      */
     public void writeIMem(string[] hexInstructions)
     {
-        Console.WriteLine("NOT IMPLEMENTED");
+        makeRequest("/imem/update"); // TODO (diana) temp. hardcoding the imem start up configuration
         return;
     }
 

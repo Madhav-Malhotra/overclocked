@@ -13,7 +13,7 @@ module pd #(
   parameter DATAW = 32,
   parameter BASE_ADDR = 32'h01000000,
   parameter ADDRW = $clog2(DATAW),
-  parameter N_BITS = $clog2(DATAW),
+  parameter N_BITS = $clog2(DATAW)
   // 1: multicycle array_mult (stalls pipeline); 0: single-cycle MUL in ALU
   // parameter USE_MULTICYCLE_MULT = 1'b1
 )
@@ -488,7 +488,7 @@ module pd #(
     .idata1(alu_in1_w),
     .idata2(alu_in2_w),
     .alu_sel(alu_sel),
-    .multicyc_sel(USE_MULTICYCLE_MULT[0]), // 1 = MUL routed through the internal array_mult unit
+    .multicyc_sel(USE_MULTICYCLE_MULT), // 1 = MUL routed through the internal array_mult unit
     .mult_start_pulse(array_mult_start),   // one-cycle pulse when MUL first enters EX
     .mult_hold(array_mult_hold),           // high while MUL occupies EX
     .mult_busy(array_mult_busy),

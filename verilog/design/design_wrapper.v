@@ -37,6 +37,7 @@ module design_wrapper (
   output [31:0] data_rs2,
   output [31:0] wb_data,
   */
+  output [31:0] pc,
   output [31:0] fd_pc,
   output [31:0] fd_pc4,
   output [6:0] opcode_fd,
@@ -93,6 +94,7 @@ module design_wrapper (
     .data_rs2_o(data_rs2),
     .wb_data_o(wb_data),
     */
+    .pc_o(pc),
     .fd_pc_o(fd_pc),
     .fd_pc4_o(fd_pc4),
     .opcode_fd_o(opcode_fd),

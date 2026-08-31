@@ -54,6 +54,7 @@ module pd #(
   output [DATAW-1:0] data_rs2_o,
   output [DATAW-1:0] wb_data_o,
   */
+  output [DATAW-1:0] pc_o,
   output [DATAW-1:0] fd_pc_o,
   output [DATAW-1:0] fd_pc4_o,
   output [6:0] opcode_fd_o,
@@ -635,8 +636,9 @@ module pd #(
    assign wb_data_o               = data_rd_w;
    */
    // --- Pipeline Stages ---
+   assign pc_o                    = pc_r;
    // fd stage
-   assign fd_pc_o                 = pc_r;
+   assign fd_pc_o                 = pc_fd_r;
    assign fd_pc4_o                = pc4_f_w;
    assign opcode_fd_o             = opcode_w;
    assign addr_rd_fd_o            = addr_rd_w;

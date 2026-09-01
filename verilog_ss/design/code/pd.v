@@ -15,14 +15,13 @@ module pd #(
   parameter DATAW = 32,
   parameter BASE_ADDR = 32'h01000000,
   parameter ADDRW = $clog2(DATAW),
-  parameter N_BITS = $clog2(DATAW),
-  // 1: multicycle array_mult (stalls pipeline); 0: single-cycle MUL in ALU
-  parameter USE_MULTICYCLE_MULT = 1'b0
+  parameter N_BITS = $clog2(DATAW)
 )
 (
   input clock,
-  input reset
-  // input USE_MULTICYCLE_MULT
+  input reset,
+  // 1: multicycle array_mult (stalls pipeline); 0: single-cycle MUL in ALU
+  input USE_MULTICYCLE_MULT
 );
 
 // ================================ 

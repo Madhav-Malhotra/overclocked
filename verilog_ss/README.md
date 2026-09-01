@@ -1,11 +1,13 @@
-# RV32I Pipelined Processor
+# RV32I 2-Way Superscalar Processor
 
-A 5-stage pipelined RISC-V (RV32I) processor implementation in Verilog with complete verification infrastructure.
+A 2-way superscalar RISC-V (RV32I) processor implementation in Verilog with complete verification infrastructure.
 
 ## Overview
 
 This project implements a complete RV32I base integer instruction set processor with:
-- 5-stage pipeline (Fetch, Decode, Execute, Memory, Writeback)
+- 2-way superscalar pipeline (Fetch, Decode, Execute, Memory, Writeback stages)
+- Dual instruction issue (independent instruction paths per way)
+- Multi-cycle array multiplier with independent units per way
 - Hazard detection and data forwarding
 - Comprehensive trace-based verification
 - Verilator simulation support
@@ -133,23 +135,27 @@ spike --isa=rv32g -m0x01000000:0x200000 --log-commits test-add-simple.elf
 cd verif/scripts
 
 # Run specific test by path
-make run MEM_PATH=/path/to/benchmark.x
+make run MULTICYCLE=0 MEM_PATH=/path/to/benchmark.x
 
 # Run by benchmark name (auto-searches both directories)
-make run_bench BENCH=SimpleAdd
+make run_bench MULTICYCLE=0 BENCH=SimpleAdd
 
 # List all available benchmarks
 make list_benchmarks
+
+# Test all benchmarks in parallel
+make run_all_benchmarks MULTICYCLE=0
 ```
+**Set MULTICYCLE=1 to enable use of the multi-cycle multiplier**
 
 ### Debug and Analysis
 
 ```bash
 # Generate VCD waveform for GTKWave
-make run VCD=1 MEM_PATH=path/to/benchmark.x
+make run VCD=1 MULTICYCLE=0 MEM_PATH=path/to/benchmark.x
 
 # View waveforms
-make waves MEM_PATH=path/to/benchmark.x
+make waves MULTICYCLE=0 MEM_PATH=path/to/benchmark.x
 ```
 
 ### Configuration Variables
@@ -159,6 +165,7 @@ make waves MEM_PATH=path/to/benchmark.x
 - `GEN_TRACE` - Enable/disable trace generation (default: 1)
 - `TIMEOUT` - Simulation timeout in cycles (default: 50000)
 - `VCD` - Enable VCD waveform output (default: 0)
+- `MULTICYCLE` - Select between using the single-cycle and multicycle multiplier 
 
 ## Verification
 
@@ -174,15 +181,77 @@ See `verif/README.md` for detailed verification architecture.
 
 Key RTL modules in `design/code/`:
 
-- `pd.v` - Top-level pipelined processor with hazard control
+- `pd.v` - Top-level 2-way superscalar processor with pipeline control, hazard detection, and forwarding logic
+- `array_mult.v` - Multi-cycle multiplier (independent unit per way)
+- `mult_stall_signals.v` - Control signal generation for multi-cycle multiplier stalling and execution
 - `control_signals.v` - Control signal generation from opcode
 - `decoder.v` - Instruction decoder and immediate generator
-- `alu.v` - 10-operation arithmetic/logic unit
+- `alu.v` - 10-operation arithmetic/logic unit + single-cycle multiplication/division
 - `register_file.v` - 32x32 register file
 - `imemory.v` - Instruction memory
 - `dmemory.v` - Data memory with byte/halfword/word access
 - `branch_comp.v` - Branch condition comparator
 - `writeback.v` - Writeback multiplexer
+- `stall_signals.v` - Hazard and inter-way dependency detection
+
+## Architecture Overview
+
+### Pipeline Structure
+
+The processor implements a 2-way superscalar pipeline with 5 stages per way:
+
+```
+Way 0: F → D → X → M → W
+Way 1: F → D → X → M → W
+```
+
+Each way has independent pipeline registers (FD, DX, XM, MW) that propagate PC, opcode, operands, and control signals. The architecture allows two instructions to progress through the pipeline simultaneously when no inter-way hazards are detected.
+
+### Key Features
+
+**Dual Issue:** Two instructions are fetched and decoded per cycle when possible, allowing up to 2 instructions per way to be in flight.
+
+**Independent Multipliers:** Each way has its own independent multi-cycle array multiplier unit, eliminating cross-way blocking on multiplication operations. The `mult_stall_signals.v` module generates control signals for:
+- `array_mult_start` - Triggers the beginning of multi-cycle multiplication
+- `mul_stall` - Asserts when multi-cycle multiplication stall is required
+- `array_mult_hold` - Control signal to hold the array multiplier during operation
+
+**Hazard Detection & Resolution:** The processor detects:
+- Load-to-use data hazards (load in X, use in D)
+- Write-data dependencies
+- Load-store hazards
+- Inter-way register dependencies
+- Store operand hazards
+
+**Data Forwarding:** Forwarding paths exist from:
+- WX_BYPASS - Writeback → Execute ALU inputs
+- MX_BYPASS - Memory → Execute ALU inputs  
+- Branch comparator forwarding - For branch instructions
+- WM forwarding - For store data
+
+When hazards are detected, the processor injects stalls with no-ops (`0x00000013`) for the affected instruction.
+
+### Instruction Support
+
+The processor supports the **RV32I base integer instruction set**:
+- Arithmetic: ADD, SUB, ADDI
+- Logical: AND, OR, XOR, ANDI, ORI, XORI
+- Shifts: SLL, SRL, SRA, SLLI, SRLI, SRAI
+- Comparisons: SLT, SLTU, SLTI, SLTIU
+- Branches: BEQ, BNE, BLT, BGE, BLTU, BGEU
+- Loads: LW, LH, LB, LHU, LBU
+- Stores: SW, SH, SB
+- Control: JAL, JALR
+- Upper immediate: LUI, AUIPC
+- Multi-cycle multiplication: MUL (via array_mult or single-cycle ALU option)
+
+**Not supported:** Compressed instructions (RV32C), floating-point (F), or other extensions.
+
+### Memory Map
+
+- **Instruction memory base**: `0x01000000`
+- **Stack pointer (x2) initialization**: `BASE_ADDR + MEM_DEPTH`
+- **Memory depth**: 1MB (default, configurable via MEM_DEPTH)
 
 ## Game Integration
 

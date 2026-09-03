@@ -14,7 +14,7 @@ MEM_PATH              ?= $(CL_ROOT)/verif/data/rv32ui-p-add.x
 MEM_PATH_NOT_DIR			:= $(notdir $(MEM_PATH))
 LINE_COUNT            ?= $(shell echo `wc -l < $(MEM_PATH)`)
 MEM_PATH_STR          ?= \"$(abspath $(MEM_PATH))\"
-MEM_DEPTH             ?= 1048576
+MEM_DEPTH             ?= 512 #1048576
 TEST_VECTOR           ?= $(CL_ROOT)/verif/data/test_vector.x
 TEST_VECTOR_STR       ?= \"$(TEST_VECTOR)\"
 TRACE_FILE				    ?= $(MEM_PATH_NOT_DIR:x=trace)

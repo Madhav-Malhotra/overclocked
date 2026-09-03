@@ -10,6 +10,8 @@
 //              data_in     - data to write
 // Outputs:     data_out    - data read from memory (registered, one-cycle latency)
 // =============================================================================
+`include "signals.h"
+
 module dmemory #(
     parameter integer BASE = 32'h01000000
 )

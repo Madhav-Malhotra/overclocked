@@ -50,8 +50,8 @@
 
 // ----- macros -----
 //`define MEM_PATH            "../verif/data/rv32ui-p-add.x"
-`define MEM_PATH            "rv32ui-p-add.mem"
-`define LINE_COUNT          357
-`define MEM_DEPTH           512
-// ----- macros -----
+// `define MEM_PATH            "rv32ui-p-add.mem"
+// `define LINE_COUNT          357
+// `define MEM_DEPTH           512
+// // ----- macros -----
 

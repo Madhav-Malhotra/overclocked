@@ -75,6 +75,17 @@ public class FPGAClient : IDisposable, ICPU
     }
 
     /*
+     * SelectMultiplier - Pick whether to use the single-cycle or multi-cycle multiplier
+     * TODO - (Peri) I still need to figure out how this will be done on an FPGA...
+     * Stub function added here as a placeholder to satisfy the ICPU interface.
+     */
+    public void SelectMultiplier(bool multicyc_sel)
+    {
+        Console.WriteLine("NOT IMPLEMENTED");
+        return;
+    }
+
+    /*
      * writeIMem - Load a hex-encoded program file into instruction memory.
      *
      * Reads each line of the file at `path`, strips comments and optional "0x"

@@ -22,6 +22,7 @@ double sc_time_stamp () {     // Called by $time in Verilog
 int main(int argc, char** argv) {
   Verilated::commandArgs(argc, argv);   // Remember args
   top = new Vtop;
+  top->USE_MULTICYCLE_MULT = USE_MULTICYCLE_MULT_CFG;   // set before first eval()
 
 #ifdef VCD
   Verilated::traceEverOn(true);

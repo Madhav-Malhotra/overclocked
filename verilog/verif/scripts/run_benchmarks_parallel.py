@@ -177,6 +177,7 @@ def run_verilator(bench_x: Path, scripts_dir: Path, cl_root: Path,
 
     compile_cmd = [
         "verilator",
+        "-Wno-DEFOVERRIDE",  
         "+1800-2012ext+sv", "+1364-2005ext+v",
         "-CFLAGS", cflags_mem,
         "--cc", *src_files,

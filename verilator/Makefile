@@ -32,17 +32,24 @@ SS_LIB_NAME = libdesign_wrapper_ss.$(LIB_EXT)
 
 # Detect OS and set Verilator paths accordingly
 UNAME_S := $(shell uname -s)
+VERILATOR_ROOT ?= $(shell verilator -V | grep VERILATOR_ROOT | head -n 1 | awk '{print $$3}')
+
 ifeq ($(UNAME_S),Darwin)
     # macOS (Homebrew)
-    VERILATOR_INC = /opt/homebrew/share/verilator/include
+    VERILATOR_INC ?= /opt/homebrew/share/verilator/include
     CXXFLAGS = -O3 -fPIC -dynamiclib
     LIB_EXT = dylib
 else
-    # Linux (or other Unix-like systems)
-    VERILATOR_INC = /usr/share/verilator/include
+    # Linux (prioritize verilator -V root, fallback to /usr/local/share/verilator/include)
+    ifneq ($(VERILATOR_ROOT),)
+        VERILATOR_INC ?= $(VERILATOR_ROOT)/include
+    else
+        VERILATOR_INC ?= /usr/local/share/verilator/include
+    endif
     CXXFLAGS = -O3 -shared -fPIC
     LIB_EXT = so
 endif
+
 OBJ_DIR = obj_dir
 LIB_NAME = libdesign_wrapper.$(LIB_EXT)
 UNITY_PLUGINS_DIR ?= ../unity/Assets/Plugins

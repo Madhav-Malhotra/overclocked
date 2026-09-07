@@ -258,7 +258,7 @@ run_bench:
 	elif [ -f "$(BENCH_ROOT)/superscalar-tests/$(BENCH).x" ]; then \
 		$(MAKE) -s run \
 			TEST=test_pd \
-			MEM_PATH="$(BENCH_ROOT)/superscalar-tests/$(BENCH).x"; \
+			MEM_PATH="$(BENCH_ROOT)/superscalar-tests/$(BENCH).x" \
 			MULTICYCLE=$(MULTICYCLE); \
 	elif [ -f "$(BENCH_ROOT)/simple-programs/$(BENCH).x" ]; then \
 		$(MAKE) -s run \

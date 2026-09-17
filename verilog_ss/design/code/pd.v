@@ -15,20 +15,18 @@ module pd #(
   parameter DATAW = 32,
   parameter BASE_ADDR = 32'h01000000,
   parameter ADDRW = $clog2(DATAW),
-  parameter N_BITS = $clog2(DATAW),
-  // 1: multicycle array_mult (stalls pipeline); 0: single-cycle MUL in ALU
-  parameter USE_MULTICYCLE_MULT = 1'b1
+  parameter N_BITS = $clog2(DATAW)
 )
 (
   input clock,
-  input reset
+  input reset,
+  // 1: multicycle array_mult (stalls pipeline); 0: single-cycle MUL in ALU
+  input USE_MULTICYCLE_MULT
 );
 
 // ================================ 
 // INPUTS/OUTPUTS TO MODULES: 
 // ================================
-
-  localparam MUL_ALU = 4'd11;   // alu_sel encoding for MUL (used to detect MUL in EX)
 
   // IMEMORY INPUTS
   reg [DATAW-1:0] pc_r_0; // each way has own pc value (to reflect instruction being processed)
@@ -73,6 +71,18 @@ module pd #(
   wire stall_1;
   wire instr_mw_writes_reg_0;
   wire instr_mw_writes_reg_1;
+  
+  // Control signals exclusive to multi-cycle multiplier 
+  wire array_mult_start_0;
+  wire mul_stall_0;
+  wire array_mult_hold_0;
+  wire array_mult_busy_0;
+
+  wire array_mult_start_1;
+  wire mul_stall_1;
+  wire array_mult_hold_1;
+  wire array_mult_busy_1;
+
 
   // Control Signals
     // way 0
@@ -212,61 +222,6 @@ module pd #(
   localparam NOP_INSTR = 32'h00000013; // Pseudo instruction: ADDI x0, x0, 0
   localparam NOP_OPCODE = 7'b0010011;  // Opcode for ADDI
   localparam STORE_OPCODE = 7'b0100011;
-
-  // ------------------------------------------------------------------
-  // Multicycle multiply stall (per way)
-  // ------------------------------------------------------------------
-
-  // way 0
-  wire is_mul_exec_0     = (alu_sel_0 == MUL_ALU);
-  wire array_mult_hold_0 = USE_MULTICYCLE_MULT && is_mul_exec_0;
-  wire array_mult_busy_0;
-  reg  array_mult_busy_d1_0;
-  reg  prev_is_mul_0;
-  reg  [DATAW-1:0] prev_pc_dx_r_0;
-  always @(posedge clock) begin
-    if (reset) begin
-      array_mult_busy_d1_0 <= 1'b0;
-      prev_is_mul_0        <= 1'b0;
-      prev_pc_dx_r_0        <= {DATAW{1'b0}};
-    end else begin
-      array_mult_busy_d1_0 <= array_mult_busy_0;
-      prev_is_mul_0        <= is_mul_exec_0;
-      prev_pc_dx_r_0        <= pc_dx_r_0;
-    end
-  end
-  wire mul_just_started_0 = USE_MULTICYCLE_MULT && is_mul_exec_0 &&
-      (!prev_is_mul_0 || (pc_dx_r_0 != prev_pc_dx_r_0));
-  wire array_mult_start_0 = USE_MULTICYCLE_MULT && mul_just_started_0;
-  wire mul_stall_0 = USE_MULTICYCLE_MULT &&
-    (array_mult_busy_0 || array_mult_busy_d1_0 || mul_just_started_0);
-
-  // way 1
-  wire is_mul_exec_1     = (alu_sel_1 == MUL_ALU);
-  wire array_mult_hold_1 = USE_MULTICYCLE_MULT && is_mul_exec_1;
-  wire array_mult_busy_1;
-  reg  array_mult_busy_d1_1;
-  reg  prev_is_mul_1;
-  reg  [DATAW-1:0] prev_pc_dx_r_1;
-  always @(posedge clock) begin
-    if (reset) begin
-      array_mult_busy_d1_1 <= 1'b0;
-      prev_is_mul_1        <= 1'b0;
-      prev_pc_dx_r_1        <= {DATAW{1'b0}};
-    end else begin
-      array_mult_busy_d1_1 <= array_mult_busy_1;
-      prev_is_mul_1        <= is_mul_exec_1;
-      prev_pc_dx_r_1        <= pc_dx_r_1;
-    end
-  end
-  wire mul_just_started_1 = USE_MULTICYCLE_MULT && is_mul_exec_1 &&
-      (!prev_is_mul_1 || (pc_dx_r_1 != prev_pc_dx_r_1));
-  wire array_mult_start_1 = USE_MULTICYCLE_MULT && mul_just_started_1;
-  wire mul_stall_1 = USE_MULTICYCLE_MULT &&
-    (array_mult_busy_1 || array_mult_busy_d1_1 || mul_just_started_1);
-
-  // Either way's MUL freezes fetch (the two ways must stay fetch-paired).
-  wire fetch_stall = stall_0 || stall_1 || mul_stall_0 || mul_stall_1;
 
   // ===================
   // CONTROL/FSMs
@@ -685,6 +640,34 @@ always @(posedge clock) begin
     .is_i_type_w(is_i_type_1)     // output
   );
 
+  mult_stall_signals #(
+        .DATAW(32)
+  ) m_stall_signals_0 (
+        .clock(clock),
+        .reset(reset),
+        .pc_dx_r(pc_dx_r_0),
+        .alu_sel(alu_sel_0),
+        .multicyc_sel(USE_MULTICYCLE_MULT),
+        .array_mult_busy(array_mult_busy_0),
+        .array_mult_start(array_mult_start_0),
+        .mul_stall(mul_stall_0),
+        .array_mult_hold(array_mult_hold_0)
+  );
+
+  mult_stall_signals #(
+        .DATAW(32)
+  ) m_stall_signals_1 (
+        .clock(clock),
+        .reset(reset),
+        .pc_dx_r(pc_dx_r_1),
+        .alu_sel(alu_sel_1),
+        .multicyc_sel(USE_MULTICYCLE_MULT),
+        .array_mult_busy(array_mult_busy_1),
+        .array_mult_start(array_mult_start_1),
+        .mul_stall(mul_stall_1),
+        .array_mult_hold(array_mult_hold_1)
+  );
+
   stall_signals #(
         .DATAW(32),
         .ADDRW(5)   // $clog2(32) = 5
@@ -736,6 +719,8 @@ always @(posedge clock) begin
         .instr_mw_writes_reg_1_op   (instr_mw_writes_reg_1)
     );
 
+  // Either way's MUL freezes fetch (the two ways must stay fetch-paired).
+  wire fetch_stall = stall_0 || stall_1 || mul_stall_0 || mul_stall_1;
 
   register_file rf1(
     .clock(clock),          // input
@@ -920,7 +905,7 @@ always @(posedge clock) begin
     .idata1(alu_in1_w_0),
     .idata2(alu_in2_w_0),
     .alu_sel(alu_sel_0),
-    .multicyc_sel(USE_MULTICYCLE_MULT[0]), // 1 = MUL routed through this way's internal array_mult unit
+    .multicyc_sel(USE_MULTICYCLE_MULT), // 1 = MUL routed through this way's internal array_mult unit
     .mult_start_pulse(array_mult_start_0),  // one-cycle pulse when MUL first enters EX (way 0)
     .mult_hold(array_mult_hold_0),          // high while MUL occupies EX (way 0)
     .mult_busy(array_mult_busy_0),
@@ -934,7 +919,7 @@ always @(posedge clock) begin
     .idata1(alu_in1_w_1),
     .idata2(alu_in2_w_1),
     .alu_sel(alu_sel_1),
-    .multicyc_sel(USE_MULTICYCLE_MULT[0]), // 1 = MUL routed through this way's internal array_mult unit
+    .multicyc_sel(USE_MULTICYCLE_MULT), // 1 = MUL routed through this way's internal array_mult unit
     .mult_start_pulse(array_mult_start_1),  // one-cycle pulse when MUL first enters EX (way 1)
     .mult_hold(array_mult_hold_1),          // high while MUL occupies EX (way 1)
     .mult_busy(array_mult_busy_1),

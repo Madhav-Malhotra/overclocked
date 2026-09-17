@@ -141,7 +141,7 @@ def write_diff(proc_commits, spike_commits, bench_name, out_path: Path):
 
 
 def run_verilator(bench_x: Path, scripts_dir: Path, cl_root: Path,
-                   sim_dir: Path, timeout: int) -> bool:
+                   sim_dir: Path, timeout: int, multicycle: int) -> bool:
     """Compile and run one benchmark through verilator. Returns True on success."""
     bench_name = bench_x.stem
     bench_x_abs = bench_x.resolve()
@@ -173,7 +173,11 @@ def run_verilator(bench_x: Path, scripts_dir: Path, cl_root: Path,
     tv_def = f'+define+TEST_VECTOR="{cl_root}/verif/data/test_vector.x"'
     trace_def = f'+define+TRACE_FILE="{trace_basename}"'
     # -CFLAGS for the C++ side: the path needs to be quoted for C preprocessor
-    cflags_mem = f'-DMEM_DEPTH={mem_depth} -DMEM_PATH=\\"{bench_x_abs}\\"'
+    cflags_mem = (
+    f'-DMEM_DEPTH={mem_depth} '
+    f'-DMEM_PATH=\\"{bench_x_abs}\\" '
+    f'-DUSE_MULTICYCLE_MULT_CFG={multicycle}'
+)
 
     compile_cmd = [
         "verilator",
@@ -227,6 +231,7 @@ def process_benchmark(
     spike_diff_dir: Path,
     sim_base_dir: Path,
     timeout: int,
+    multicycle: int
 ) -> dict:
     """Full pipeline for one benchmark: compile -> run -> spike -> compare.
 
@@ -241,7 +246,7 @@ def process_benchmark(
 
     # Step 1: Verilator compile + run
     try:
-        ok = run_verilator(bench_x, scripts_dir, cl_root, sim_dir, timeout)
+        ok = run_verilator(bench_x, scripts_dir, cl_root, sim_dir, timeout, multicycle)
         if not ok:
             result["status"] = "skip"
             result["message"] = f"SKIP: {bench_name} (verilator failed)"
@@ -359,6 +364,8 @@ def main() -> int:
                         help="Simulation timeout in cycles")
     parser.add_argument("--skip-build", action="store_true",
                         help="Skip building benchmarks from source")
+    parser.add_argument("--multicycle", type=int, default=0,
+                    help="Enable multicycle multiplier selection")
     args = parser.parse_args()
 
     bench_root = args.bench_root.resolve()
@@ -394,7 +401,7 @@ def main() -> int:
                 process_benchmark,
                 bench_x, scripts_dir, cl_root, bench_root,
                 spike_traces_dir, spike_diff_dir, sim_base_dir,
-                args.timeout,
+                args.timeout, args.multicycle
             ): bench_x
             for bench_x in all_benchmarks
         }

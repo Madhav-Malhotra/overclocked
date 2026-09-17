@@ -9,11 +9,11 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Content Include="../verilator/libdesign_wrapper.so">
+    <Content Include="../verilator/libdesign_wrapper.*">
       <Pack>false</Pack>
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
-    <Content Include="../verilator/libdesign_wrapper_ss.so">
+    <Content Include="../verilator/libdesign_wrapper_ss.*">
       <Pack>false</Pack>
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>

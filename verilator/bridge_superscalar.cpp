@@ -291,6 +291,15 @@ void tick() {
 }
 
 /*
+ * selectMultiplier - Assert the USE_MULTICYCLE_MULT if want to use multicycle operations. 
+ * Otherwise use single-cycle multiplier.  
+ */
+void selectMultiplier(bool multicyc_sel) {
+    design->USE_MULTICYCLE_MULT = multicyc_sel;
+    design->eval();
+}
+
+/*
  * init_design_wrapper — Create and reset the Verilated CPU model.
  *
  * Allocates the VerilatedContext and Vdesign_wrapper singletons.

@@ -9,19 +9,11 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Content Include="../verilator/libdesign_wrapper.so">
+    <Content Include="../verilator/libdesign_wrapper.*">
       <Pack>false</Pack>
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
-    <Content Include="../verilator/libdesign_wrapper_ss.so">
-      <Pack>false</Pack>
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
-    <Content Include="../verilator/libdesign_wrapper.dylib"> <!--FOR MAC Compatibility-->
-      <Pack>false</Pack>
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
-    <Content Include="../verilator/libdesign_wrapper_ss.dylib"> <!--FOR MAC Compatibility-->
+    <Content Include="../verilator/libdesign_wrapper_ss.*">
       <Pack>false</Pack>
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>

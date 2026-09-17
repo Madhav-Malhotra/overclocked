@@ -1,8 +1,6 @@
 # use `make -n` to view constructed commands
-# If you get errors related to verilator's included files not being found, run
-# `verilator -V`, retrieve the VERILATOR_ROOT variable, and set the
-# VERILATOR_INC variables below to
-# VERILATOR_INC = ${VERILATOR_ROOT}/include
+# Locate Verilator's runtime headers and sources from the active installation.
+# VERILATOR_INC may still be overridden for a custom installation.
 
 MEM_PATH   ?= "../verilog/verif/data/rv32ui-p-add.x"
 LINE_COUNT := $(strip $(shell wc -l < $(MEM_PATH)))
@@ -29,16 +27,17 @@ SS_VERILOG_TOP = ../verilog_ss/design/design_wrapper.v
 SS_OBJ_DIR = "obj_dir_ss"
 SS_LIB_NAME = libdesign_wrapper_ss.$(LIB_EXT)
 
-# Detect OS and set Verilator paths accordingly
+# Detect OS and set platform-specific compiler flags.
 UNAME_S := $(shell uname -s)
+VERILATOR_ROOT ?= $(shell $(VERILATOR) --getenv VERILATOR_ROOT)
+VERILATOR_INC ?= $(VERILATOR_ROOT)/include
+
 ifeq ($(UNAME_S),Darwin)
     # macOS (Homebrew)
-    VERILATOR_INC = /opt/homebrew/share/verilator/include
     CXXFLAGS = -O3 -fPIC -dynamiclib
     LIB_EXT = dylib
 else
     # Linux (or other Unix-like systems)
-    VERILATOR_INC = /usr/share/verilator/include
     CXXFLAGS = -O3 -shared -fPIC
     LIB_EXT = so
 endif
@@ -51,16 +50,16 @@ MINGW_CXX = x86_64-w64-mingw32-g++
 all: verilog bridge dll
 
 # Step 1: Run Verilator to generate C++ headers/classes
-verilog:
+verilog: clean-generated
 	# basic pipeline
-	$(VERILATOR) -cc $(VERILOG_TOP) \
+	$(VERILATOR) -cc $(VERILOG_TOP) -Mdir $(OBJ_DIR) \
 		$(V_FLAGS)
 	# superscalar
-	$(VERILATOR) -cc $(SS_VERILOG_TOP) -Mdir $(SS_OBJ_DIR)\
+	$(VERILATOR) -cc $(SS_VERILOG_TOP) -Mdir $(SS_OBJ_DIR) \
 		$(SS_V_FLAGS)
 
 # Step 2: Compile the bridge into a shared library
-bridge:
+bridge: verilog
 	$(CXX) $(CXXFLAGS) -o $(LIB_NAME) \
 		-I $(OBJ_DIR) \
 		-I $(VERILATOR_INC) \
@@ -96,4 +95,10 @@ dll:
 clean:
 	rm -rf $(OBJ_DIR) $(LIB_NAME) design_wrapper.dll $(SS_OBJ_DIR) $(SS_LIB_NAME)
 
-.PHONY: all verilog bridge dll clean
+# Generated C++ files must be removed before re-Verilating, especially when
+# switching Verilator versions, because newer releases can emit a different
+# file set and leave incompatible stale sources in the output directory.
+clean-generated:
+	rm -rf $(OBJ_DIR) $(SS_OBJ_DIR)
+
+.PHONY: all verilog bridge dll clean clean-generated

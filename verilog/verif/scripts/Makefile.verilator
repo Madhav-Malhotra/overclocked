@@ -1,6 +1,6 @@
 SRCLIST = $(shell cat $(CL_ROOT)/verif/scripts/design.f)
 SRC = $(addprefix $(CL_ROOT)/design/code/, $(SRCLIST)) $(CL_ROOT)/verif/tests/clockgen.sv $(CL_ROOT)/design/design_wrapper.v
-VFLAGS = 
+VFLAGS = -Wno-DEFOVERRIDE
 TOP = top
 PROG=$(CL_ROOT)/verif/tests/data/rv32ui-p-add.x
 _CFLAGS=-DMEM_DEPTH=$(MEM_DEPTH) -DMEM_PATH=$(MEM_PATH_STR)

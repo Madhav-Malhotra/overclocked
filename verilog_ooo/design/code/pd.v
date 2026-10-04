@@ -6,15 +6,19 @@
 // Outputs:     (none - all state is internal; testbench probes internal signals)
 // =============================================================================
 module pd #(
+  parameter NUM_REGS = 32,
   parameter DATAW = 32,
   parameter BASE_ADDR = 32'h01000000,
   parameter ADDRW = $clog2(DATAW),
   parameter N_BITS = $clog2(DATAW),
+  
 
   // functional units
   parameter NUM_ALU = 2,
   parameter NUM_MULTICYCLE_MULT = 1,
-  parameter NUM_LOAD_STORE = 1
+  parameter NUM_LOAD_STORE = 1,
+  parameter FUW = $clog2(NUM_ALU + NUM_MULTICYCLE_MULT + NUM_LOAD_STORE + 1 + 1) // + 1 for branch_comparator + 1 for N/A
+
 )(
   input clock,
   input reset
@@ -29,7 +33,7 @@ reg         f_imem_rw = 0;
 wire        f_imem_enable;
 reg [32:0]  f_instr_out;
 
-// Decode
+// Decode/Dispatch
 reg [32:0]        d_pc;
 reg [32:0]        d_instr;
 reg [6:0]         d_opcode;
@@ -43,6 +47,7 @@ reg [N_BITS-1:0]  d_shamt;
 reg               d_is_u_type_w;
 reg               d_is_j_type_w;
 reg               d_is_i_type_w;
+reg [FUW-1:0]     d_fu_id;
 
 
 /* FETCH STAGE: Imemory */
@@ -83,7 +88,9 @@ always @(posedge clock) begin
 end 
 
 
-decoder dec (
+decoder dec #(
+  .FUW(FUW)
+)(
   .instr(d_instr),
   .opcode(d_opcode),
   .addr_rd(d_addr_rd),
@@ -95,8 +102,38 @@ decoder dec (
   .shamt(d_shamt),
   .is_u_type_w(d_is_u_type_w),
   .is_j_type_w(d_is_j_type_w),
-  .is_i_type_w(d_is_i_type_w)
+  .is_i_type_w(d_is_i_type_w),
+  .fu_id(d_fu_id)
 );
+
+
+reg_status_table regStatus #(
+    .DATAW(DATAW),
+    .NUM_REGS(NUM_REGS),
+    .NUM_ALU(NUM_ALU),
+    .NUM_MULTICYCLE_MULT(NUM_MULTICYCLE_MULT),
+    .NUM_LOAD_STORE(NUM_LOAD_STORE)
+)(
+    .clock(clock),
+    .reset(reset),
+
+    .write_enable(),
+    .reg_id_in(d_addr_rd),
+    .fu_id_in(d_fu_id),
+    
+    .clear_enable(),
+    .clear_id()
+    
+    .fu_id_out()
+);
+
+// // Functional Unit ID
+// localparam empty = 3'b000;
+// localparam ALU1 = 3'b001;
+// localparam ALU2 = 3'b010;
+// localparam MCM = 3'b011;
+// localparam LS = 3'b100;
+// localparam BRANCH = 3'b101;
 
 
 /* ISSUE STAGE: just look for RAW hazards? and copy values from reg file */

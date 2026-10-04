@@ -19,7 +19,8 @@
 module decoder #(
     parameter DATAW  =  32,
     parameter ADDRW  =  $clog2(DATAW),
-    parameter N_BITS =  $clog2(DATAW)
+    parameter N_BITS =  $clog2(DATAW),
+    parameter FUW    = 3,
 )(
     input  [DATAW-1:0]  instr,
     output [6:0]        opcode,
@@ -32,7 +33,8 @@ module decoder #(
     output [N_BITS-1:0] shamt,
     output              is_u_type_w,
     output              is_j_type_w,
-    output              is_i_type_w
+    output              is_i_type_w,
+    output [FUW-1:0]    fu_id
 );
 
 // I/S/B immediate size (excludes imm[0] for B-type)
@@ -69,8 +71,6 @@ wire [IMM_UJ_SIZE-1:0] _imm_j = {instr[31], instr[19:12], instr[20], instr[30:21
 // ====================
 // INSTRUCTION DECODE
 // ====================
-
-// opcode-level identification
 wire is_alu = (_opcode == 7'b0110011);
 wire is_alu_imm = (_opcode == 7'b0010011);
 wire is_load = (_opcode == 7'b0000011);
@@ -81,6 +81,8 @@ wire is_jalr = (_opcode == 7'b1100111);
 wire is_lui = (_opcode == 7'b0110111);
 wire is_auipc = (_opcode == 7'b0010111);
 wire is_ecall = (_opcode == 7'b1110011) & (_funct3 == 3'b0) & (_imm_i == 12'b0);
+// opcode-level identification
+wire is_mcm = (_opcode == 7'b0110011 && _funct7 == 7'h01);
 
 // format classification used to select the correct immediate encoding
 wire is_r_type = is_alu;
@@ -94,6 +96,13 @@ wire is_j_type = is_jal;
 assign is_u_type_w = is_u_type;
 assign is_j_type_w = is_j_type;
 assign is_i_type_w = is_i_type;
+
+// Functional Unit Type
+localparam NONE = 0
+localparam ALU = 1;
+localparam MCM = 2;
+localparam LS = 3;
+localparam BRANCH = 4;
 
 // ====================
 // OUTPUT ASSIGNMENTS
@@ -130,5 +139,12 @@ assign imm = (is_r_type) ? 0 :
                 (is_j_type) ? {{(DATAW - IMM_UJ_SIZE - 1){_imm_j[IMM_UJ_SIZE-1]}}, _imm_j, 1'b0} :
                 // default (should not occur)
                 0;
+
+// Select functional unit type for the instruction
+assign fu_id = (is_mcm) ? MCM :
+               (is_alu || is_u_type || is_alu_imm || is_ecall) ? ALU :
+               (is_load || is_store) ? LS :
+               (is_branch || is_jal) ? BRANCH :
+                NONE;
 
 endmodule

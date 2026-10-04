@@ -18,6 +18,9 @@ public class VerilatorClientSuperscalar : IDisposable, ICPU
     public static extern void tick();
 
     [DllImport(NativeLib, CallingConvention = CallingConvention.Cdecl)]
+    public static extern void selectMultiplier(bool multicyc_sel);
+
+    [DllImport(NativeLib, CallingConvention = CallingConvention.Cdecl)]
     public static extern void eval();
 
     [DllImport(NativeLib, CallingConvention = CallingConvention.Cdecl)]
@@ -48,6 +51,14 @@ public class VerilatorClientSuperscalar : IDisposable, ICPU
     {
         tick();
         return;
+    }
+
+     /*
+     * SelectMultiplier - Pick whether to use the single-cycle or multi-cycle multiplier
+     */
+    public void SelectMultiplier(bool multicyc_sel)
+    {
+        selectMultiplier(multicyc_sel);
     }
 
     /*
@@ -269,10 +280,11 @@ public class VerilatorClientSuperscalar : IDisposable, ICPU
      *
      * @param path  Path to the hex program file (see writeIMem for format details).
      */
-    public VerilatorClientSuperscalar(string path)
+    public VerilatorClientSuperscalar(string path, bool multicyc_sel)
     {
         this.state = new CPUState();
         init_design_wrapper();
+        SelectMultiplier(multicyc_sel);
         writeIMem(path);
     }
 
@@ -284,10 +296,11 @@ public class VerilatorClientSuperscalar : IDisposable, ICPU
      *
      * @param hexInstructions  Array of 32-bit hex-encoded instruction words.
      */
-    public VerilatorClientSuperscalar(string[] hexInstructions)
+    public VerilatorClientSuperscalar(string[] hexInstructions, bool multicyc_sel)
     {
         this.state = new CPUState();
         init_design_wrapper();
+        SelectMultiplier(multicyc_sel);
         writeIMem(hexInstructions);
         Reset();
     }

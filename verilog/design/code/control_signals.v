@@ -21,13 +21,12 @@
 // =============================================================================
 module control_signals #(
     parameter DATAW = 32,
-    parameter ADDRW = $clog2(DATAW),
-    // 1: bubble XM while array_mult runs; 0: single-cycle MUL, no extra stall
-    parameter USE_MULTICYCLE_MULT = 1'b1
+    parameter ADDRW = $clog2(DATAW)
 )
 (
     input clock,
     input reset,
+    input USE_MULTICYCLE_MULT, // 1: bubble XM while array_mult runs; 0: single-cycle MUL, no extra stall 
     input [6:0] opcode_dx,
     input [6:0] opcode_xm,
     input [6:0] opcode_mw,
@@ -62,6 +61,8 @@ module control_signals #(
 // ====================
 // PARAMETERS
 // ====================
+
+// localparam USE_MULTICYCLE_MULT = 1'b1;
 
 // alu_sel encoding
 localparam ADD = 4'd0;

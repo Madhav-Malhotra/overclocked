@@ -1,7 +1,9 @@
 // DO NOT rely on this file, it will be changed with a fresh one
 `include "signals.h"
 
-module top;
+module top(
+  input USE_MULTICYCLE_MULT
+);
   wire clock, reset;
   clockgen clkg(
     .clk(clock),
@@ -9,7 +11,8 @@ module top;
   );
   design_wrapper dut(
     .clock(clock),
-    .reset(reset)
+    .reset(reset),
+    .USE_MULTICYCLE_MULT(USE_MULTICYCLE_MULT)
   );
   `ifdef VCD
   initial begin

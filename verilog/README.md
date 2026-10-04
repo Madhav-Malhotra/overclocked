@@ -133,23 +133,27 @@ spike --isa=rv32g -m0x01000000:0x200000 --log-commits test-add-simple.elf
 cd verif/scripts
 
 # Run specific test by path
-make run MEM_PATH=/path/to/benchmark.x
+make run MULTICYCLE=0 MEM_PATH=/path/to/benchmark.x
 
 # Run by benchmark name (auto-searches both directories)
-make run_bench BENCH=SimpleAdd
+make run_bench MULTICYCLE=0 BENCH=SimpleAdd
 
 # List all available benchmarks
 make list_benchmarks
+
+# Test all benchmarks in parallel
+make run_all_benchmarks MULTICYCLE=0
 ```
+**Set MULTICYCLE=1 to enable use of the multi-cycle multiplier**
 
 ### Debug and Analysis
 
 ```bash
 # Generate VCD waveform for GTKWave
-make run VCD=1 MEM_PATH=path/to/benchmark.x
+make run VCD=1 MULTICYCLE=0 MEM_PATH=path/to/benchmark.x
 
 # View waveforms
-make waves MEM_PATH=path/to/benchmark.x
+make waves MULTICYCLE=0 MEM_PATH=path/to/benchmark.x
 ```
 
 ### Configuration Variables
@@ -159,6 +163,7 @@ make waves MEM_PATH=path/to/benchmark.x
 - `GEN_TRACE` - Enable/disable trace generation (default: 1)
 - `TIMEOUT` - Simulation timeout in cycles (default: 50000)
 - `VCD` - Enable VCD waveform output (default: 0)
+- `MULTICYCLE` - Select between using the single-cycle and multicycle multiplier 
 
 ## Verification
 
@@ -175,9 +180,10 @@ See `verif/README.md` for detailed verification architecture.
 Key RTL modules in `design/code/`:
 
 - `pd.v` - Top-level pipelined processor with hazard control
+- `array_mult.v` - Multi-cycle multiplier 
 - `control_signals.v` - Control signal generation from opcode
 - `decoder.v` - Instruction decoder and immediate generator
-- `alu.v` - 10-operation arithmetic/logic unit
+- `alu.v` - 10-operation arithmetic/logic unit + single-cycle multiplication/division
 - `register_file.v` - 32x32 register file
 - `imemory.v` - Instruction memory
 - `dmemory.v` - Data memory with byte/halfword/word access

@@ -362,7 +362,11 @@ always @(posedge clock) begin
       funct7_dx_r_0 <= funct7_dx_r_0;
     end
     else if (stall_0 || mul_stall_1 || br_taken_0 || br_taken_1) begin
-      pc_dx_r_0 <= pc_fd_r_0;
+      // Bubbles injected behind way 1's in-flight MUL get pc 0 (like the XM
+      // bubbles above): tagging them with pc_fd_r_0 would let a stale bubble
+      // in XM0 satisfy stall_occured (x_pc_1 - m_pc_0 == 4) once the next
+      // pair issues, wrongly suppressing way 1's MX bypass from its own MUL.
+      pc_dx_r_0 <= mul_stall_1 ? {DATAW{1'b0}} : pc_fd_r_0;
       opcode_dx_r_0 <= NOP_OPCODE;
       funct3_dx_r_0 <= 0;
       imm_dx_r_0 <= 0;

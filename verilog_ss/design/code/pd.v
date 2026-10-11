@@ -664,7 +664,10 @@ always @(posedge clock) begin
         .clock(clock),
         .reset(reset),
         .pc_dx_r(pc_dx_r_1),
-        .alu_sel(alu_sel_1),
+        // A taken branch/jump in way 0 (older) squashes way 1's EX instruction,
+        // so a MUL there must not start/stall -- otherwise mul_stall_1 would
+        // hold it in DX past the squash and let it commit.
+        .alu_sel(br_taken_0 ? 4'd0 : alu_sel_1),
         .multicyc_sel(USE_MULTICYCLE_MULT),
         .array_mult_busy(array_mult_busy_1),
         .array_mult_start(array_mult_start_1),

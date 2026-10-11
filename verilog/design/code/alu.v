@@ -6,10 +6,13 @@
 //              MUL (low 32b product).
 //
 //              Houses the multicycle array_mult unit used for MUL when
-//              multicyc_sel=1. The pipeline (pd.v) drives mult_start_pulse/
-//              mult_hold from EX-stage state and stalls on mult_busy; this
-//              module just forwards idata1/idata2 to array_mult and selects
-//              its result for MUL's odata.
+//              multicyc_sel=1. array_mult's operand/result width is set
+//              to 8 bits (see array_mult.v), independent of 
+//              ALU's IDATAW/ODATAW: this module truncates idata1/idata2
+//              to their low 8 bits before feeding array_mult, then
+//              sign-extends its 8-bit result back out to ODATAW bits for
+//              MUL's odata. The pipeline (pd.v) drives mult_start_pulse/
+//              mult_hold from EX-stage state and stalls on mult_busy.
 // Inputs:      idata1, idata2   - 32-bit operands
 //              alu_sel          - 4-bit operation selector
 //              multicyc_sel     - 0: single-cycle multiply via * operator
@@ -59,15 +62,21 @@ reg [ODATAW-1:0] mask;
 // ====================
 // MULTICYCLE MULTIPLY
 // ====================
-wire [ODATAW-1:0] mult_array_out;
+// array_mult always runs at this width, regardless of IDATAW/ODATAW.
+localparam MULT_DATAW = 8;
+
+wire [MULT_DATAW-1:0] mult_array_out;
+// Sign-extended back out to ODATAW bits for MUL's odata below.
+wire [ODATAW-1:0] mult_array_out_ext =
+    {{(ODATAW-MULT_DATAW){mult_array_out[MULT_DATAW-1]}}, mult_array_out};
 
 array_mult array_mult1(
     .clock(clock),
     .reset(reset),
     .start_pulse(mult_start_pulse),
     .hold(mult_hold),
-    .op_a(idata1),
-    .op_b(idata2),
+    .op_a(idata1[MULT_DATAW-1:0]),
+    .op_b(idata2[MULT_DATAW-1:0]),
     .result(mult_array_out),
     .busy(mult_busy)
 );
@@ -101,9 +110,10 @@ always @(*) begin
         SLT:  odata = (idata1 < idata2) ? 1 : 0;
         SLTU: odata = ($unsigned(idata1) < $unsigned(idata2)) ? 1 : 0;
          /* RISC-V M-Extension Instructions */
-        // multicyc_sel=0: compute with * (single-cycle).
-        // multicyc_sel=1: result comes from the internal array_mult unit.
-        MUL:  odata = multicyc_sel ? mult_array_out : ($signed(idata1) * $signed(idata2));
+        // multicyc_sel=0: compute with * (single-cycle, full IDATAW×IDATAW).
+        // multicyc_sel=1: result comes from the internal 8-bit array_mult
+        //                 unit, sign-extended back out to ODATAW bits.
+        MUL:  odata = multicyc_sel ? mult_array_out_ext : ($signed(idata1) * $signed(idata2));
         DIV: begin // division by zero --> follow risc-v convention of setting to MAX_INT/-1
             if (idata2 == 32'h0) begin
                 odata = 32'hFFFFFFFF; // Division by zero --> set to -1

@@ -35,12 +35,16 @@ SPIKE_LINE_RE = re.compile(
 def find_elf(bench: str, bench_root: Path) -> Path:
     """Find the ELF file for a benchmark.
 
-    For individual-instructions: looks for <bench>.elf
+    For individual-instructions / superscalar-tests: looks for <bench>.elf
     For simple-programs: looks for <bench>.iss.elf first, then <bench>.elf
     """
     individual = bench_root / "individual-instructions" / f"{bench}.elf"
     if individual.exists():
         return individual
+
+    superscalar = bench_root / "superscalar-tests" / f"{bench}.elf"
+    if superscalar.exists():
+        return superscalar
 
     simple_iss = bench_root / "simple-programs" / f"{bench}.iss.elf"
     if simple_iss.exists():
@@ -54,6 +58,7 @@ def find_elf(bench: str, bench_root: Path) -> Path:
         f"ELF not found for benchmark '{bench}'.\n"
         f"Searched:\n"
         f"  {individual}\n"
+        f"  {superscalar}\n"
         f"  {simple_iss}\n"
         f"  {simple_elf}"
     )

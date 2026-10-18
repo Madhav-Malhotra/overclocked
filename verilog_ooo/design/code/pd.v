@@ -82,7 +82,6 @@ always @(posedge clock) begin
   end else begin 
     d_pc <= f_pc;
     d_instr <= f_instr_out;
-
   end 
 
 end 
@@ -153,8 +152,22 @@ EXECUTE STAGE: all the FUs
 - 1 DMemory
 */
 
+dmemory dmem (
+  .clock(clock), 
+  .reset(reset),
+  .r_pc(),
+  .r_access_size(),
+  .r_address(),
+  .r_offset,
 
+  .w_pc(),
+  .w_access_size(),
+  .w_address(),
+  .w_offset(),
+  .w_data_in(),
 
+  .r_data_out()
+)
 
 /* WRITEBACK STAGE: writeback unit*/
 

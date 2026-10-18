@@ -331,7 +331,7 @@ def process_benchmark(
             p, s = proc_commits[i], spike_commits[i]
             if p != s:
                 mismatch_lines.append(f"    [{i}] PROC:  pc={p[0]} rd={p[1]} val={p[2]}")
-                mismatch_lines.append(f"    [{i}] SPIKE: pc={s[s]} rd={s[1]} val={s[2]}")
+                mismatch_lines.append(f"    [{i}] SPIKE: pc={s[0]} rd={s[1]} val={s[2]}")
                 shown += 1
         if mismatch_lines:
             result["message"] += "\n" + "\n".join(mismatch_lines)

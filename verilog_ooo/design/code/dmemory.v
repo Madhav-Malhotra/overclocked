@@ -19,14 +19,14 @@ module dmemory #(
     
     // For load unit
     input r_en,
-    input [DATAW-1] r_pc,
+    input [DATAW-1:0] r_pc,
     input  [1:0]  r_access_size,
     input  [31:0] r_address,
     input  [11:0] r_offset,
     
     // For store unit
     input w_en,
-    input [DATAW-1] w_pc,
+    input [DATAW-1:0] w_pc,
     input  [1:0]  w_access_size,
     input  [31:0] w_address,
     input  [11:0] w_offset,

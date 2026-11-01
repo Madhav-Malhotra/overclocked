@@ -1,10 +1,9 @@
 module instr_status #(
     parameter DATAW  =  32,
     parameter ADDRW  =  $clog2(DATAW),
-    parameter NUM_BUFFER_ROWS = 5,
-    parameter INDEX_WIDTH     = 3,
-    parameter N_BITS =  $clog2(DATAW),
-    parameter NUM_FU = 5,
+    parameter NUM_BUFFER_ROWS = 6,
+    parameter N_BITS =  $clog2(NUM_BUFFER_ROWS),
+    parameter NUM_FU = 6,
     parameter FUW = $clog2(NUM_FU)
 
 )(
@@ -18,7 +17,7 @@ module instr_status #(
     input [2:0] ds_funct3,
     input [6:0] ds_funct7,
     input [DATAW-1:0] ds_imm,
-    input [N_BITS-1:0] ds_shamt,
+    input [5:0] ds_shamt,
     input [ADDRW-1:0] ds_rs1,
     input [ADDRW-1:0] ds_rs2, 
     input [ADDRW-1:0] ds_rd, 
@@ -26,7 +25,9 @@ module instr_status #(
 
     // clear row in WB
     input wb_en,
-    input [DATAW-1:0] wb_pc
+    input [DATAW-1:0] wb_pc,
+
+    output buffer_full
 );
 
 localparam DS = 'h0;
@@ -47,7 +48,7 @@ reg [6:0] func7_arr [NUM_BUFFER_ROWS-1:0];
 
 // Imm + shamt
 reg [DATAW-1:0] imm_arr [NUM_BUFFER_ROWS-1:0];
-reg [N_BITS-1:0] shamt_arr [NUM_BUFFER_ROWS-1:0];
+reg [5:0] shamt_arr [NUM_BUFFER_ROWS-1:0];
 
 // rs1, rs2, rd
 reg [DATAW-1:0] rs1_arr [NUM_BUFFER_ROWS-1:0];
@@ -60,6 +61,7 @@ reg [1:0] stage_arr [NUM_BUFFER_ROWS-1:0];
 // Assigned functional unit
 reg [1:0] fu_arr [NUM_BUFFER_ROWS-1:0];
 
+reg [N_BITS-1:0] num_instr = 0;
 
 integer i;
 
@@ -68,6 +70,8 @@ initial begin
     for(i = 0; i < NUM_BUFFER_ROWS; i = i + 1) begin
         valid_arr[i] <= 0;
     end
+
+    num_instr <= 0;
 end
 
 reg done = 0;
@@ -80,6 +84,7 @@ always @(posedge clock) begin
             valid_arr[i] <= 0;
         end
 
+        num_instr <= 0;
     end else begin
         
         // Clear rows in WB (set valid to 0)
@@ -88,7 +93,10 @@ always @(posedge clock) begin
                 if(pc_arr[i] == wb_pc) 
                     valid_arr[i] <= 0;
                     stage_arr[i] <= WB; // for debugging purposes
-            end            
+            end  
+
+            num_instr <= num_instr - 1;
+
         end        
 
         // look for an empty row and populate values
@@ -108,14 +116,18 @@ always @(posedge clock) begin
                     rd_arr[i] <= ds_rd;
                     stage_arr[i] <= DS;
                     fu_arr[i] <= ds_fu_id;
-                    done <= 1;
+                    done = 1;
                 end
             end
         end
+
+        num_instr <= (done) ? num_instr + 1 : num_instr;
+        
     end
 end
 
-
+assign buffer_full =    .ds_assigned_fu_id(ds_assigned_fu_id), // output
+ (num_instr == NUM_BUFFER_ROWS);
 
 
 

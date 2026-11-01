@@ -20,7 +20,7 @@ module decoder #(
     parameter DATAW  =  32,
     parameter ADDRW  =  $clog2(DATAW),
     parameter N_BITS =  $clog2(DATAW),
-    parameter FUW    = 3,
+    parameter FUW    = 3
 )(
     input  [DATAW-1:0]  instr,
     output [6:0]        opcode,
@@ -99,10 +99,11 @@ assign is_i_type_w = is_i_type;
 
 // Functional Unit Type
 localparam NONE = 0
-localparam ALU = 1;
+localparam BRANCH = 1;
 localparam MCM = 2;
-localparam LS = 3;
-localparam BRANCH = 4;
+localparam LOAD = 3;
+localparam STORE = 4;
+localparam ALU = 5;
 
 // ====================
 // OUTPUT ASSIGNMENTS
@@ -141,10 +142,11 @@ assign imm = (is_r_type) ? 0 :
                 0;
 
 // Select functional unit type for the instruction
+               (is_branch || is_jal|| is_jalr) ? BRANCH :
 assign fu_id = (is_mcm) ? MCM :
+               (is_load) ? LOAD :
+               (is_store) ? STORE :
                (is_alu || is_u_type || is_alu_imm || is_ecall) ? ALU :
-               (is_load || is_store) ? LS :
-               (is_branch || is_jal) ? BRANCH :
                 NONE;
 
 endmodule

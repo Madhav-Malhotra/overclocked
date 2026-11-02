@@ -1,5 +1,5 @@
 /*
- * bridge.cpp — C Foreign Function Interface bridge between the Verilated 
+ * bridge.cpp — C Foreign Function Interface bridge between the Verilated
  * RISC-V processor and C# (Unity).
  *
  * Exposes a flat C API (extern "C") so that C#'s P/Invoke can call into the
@@ -44,21 +44,21 @@ struct CPUState {
     uint32_t instruction;
     uint32_t registers[32]; // register file
     // alu.v
-    uint32_t alu_out; 
+    uint32_t alu_out;
     // branch_comp.v
     uint8_t br_eq;
     uint8_t br_lt;
     // control_signals.v
-    uint8_t branch_comp_data1_sel; // 
-    uint8_t branch_comp_data2_sel; // 
-    uint8_t br_taken;              // 
-    uint8_t pc_sel;                // 
-    uint8_t br_un;                 // 
+    uint8_t branch_comp_data1_sel; //
+    uint8_t branch_comp_data2_sel; //
+    uint8_t br_taken;              //
+    uint8_t pc_sel;                //
+    uint8_t br_un;                 //
     uint8_t a_sel;                 // [1:0]
     uint8_t b_sel;                 // [1:0]
     uint8_t alu_sel;               // [3:0]
-    uint8_t mem_rw;                // 
-    uint8_t reg_wen;               // 
+    uint8_t mem_rw;                //
+    uint8_t reg_wen;               //
     uint8_t wb_sel;                // [1:0]
     // decoder.v
     uint8_t opcode;         // [6:0]
@@ -152,7 +152,7 @@ void get_cpu_state(CPUState* out_state) {
     out_state->funct7 = design->rootp->design_wrapper__DOT__core__DOT__funct7_dx_r;
     out_state->imm = design->rootp->design_wrapper__DOT__core__DOT__imm_dx_r;
     out_state->shamt = design->rootp->design_wrapper__DOT__core__DOT__shamt_w;
-    out_state->is_u_type_w = design->rootp->design_wrapper__DOT__core__DOT__cs1__DOT__is_u_type_x;
+    out_state->is_u_type_w = design->rootp->design_wrapper__DOT__core__DOT__is_u_type;
     out_state->is_j_type_w = design->rootp->design_wrapper__DOT__core__DOT__is_j_type;
     out_state->is_i_type_w = design->rootp->design_wrapper__DOT__core__DOT__is_i_type;
     // dmemory.v

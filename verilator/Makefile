@@ -16,6 +16,7 @@ V_FLAGS += -DMEM_PATH="\$(MEM_PATH)\"
 V_FLAGS += -DMEM_DEPTH=$(MEM_DEPTH)
 V_FLAGS += -DLINE_COUNT=$(LINE_COUNT)
 V_FLAGS += -I../verilog/design/ -I../verilog/design/code/
+V_FLAGS += -Wno-DEFOVERRIDE
 VERILOG_TOP = ../verilog/design/design_wrapper.v
 
 SS_V_FLAGS = --public-flat-rw
@@ -34,13 +35,20 @@ VERILATOR_INC ?= $(VERILATOR_ROOT)/include
 
 ifeq ($(UNAME_S),Darwin)
     # macOS (Homebrew)
+    VERILATOR_INC ?= /opt/homebrew/share/verilator/include
     CXXFLAGS = -O3 -fPIC -dynamiclib
     LIB_EXT = dylib
 else
-    # Linux (or other Unix-like systems)
+    # Linux (prioritize verilator -V root, fallback to /usr/local/share/verilator/include)
+    ifneq ($(VERILATOR_ROOT),)
+        VERILATOR_INC ?= $(VERILATOR_ROOT)/include
+    else
+        VERILATOR_INC ?= /usr/local/share/verilator/include
+    endif
     CXXFLAGS = -O3 -shared -fPIC
     LIB_EXT = so
 endif
+
 OBJ_DIR = obj_dir
 LIB_NAME = libdesign_wrapper.$(LIB_EXT)
 UNITY_PLUGINS_DIR ?= ../unity/Assets/Plugins

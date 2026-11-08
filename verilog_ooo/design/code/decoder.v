@@ -34,6 +34,9 @@ module decoder #(
     output              is_u_type_w,
     output              is_j_type_w,
     output              is_i_type_w,
+    output              uses_rs1,
+    output              uses_rs2,
+    output              writes_rd,
     output [FUW-1:0]    fu_id
 );
 
@@ -97,8 +100,13 @@ assign is_u_type_w = is_u_type;
 assign is_j_type_w = is_j_type;
 assign is_i_type_w = is_i_type;
 
+// register usage flags for hazard tracking in pd.v (x0 is never a real dependency)
+assign uses_rs1  = (is_r_type | is_alu_imm | is_load | is_jalr | is_s_type | is_b_type) && (_rs1 != 0);
+assign uses_rs2  = (is_r_type | is_s_type | is_b_type) && (_rs2 != 0);
+assign writes_rd = (is_r_type | is_alu_imm | is_load | is_jalr | is_u_type | is_j_type) && (_rd != 0);
+
 // Functional Unit Type
-localparam NONE = 0
+localparam NONE = 0;
 localparam BRANCH = 1;
 localparam MCM = 2;
 localparam LOAD = 3;
@@ -142,8 +150,8 @@ assign imm = (is_r_type) ? 0 :
                 0;
 
 // Select functional unit type for the instruction
-               (is_branch || is_jal|| is_jalr) ? BRANCH :
-assign fu_id = (is_mcm) ? MCM :
+assign fu_id = (is_branch || is_jal|| is_jalr) ? BRANCH :
+               (is_mcm) ? MCM :
                (is_load) ? LOAD :
                (is_store) ? STORE :
                (is_alu || is_u_type || is_alu_imm || is_ecall) ? ALU :

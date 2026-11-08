@@ -17,11 +17,15 @@ module instr_status #(
     input [2:0] ds_funct3,
     input [6:0] ds_funct7,
     input [DATAW-1:0] ds_imm,
-    input [5:0] ds_shamt,
+    input [4:0] ds_shamt,
     input [ADDRW-1:0] ds_rs1,
     input [ADDRW-1:0] ds_rs2, 
     input [ADDRW-1:0] ds_rd, 
     input [FUW-1:0] ds_fu_id,
+
+    // update status: change stage to IS
+    input iss_en,
+    input [DATAW-1:0] iss_pc,
 
     // clear row in WB
     input wb_en,
@@ -48,7 +52,7 @@ reg [6:0] func7_arr [NUM_BUFFER_ROWS-1:0];
 
 // Imm + shamt
 reg [DATAW-1:0] imm_arr [NUM_BUFFER_ROWS-1:0];
-reg [5:0] shamt_arr [NUM_BUFFER_ROWS-1:0];
+reg [4:0] shamt_arr [NUM_BUFFER_ROWS-1:0];
 
 // rs1, rs2, rd
 reg [DATAW-1:0] rs1_arr [NUM_BUFFER_ROWS-1:0];
@@ -59,7 +63,7 @@ reg [DATAW-1:0] rd_arr [NUM_BUFFER_ROWS-1:0];
 reg [1:0] stage_arr [NUM_BUFFER_ROWS-1:0];
 
 // Assigned functional unit
-reg [1:0] fu_arr [NUM_BUFFER_ROWS-1:0];
+reg [FW-1:0] fu_arr [NUM_BUFFER_ROWS-1:0];
 
 reg [N_BITS-1:0] num_instr = 0;
 
@@ -74,7 +78,8 @@ initial begin
     num_instr <= 0;
 end
 
-reg done = 0;
+reg done_ds = 0;
+
 
 // In DS
 always @(posedge clock) begin
@@ -90,25 +95,35 @@ always @(posedge clock) begin
         // Clear rows in WB (set valid to 0)
         if(wb_en) begin
             for(i = 0; i < NUM_BUFFER_ROWS; i = i + 1) begin
-                if(pc_arr[i] == wb_pc) 
+                if(pc_arr[i] == wb_pc) begin
                     valid_arr[i] <= 0;
                     stage_arr[i] <= WB; // for debugging purposes
+                end
             end  
 
             num_instr <= num_instr - 1;
-
         end        
 
+        // Update instruction status to IS in issue stage (instruction has been issued, reg values have been copied, no more RAWs)
+        if(iss_en) begin
+            for(i = 0; i < NUM_BUFFER_ROWS; i = i + 1) begin
+                if(pc_arr[i] == iss_pc) begin 
+                    stage_arr[i] <= IS;
+                end
+
+            end
+        end
+
         // look for an empty row and populate values
-        done = 1'b0;
+        done_ds = 1'b0;
         if (ds_en) begin 
             for(i = 0; i < NUM_BUFFER_ROWS; i = i + 1) begin
-                if(!valid_arr[i] && !done) begin 
+                if(!valid_arr[i] && !done_ds) begin 
                     valid_arr[i] <= 1;
                     pc_arr[i] <= ds_pc;
                     opcode_arr[i] <= ds_opcode;
-                    func3_arr[i] <= ds_func3;
-                    func7_arr[i] <= ds_func7;
+                    func3_arr[i] <= ds_funct3;
+                    func7_arr[i] <= ds_funct7;
                     imm_arr[i] <= ds_imm;
                     shamt_arr[i] <= ds_shamt;
                     rs1_arr[i] <= ds_rs1;
@@ -116,21 +131,20 @@ always @(posedge clock) begin
                     rd_arr[i] <= ds_rd;
                     stage_arr[i] <= DS;
                     fu_arr[i] <= ds_fu_id;
-                    done = 1;
+                    done_ds = 1;
                 end
             end
         end
 
-        num_instr <= (done) ? num_instr + 1 : num_instr;
+        // num_instr <= (done) ? num_instr + 1 : num_instr;
+        // combine DS insert and WB clear so neither update overwrites the other
+        num_instr <= num_instr + (done ? 1 : 0) - (wb_en ? 1 : 0);
+
         
     end
 end
 
-assign buffer_full =    .ds_assigned_fu_id(ds_assigned_fu_id), // output
- (num_instr == NUM_BUFFER_ROWS);
-
-
-
+assign buffer_full = (num_instr == NUM_BUFFER_ROWS);
 
 endmodule
 

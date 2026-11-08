@@ -32,7 +32,7 @@ module dmemory #(
     input  [11:0] w_offset,
     input  [31:0] w_data_in,
 
-    output reg [31:0] r_data_out
+    output [31:0] r_data_out
 );
 
 // ====================
@@ -42,8 +42,11 @@ reg  [31:0] temp [0:`LINE_COUNT-1];
 reg  [7:0]  mem  [0:`MEM_DEPTH-1];
 
 // Convert absolute byte address to memory-relative offset (33-bit to prevent overflow checks) --> fold offset into computation to remove ALU step
-wire [32:0] r_addr_33 = {1'b0, r_address + r_offset - BASE};
-wire [32:0] w_addr_33 = {1'b0, w_address + w_offset - BASE};
+// offsets are signed 12-bit immediates (e.g. lw x1, -4(x2)), so sign-extend before adding
+wire [31:0] r_offset_ext = {{20{r_offset[11]}}, r_offset};
+wire [31:0] w_offset_ext = {{20{w_offset[11]}}, w_offset};
+wire [32:0] r_addr_33 = {1'b0, r_address + r_offset_ext - BASE};
+wire [32:0] w_addr_33 = {1'b0, w_address + w_offset_ext - BASE};
 
 wire [31:0] r_addr = r_addr_33[31:0];
 wire [31:0] w_addr = w_addr_33[31:0];
@@ -97,6 +100,6 @@ assign r_data_out = r_en ? {
     // Byte 0 (r_addr)
     (w_en && (w_pc < r_pc) && (r_addr_33 >= w_addr_33) && (r_addr_33 < (w_addr_33 + w_num_bytes))) ? 
         w_data_in[7:0] : mem[r_addr]
-};
+} :32'b0;
 
 endmodule

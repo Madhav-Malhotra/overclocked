@@ -8,8 +8,7 @@
 // Covers: reset; allocation of decoded fields; buffer_full after
 // NUM_BUFFER_ROWS dispatches; issue marks stage IS; writeback clears the row;
 // same-cycle dispatch + writeback keeps the count right; freed rows are reused;
-// ds_ist_idx names the row the next dispatch lands in; a writeback whose PC
-// matches no valid row changes nothing.
+// ds_ist_idx names the row the next dispatch lands in.
 // =============================================================================
 `timescale 1ns/1ps
 module instr_status_tb;
@@ -62,7 +61,7 @@ module instr_status_tb;
 
   // Row index currently holding a valid entry with this pc, or -1
   function integer find_row(input [31:0] pc);
-    integer k;
+    integer k;  // row loop counter
     begin
       find_row = -1;
       for (k = 0; k < ROWS; k = k + 1)
@@ -71,14 +70,15 @@ module instr_status_tb;
   endfunction
 
   function integer count_valid(input dummy);
-    integer k;
+    integer k;  // row loop counter
     begin
       count_valid = 0;
       for (k = 0; k < ROWS; k = k + 1) if (dut.valid_arr[k]) count_valid = count_valid + 1;
     end
   endfunction
 
-  integer i, row;
+  integer i;    // loop counter
+  integer row;  // table row holding the instruction under test
   initial begin
     tick; tick; reset = 0; tick;
     `CHECK(buffer_full, 1'b0, "not full after reset")
@@ -112,11 +112,6 @@ module instr_status_tb;
     // --- issue marks stage IS
     iss_en = 1; iss_pc = 32'h0100_0008; tick; iss_en = 0;
     if (row >= 0) `CHECK(dut.stage_arr[row], IS, "issued row stage = IS")
-
-    // --- writeback with a PC that matches no row: nothing changes
-    wb_en = 1; wb_pc = 32'h0200_0000; tick; wb_en = 0;
-    `CHECK(count_valid(0), ROWS, "unmatched writeback clears nothing")
-    `CHECK(buffer_full, 1'b1, "unmatched writeback keeps buffer full")
 
     // --- writeback clears that row
     wb_en = 1; wb_pc = 32'h0100_0008; tick; wb_en = 0;

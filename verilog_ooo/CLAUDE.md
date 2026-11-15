@@ -79,7 +79,6 @@ The smallest-PC writeback rule is part of the stated target, not current behavio
 - Conditional branches and JAL/JALR -> `BRANCH`
 - `MUL` (R-type, `funct7 == 7'h01`, `funct3 == 000`) -> `MCM` (the only multiply path)
 - `DIV`/`DIVU` (`funct7 == 7'h01`, `funct3 == 100/101`) -> `ALU`
-- `MULH`/`MULHSU`/`MULHU`/`REM`/`REMU` -> `NONE` (unsupported, plan.md D7/D7a)
 - Loads -> `LOAD`
 - Stores -> `STORE`
 - Integer ALU, immediate ALU, U-type, and recognized ECALL -> `ALU`
@@ -131,7 +130,7 @@ The register-status table maps each architectural register to one producer FU ID
 - A nonzero mapping on `rd` causes a WAW stall rather than allocating a new physical register.
 - A matching writeback tag clears waiting source tags and records the broadcast value in the FU row.
 
-When a row issues, `iss_rs1`/`iss_rs2` (from `iss_row_index`) drive the register file during the following cycle; the RF registers the data at the next edge, and one edge later it is captured into that row (`cap_valid`/`cap_row_index`) unless the operand was already forwarded from a writeback. Back-to-back issue is covered by `func_unit_status_tb`. There is no register-file write→read bypass yet (plan.md task 2.4).
+When a row issues, `iss_rs1`/`iss_rs2` (from `iss_row_index`) drive the register file during the following cycle; the RF registers the data at the next edge, and one edge later it is captured into that row (`rf_capture_valid`/`rf_capture_row`) unless the operand was already forwarded from a writeback. Back-to-back issue is covered by `func_unit_status_tb`. There is no register-file write→read bypass yet (plan.md task 2.4).
 
 The `instr_status` table stores up to six dispatched instructions, including PC, decoded fields, FU ID, valid bit, and a stage field (`DS`, `IS`, `EX`, `WB`). The current top updates `IS` on issue and clears an entry on writeback; it does not currently advance an entry to `EX`. It is keyed by PC; if multiple dynamic instances of the same PC can be in flight, matching by PC alone may be ambiguous and needs a deliberate solution.
 

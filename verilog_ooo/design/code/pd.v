@@ -1,6 +1,15 @@
 // =============================================================================
 // Module:      pd
-// Description: <NEED TO ADD THIS>
+// Description: Top level of the out-of-order RV32 core (scoreboarding).
+//              Fetch -> in-order Decode/Dispatch -> out-of-order Issue ->
+//              Execute -> out-of-order Writeback, one instruction per cycle per
+//              stage. Dispatch allocates rows in three tables:
+//                instr_status           - decoded instruction buffer
+//                functional_unit_status - one row per FU slot (operands, tags)
+//                reg_status_table       - architectural reg -> producer FU id
+//              Status (plan.md): fetch/dispatch/issue bookkeeping exist;
+//              execution units, writeback and branch redirect do not yet.
+//              The wb_* bus and FU busy vector are placeholders (constants).
 // Inputs:      clock - processor clock
 //              reset - synchronous reset; returns PC to BASE_ADDR
 // Outputs:     (none - all state is internal; testbench probes internal signals)
@@ -27,6 +36,7 @@ module pd #(
 
 /* WIRES/REGISTERS */
 localparam NUM_FU = NUM_ALU + NUM_MULTICYCLE_MULT + 2*NUM_LOAD_STORE + 1; // + 1 for branch_comparator
+localparam INSTR_ROW_W = $clog2(NUM_BUFFER_ROWS);  // width of an instr_status row index
 
 // FU ids (must match func_unit_status.v)
 localparam NONE   = 0;
@@ -65,6 +75,7 @@ wire [FUW-1:0]    ds_curr_WAW;
 wire              ds_en;
 wire              ds_stall;
 wire              ds_instr_buffer_full;
+wire [INSTR_ROW_W-1:0] ds_ist_idx;       // instr_status row the dispatching instruction is written to
 
 // Issue
 reg               iss_en = 1;  // funcStatus found a row (iss_instr_found): iss_* below are valid      
@@ -77,7 +88,12 @@ wire [ADDRW-1:0]  iss_rs2;
 // wire [DATAW-1:0]  iss_rs1_fwd_data;
 // wire [DATAW-1:0]  iss_rs2_fwd_data;
 // wire              iss_tag_found;
-wire              fu_issued;        // per-row "has read operands" (for the WAR check in WB)
+wire              fu_issued;        // row at the issue index has issued
+wire              iss_instr_found;  // pulse: a row issued at the last edge; iss_pc/iss_rs1/iss_rs2 valid
+wire              iss_tag_found;    // some otherwise-ready row is waiting on a producer tag (RAW)
+wire              iss_valid;        // issue event this cycle (marks the instr_status row as IS)
+wire [DATAW-1:0]  iss_rs1_data;     // registered register-file read data
+wire [DATAW-1:0]  iss_rs2_data;
 // wire [6:0]        iss_opcode;
 // wire [2:0]        iss_funct3;
 // wire [6:0]        iss_funct7;
@@ -92,6 +108,9 @@ wire [DATAW-1:0]  wb_data      = 0;
 wire [ADDRW-1:0]  wb_rd        = 0;
 wire              wb_writes_rd = 1'b0;
 wire [DATAW-1:0]  wb_pc        = 0;
+
+// Execution-unit occupancy, one bit per FU row (TODO Phase 3: drive from the FUs)
+wire [NUM_FU-1:0] fu_busy      = {NUM_FU{1'b0}};
 
 
 /* FETCH STAGE: Imemory */
@@ -186,6 +205,7 @@ instr_status # (
   .DATAW(DATAW),
   .ADDRW(ADDRW),
   .NUM_BUFFER_ROWS(NUM_BUFFER_ROWS),
+  .N_BITS(INSTR_ROW_W),
   .NUM_FU(NUM_FU),
   .FUW(FUW)
 ) instrStatus (
@@ -206,7 +226,7 @@ instr_status # (
   .ds_fu_id(ds_assigned_fu_id),
 
   // IS: mark the issuing instruction and look up its decoded fields
-  .iss_en(iss_valid), // = iss_en and fu_issued
+  .iss_en(iss_valid), // pulse when a row issued (iss_instr_found)
   .iss_pc(iss_pc),
 
   // .iss_opcode(iss_opcode),
@@ -220,12 +240,12 @@ instr_status # (
   .wb_en(wb_en),
   .wb_pc(wb_pc),
 
-  .buffer_full(ds_instr_buffer_full)
+  .buffer_full(ds_instr_buffer_full),
+  .ds_ist_idx(ds_ist_idx)
 );
 
 functional_unit_status # (
     .DATAW(DATAW),
-    .NUM_REGS(NUM_REGS),
     .NUM_ALU(NUM_ALU),
     .NUM_MULTICYCLE_MULT(NUM_MULTICYCLE_MULT),
     .NUM_LOAD_STORE(NUM_LOAD_STORE),
@@ -261,9 +281,9 @@ functional_unit_status # (
     .wb_tag_clear(wb_tag),
     .wb_data(wb_data),
 
-    // .busy(),    // connect to the FUs to get their real-time statuses
-    // .iss_tag_found() 
-
+    .busy(fu_busy),                  // real-time FU occupancy (placeholder until Phase 3)
+    .iss_tag_found(iss_tag_found),
+    .iss_instr_found(iss_instr_found)
 );
 
 
@@ -310,10 +330,8 @@ always @(posedge clock) begin
   end
 end 
 
-wire iss_rs1_data;
-wire iss_rs2_data;
-
-wire iss_valid = iss_en && fu_issued;
+// One-cycle pulse per issued instruction (fu_issued alone stays high while the row waits)
+assign iss_valid = iss_instr_found;
 
 register_file #(
   .DATAW(DATAW),

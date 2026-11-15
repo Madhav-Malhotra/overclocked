@@ -1,7 +1,7 @@
 // Shared self-checking helpers for unit testbenches (include inside a module).
 // Usage:  `CHECK(actual, expected, "message")   ...   `TB_FINISH
-integer tb_errors = 0;
-integer tb_checks = 0;
+integer tb_errors = 0;  // number of failed CHECKs
+integer tb_checks = 0;  // number of CHECKs run
 
 `define CHECK(act, exp, msg) \
   begin \

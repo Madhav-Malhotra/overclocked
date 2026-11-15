@@ -15,8 +15,8 @@ module reg_status_table #(
 
     parameter NUM_ALU = 2,
     parameter NUM_MULTICYCLE_MULT = 1,
-    parameter NUM_LOAD_STORE = 2,
-    parameter FUW = $clog2(NUM_ALU + NUM_MULTICYCLE_MULT + NUM_LOAD_STORE + 1 + 1) // + 1 for branch_comparator + 1 for N/A
+    parameter NUM_LOAD_STORE = 1,  // one load + one store slot (matches pd.v / func_unit_status.v)
+    parameter FUW = $clog2(NUM_ALU + NUM_MULTICYCLE_MULT + 2*NUM_LOAD_STORE + 1 + 1) // + 1 for branch_comparator + 1 for N/A
 )(
     input clock, 
     input reset,

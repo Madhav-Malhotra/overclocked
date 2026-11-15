@@ -1,30 +1,20 @@
 // =============================================================================
 // Module:      alu
-// Description: Arithmetic logic unit for RV32I.
+// Description: Combinational arithmetic logic unit for the OoO core's ALU
+//              functional units.
 //              Supports ADD, SUB, shifts (SLL/SRL/SRA), logical (XOR/OR/AND),
 //              comparisons (SLT/SLTU), NOP (pass-through idata2 for LUI), and
-//              MUL (low 32b product).
-//
-//              Houses the multicycle array_mult unit used for MUL when
-//              multicyc_sel=1. The pipeline (pd.v) drives mult_start_pulse/
-//              mult_hold from EX-stage state and stalls on mult_busy; this
-//              module just forwards idata1/idata2 to array_mult and selects
-//              its result for MUL's odata.
+//              DIV/DIVU (RISC-V divide-by-zero and overflow results).
+//              Multiplication is NOT done here: MUL always executes on the
+//              multicycle MCM functional unit (plan.md D7).
 // Inputs:      idata1, idata2   - 32-bit operands
-//              alu_sel          - 4-bit operation selector
-//              multicyc_sel     - 0: single-cycle multiply via * operator
-//                                 1: multicycle multiply via array_mult
-//              mult_start_pulse - one-cycle pulse when MUL first enters EX
-//              mult_hold        - high while MUL occupies EX
+//              alu_sel          - 4-bit operation selector (encoding below)
 // Outputs:     odata            - 32-bit result
-//              mult_busy        - high while array_mult is computing
 // =============================================================================
 module alu #(
     parameter IDATAW = 32,
     parameter ODATAW = 32
 )(
-    input                          clock,
-    input                          reset,
     input signed [IDATAW-1:0]      idata1,
     input signed [IDATAW-1:0]      idata2,
     input [3:0]                    alu_sel,
@@ -46,8 +36,8 @@ localparam OR   = 4'd8;
 localparam AND  = 4'd9;
 // Pass idata2 through unchanged; used by LUI which needs imm with no addend
 localparam NOP  = 4'd10;
-localparam MUL  = 4'd11;
-localparam DIV = 4'd12;
+// 4'd11 was MUL; multiply is handled only by the MCM functional unit (plan.md D7)
+localparam DIV  = 4'd12;
 localparam DIVU = 4'd13;
 
 reg [ODATAW-1:0] mask;

@@ -82,7 +82,7 @@ module func_unit_status_tb;
 
   // Wait up to `max` cycles for the table to report an issue of `pc`.
   task wait_issue(input [31:0] pc, input integer max, output reg seen);
-    integer k;
+    integer k;  // row loop counter
     begin
       seen = 0;
       for (k = 0; k < max && !seen; k = k + 1) begin
@@ -96,8 +96,8 @@ module func_unit_status_tb;
     wb_en = 1; wb_tag_clear = tag; wb_data = data; tick; wb_en = 0; wb_tag_clear = 0;
   end endtask
 
-  reg [FUW-1:0] got;
-  reg seen;
+  reg [FUW-1:0] got;   // FU id the table assigned to the last dispatch (0 = none free)
+  reg seen;            // wait_issue result: the expected PC issued in time
   initial begin
     tick; tick; reset = 0; tick;
 

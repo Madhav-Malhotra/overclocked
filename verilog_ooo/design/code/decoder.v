@@ -84,8 +84,9 @@ wire is_jalr = (_opcode == 7'b1100111);
 wire is_lui = (_opcode == 7'b0110111);
 wire is_auipc = (_opcode == 7'b0010111);
 wire is_ecall = (_opcode == 7'b1110011) & (_funct3 == 3'b0) & (_imm_i == 12'b0);
-// opcode-level identification
-wire is_mcm = (_opcode == 7'b0110011 && _funct7 == 7'h01);
+// MUL (M extension, funct3 = 000) runs on the multicycle MCM unit (plan.md D7).
+// DIV/DIVU share the R-type opcode and go to the ALU through is_alu below (D7a).
+wire is_mcm = (_opcode == 7'b0110011 && _funct7 == 7'h01 && _funct3 == 3'b000);
 
 // format classification used to select the correct immediate encoding
 wire is_r_type = is_alu;

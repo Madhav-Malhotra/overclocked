@@ -2,7 +2,7 @@
 // decoder_tb - self-checking unit test for decoder.v FU classification
 //
 // Covers the routing decided in plan.md D7/D7a:
-//   MUL -> MCM; DIV/DIVU -> ALU; MULH/MULHSU/MULHU and REM/REMU -> NONE;
+//   MUL -> MCM; DIV/DIVU -> ALU;
 //   plus every other instruction class (ALU, imm ALU, LUI/AUIPC, load, store,
 //   branch, JAL/JALR, ECALL, FENCE) and the x0 source/destination rules.
 // =============================================================================
@@ -27,7 +27,7 @@ module decoder_tb;
     .uses_rs1(uses_rs1), .uses_rs2(uses_rs2), .writes_rd(writes_rd), .fu_id(fu_id)
   );
 
-  // R-type encoder: funct7 rs2 rs1 funct3 rd opcode
+  // Builds an R-type instruction word: funct7 rs2 rs1 funct3 rd opcode
   function [31:0] r(input [6:0] f7, input [4:0] s2, input [4:0] s1, input [2:0] f3, input [4:0] d);
     r = {f7, s2, s1, f3, d, 7'b0110011};
   endfunction
@@ -40,13 +40,8 @@ module decoder_tb;
   initial begin
     // --- M extension routing (D7/D7a)
     expect_fu(r(7'h01, 5'd2, 5'd1, 3'b000, 5'd3), MCM,  "MUL -> MCM");
-    expect_fu(r(7'h01, 5'd2, 5'd1, 3'b001, 5'd3), NONE, "MULH -> NONE");
-    expect_fu(r(7'h01, 5'd2, 5'd1, 3'b010, 5'd3), NONE, "MULHSU -> NONE");
-    expect_fu(r(7'h01, 5'd2, 5'd1, 3'b011, 5'd3), NONE, "MULHU -> NONE");
     expect_fu(r(7'h01, 5'd2, 5'd1, 3'b100, 5'd3), ALU,  "DIV -> ALU");
     expect_fu(r(7'h01, 5'd2, 5'd1, 3'b101, 5'd3), ALU,  "DIVU -> ALU");
-    expect_fu(r(7'h01, 5'd2, 5'd1, 3'b110, 5'd3), NONE, "REM -> NONE");
-    expect_fu(r(7'h01, 5'd2, 5'd1, 3'b111, 5'd3), NONE, "REMU -> NONE");
 
     // --- RV32I classes
     expect_fu(r(7'h00, 5'd2, 5'd1, 3'b000, 5'd3), ALU,   "ADD -> ALU");

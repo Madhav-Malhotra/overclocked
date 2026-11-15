@@ -3,9 +3,11 @@ SRC = $(addprefix $(CL_ROOT)/design/code/, $(SRCLIST)) $(CL_ROOT)/verif/tests/cl
 VFLAGS = 
 TOP = top
 PROG=$(CL_ROOT)/verif/tests/data/rv32ui-p-add.x
-_CFLAGS=-DMEM_DEPTH=$(MEM_DEPTH) -DMEM_PATH=$(MEM_PATH_STR)
 
 VCD ?= 0
+MULTICYCLE ?= 0
+
+_CFLAGS=-DMEM_DEPTH=$(MEM_DEPTH) -DMEM_PATH=$(MEM_PATH_STR) -DUSE_MULTICYCLE_MULT_CFG=$(MULTICYCLE)
 
 # Setup VCD flags for verilator
 ifeq ($(VCD), 1)
@@ -29,10 +31,10 @@ compile: $(SRC) $(CL_ROOT)/verif/tests/tracegen.v
 	cd $(SIM_DIR) && verilator $(VFLAGS) \
 		+1800-2012ext+sv \
 		+1364-2005ext+v \
-		$(CFLAGS) \
 		--cc $(SRC) \
 		$(TEST_NAME).sv \
 		--exe $(TEST_NAME).cpp  \
+		$(CFLAGS) \
 		-I$(CL_ROOT)/design \
 		-I$(CL_ROOT)/verif/tests \
 		-top-module $(TOP) \

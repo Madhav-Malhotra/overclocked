@@ -3,6 +3,8 @@
 // Description: Standalone unit tests for the array_mult module.
 //              Covers positive, negative, zero, large-value, and INT_MIN cases.
 //              Drives array_mult directly — no pipeline required.
+//              array_mult's width is hardcoded to 8 bits internally (see
+//              array_mult.v), so all vectors here are 8-bit.
 //
 // Usage (Icarus Verilog):
 //   iverilog -o array_mult_tb array_mult_tb.v array_mult.v && vvp array_mult_tb
@@ -11,16 +13,18 @@
 
 module array_mult_tb;
 
-  reg         clk;
-  reg         rst;
-  reg         start;
-  reg         hold;
-  reg  [31:0] op_a;
-  reg  [31:0] op_b;
-  wire [31:0] result;
-  wire        busy;
+  localparam DATAW = 8;
 
-  array_mult #(.DATAW(32)) dut (
+  reg               clk;
+  reg               rst;
+  reg               start;
+  reg               hold;
+  reg  [DATAW-1:0]  op_a;
+  reg  [DATAW-1:0]  op_b;
+  wire [DATAW-1:0]  result;
+  wire              busy;
+
+  array_mult dut (
     .clock      (clk),
     .reset      (rst),
     .start_pulse(start),
@@ -42,9 +46,9 @@ module array_mult_tb;
   //   Drives one multiply, waits for completion, checks result vs expected.
   // -----------------------------------------------------------------------
   task run_mul;
-    input signed [31:0] a;
-    input signed [31:0] b;
-    input signed [31:0] expected;
+    input signed [DATAW-1:0] a;
+    input signed [DATAW-1:0] b;
+    input signed [DATAW-1:0] expected;
     input [127:0] label;
     integer timeout;
     begin
@@ -105,30 +109,29 @@ module array_mult_tb;
     repeat(2) @(negedge clk);
 
     // Basic positive
-    run_mul( 32'd6,   32'd7,   32'd42,           "6x7=42        ");
-    run_mul( 32'd1,   32'd1,   32'd1,            "1x1=1         ");
-    run_mul( 32'd100, 32'd200, 32'd20000,        "100x200=20000 ");
+    run_mul( 8'sd6,   8'sd7,   8'sd42,   "6x7=42        ");
+    run_mul( 8'sd1,   8'sd1,   8'sd1,    "1x1=1         ");
 
     // Zero operand
-    run_mul( 32'd0,   32'd999, 32'd0,            "0xa=0         ");
-    run_mul( 32'd999, 32'd0,   32'd0,            "ax0=0         ");
-    run_mul( 32'd0,   32'd0,   32'd0,            "0x0=0         ");
+    run_mul( 8'sd0,   8'sd99,  8'sd0,    "0xa=0         ");
+    run_mul( 8'sd99,  8'sd0,   8'sd0,    "ax0=0         ");
+    run_mul( 8'sd0,   8'sd0,   8'sd0,    "0x0=0         ");
 
     // Signed (negative)
-    run_mul(-32'sd1,  32'sd1,  -32'sd1,          "-1x1=-1       ");
-    run_mul(-32'sd1, -32'sd1,   32'sd1,          "-1x-1=1       ");
-    run_mul(-32'sd6,  32'sd7,  -32'sd42,         "-6x7=-42      ");
-    run_mul( 32'sd6, -32'sd7,  -32'sd42,         "6x-7=-42      ");
-    run_mul(-32'sd6, -32'sd7,   32'sd42,         "-6x-7=42      ");
+    run_mul(-8'sd1,   8'sd1,  -8'sd1,    "-1x1=-1       ");
+    run_mul(-8'sd1,  -8'sd1,   8'sd1,    "-1x-1=1       ");
+    run_mul(-8'sd6,   8'sd7,  -8'sd42,   "-6x7=-42      ");
+    run_mul( 8'sd6,  -8'sd7,  -8'sd42,   "6x-7=-42      ");
+    run_mul(-8'sd6,  -8'sd7,   8'sd42,   "-6x-7=42      ");
 
-    // Large values (low 32 bits of product)
-    run_mul(32'd65536,    32'd65536,    32'd0,         "65536^2 lo32  ");
-    run_mul(32'h7FFFFFFF, 32'd2,        32'hFFFFFFFE,  "MAX_POS*2     ");
+    // Overflow (low 8 bits of product)
+    run_mul( 8'sd100, 8'sd2,  -8'sd56,   "100x2 lo8     "); // 200 -> 0xC8
+    run_mul( 8'sd127, 8'sd127, 8'sd1,    "127x127 lo8   "); // 16129 -> 0x01
 
-    // INT_MIN edge cases (exercises the MSB subtract path)
-    run_mul(32'h80000000, 32'sd1,  32'h80000000, "INT_MIN*1     ");
-    run_mul(32'h80000000, -32'sd1, 32'h80000000, "INT_MIN*-1    ");
-    run_mul(32'h80000000, 32'd0,   32'd0,         "INT_MIN*0     ");
+    // INT_MIN (8-bit: -128) edge cases (exercises the MSB subtract path)
+    run_mul(-8'sd128,  8'sd1, -8'sd128,  "INT_MIN*1     ");
+    run_mul(-8'sd128, -8'sd1, -8'sd128,  "INT_MIN*-1    ");
+    run_mul(-8'sd128,  8'sd0,  8'sd0,    "INT_MIN*0     ");
 
     $display("-------------------------------");
     $display("Results: %0d passed, %0d failed", pass_count, fail_count);

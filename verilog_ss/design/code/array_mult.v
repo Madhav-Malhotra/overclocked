@@ -1,22 +1,27 @@
 // =============================================================================
 // Module:      array_mult
-// Description: Multicycle 32×32 signed multiplier, low 32 bits of product.
+// Description: Multicycle 8×8 signed multiplier, low 8 bits of product.
+//              DATAW is hardcoded (localparam, not a module parameter) --
+//              this unit always runs at 8 bits regardless of the width of
+//              whatever ALU embeds it. alu.v (32-bit) truncates its operands
+//              to 8 bits before feeding this unit and sign-extends the 8-bit
+//              result back out to its own output width.
 //
 //              Algorithm — serial shift-and-add in direct 2's complement.
 //              No abs/negate step is needed because the MSB of op_b simply
 //              carries a negative weight in 2's complement:
 //
-//                for i = 0 .. 30:  if b[i]  acc += sign_ext(a) << i   (+weight)
-//                for i = 31:       if b[31]  acc -= sign_ext(a) << 31  (−weight)
+//                for i = 0 .. 6:  if b[i]  acc += sign_ext(a) << i   (+weight)
+//                for i = 7:       if b[7]  acc -= sign_ext(a) << 7  (−weight)
 //
-//              A 64-bit accumulator prevents overflow across all partial sums.
+//              A 16-bit accumulator prevents overflow across all partial sums.
 //              op_a / op_b are latched at start_pulse so mid-flight pipeline
 //              activity on those wires cannot corrupt the result.
 //
-//              Latency: 33 clock cycles from start_pulse to busy deasserting
-//                (32 accumulate + 1 result-latch).
+//              Latency: 9 clock cycles from start_pulse to busy deasserting
+//                (8 accumulate + 1 result-latch).
 //              pd.v adds one more stall cycle after busy falls (busy_d1) so
-//              the XM register samples a stable result: 34 pipeline stall cycles
+//              the XM register samples a stable result: 10 pipeline stall cycles
 //              total per MUL.
 //
 //              Control interface (for parent pd.v):
@@ -27,19 +32,18 @@
 //                busy         High for the full computation; pd.v stalls on
 //                             busy || busy_d1.
 // =============================================================================
-module array_mult #(
-    parameter DATAW = 32
-) (
+module array_mult (
     input  wire             clock,
     input  wire             reset,
     input  wire             start_pulse,
     input  wire             hold,
-    input  wire [DATAW-1:0] op_a,
-    input  wire [DATAW-1:0] op_b,
-    output reg  [DATAW-1:0] result,
+    input  wire [7:0]       op_a,
+    input  wire [7:0]       op_b,
+    output reg  [7:0]       result,
     output reg              busy
 );
 
+localparam DATAW  = 8;   // hardcoded operand/result width -- see module header
 localparam S_IDLE = 1'b0;
 localparam S_RUN  = 1'b1;
 

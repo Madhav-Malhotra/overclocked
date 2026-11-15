@@ -11,17 +11,23 @@ all: make_sim_dir compile run
 
 # surround path with quotes
 MEM_PATH              ?= $(CL_ROOT)/verif/data/rv32ui-p-add.x
-MEM_PATH_NOT_DIR			:= $(notdir $(MEM_PATH))
+MEM_PATH_NOT_DIR      := $(notdir $(MEM_PATH))
 LINE_COUNT            ?= $(shell echo `wc -l < $(MEM_PATH)`)
 MEM_PATH_STR          ?= \"$(abspath $(MEM_PATH))\"
 MEM_DEPTH             ?= 1048576
 TEST_VECTOR           ?= $(CL_ROOT)/verif/data/test_vector.x
 TEST_VECTOR_STR       ?= \"$(TEST_VECTOR)\"
-TRACE_FILE				    ?= $(MEM_PATH_NOT_DIR:x=trace)
-VCD_FILE				      ?= $(MEM_PATH_NOT_DIR:x=vcd)
-VCD_FILE_STR			    ?= \"$(VCD_FILE)\"
+TRACE_FILE            ?= $(MEM_PATH_NOT_DIR:x=trace)
+VCD_FILE              ?= $(MEM_PATH_NOT_DIR:x=vcd)
+VCD_FILE_STR          ?= \"$(VCD_FILE)\"
 GEN_TRACE             ?= 1
 TIMEOUT               ?= 50000
+
+# Multicycle multiplier configuration
+# 0 = single-cycle multiplier
+# 1 = multicycle multiplier
+MULTICYCLE            ?= 0
+
 TRACE_FILE_STR        ?= \"$(TRACE_FILE)\"
 
 WARN ?= 1
@@ -114,6 +120,7 @@ run_all_benchmarks: build_benchmarks
 		--scripts-dir $(SCRIPTS_DIR) \
 		--cl-root $(CL_ROOT) \
 		--jobs $(JOBS) \
+		--multicycle $(MULTICYCLE) \
 		--skip-build
 
 # Same as run_all_benchmarks but skip the build step (benchmarks already built)
@@ -124,12 +131,16 @@ run_all_benchmarks_no_build:
 		--scripts-dir $(SCRIPTS_DIR) \
 		--cl-root $(CL_ROOT) \
 		--jobs $(JOBS) \
+		--multicycle $(MULTICYCLE) \
 		--skip-build
 
 # Pattern rule to run individual benchmarks
 $(ALL_BENCHMARKS): %:
 	@echo "Running benchmark: $@"
-	@$(MAKE) -s run TEST=test_pd MEM_PATH=$@
+	@$(MAKE) -s run \
+		TEST=test_pd \
+		MEM_PATH="$@" \
+		MULTICYCLE=$(MULTICYCLE)
 
 # Compare all trace files against golden
 .PHONY: diff_all_benchmarks
@@ -213,9 +224,14 @@ diff_spike:
 # Usage: make run_and_verify MEM_PATH=<path/to/bench.x>
 .PHONY: run_and_verify
 run_and_verify:
-	$(MAKE) run MEM_PATH=$(MEM_PATH)
-	$(MAKE) gen_spike_trace BENCH=$(MEM_PATH_NOT_DIR:.x=)
-	$(MAKE) diff_spike MEM_PATH=$(MEM_PATH)
+	$(MAKE) run \
+		MEM_PATH=$(MEM_PATH) \
+		MULTICYCLE=$(MULTICYCLE)
+	$(MAKE) gen_spike_trace \
+		BENCH=$(MEM_PATH_NOT_DIR:.x=)
+	$(MAKE) diff_spike \
+		MEM_PATH=$(MEM_PATH) \
+		MULTICYCLE=$(MULTICYCLE)
 
 # verify_all: alias for run_all_benchmarks (full pipeline from source)
 .PHONY: verify_all
@@ -229,9 +245,15 @@ run_bench:
 		exit 1; \
 	fi
 	@if [ -f "$(BENCH_ROOT)/individual-instructions/$(BENCH).x" ]; then \
-		$(MAKE) -s run TEST=test_pd MEM_PATH="$(BENCH_ROOT)/individual-instructions/$(BENCH).x"; \
+		$(MAKE) -s run \
+			TEST=test_pd \
+			MEM_PATH="$(BENCH_ROOT)/individual-instructions/$(BENCH).x" \
+			MULTICYCLE=$(MULTICYCLE); \
 	elif [ -f "$(BENCH_ROOT)/simple-programs/$(BENCH).x" ]; then \
-		$(MAKE) -s run TEST=test_pd MEM_PATH="$(BENCH_ROOT)/simple-programs/$(BENCH).x"; \
+		$(MAKE) -s run \
+			TEST=test_pd \
+			MEM_PATH="$(BENCH_ROOT)/simple-programs/$(BENCH).x" \
+			MULTICYCLE=$(MULTICYCLE); \
 	else \
 		echo "Error: Benchmark $(BENCH) not found"; \
 		echo "Searched in:"; \
@@ -250,16 +272,23 @@ run_stage_test:
 		echo "ERROR: Benchmark $(BENCH) not found in $(BENCH_ROOT)"; \
 		exit 1; \
 	fi; \
-	$(MAKE) all TEST=test_stage_en MEM_PATH=$$BENCH_FILE
+	$(MAKE) all \
+		TEST=test_stage_en \
+		MEM_PATH=$$BENCH_FILE \
+		MULTICYCLE=$(MULTICYCLE)
 
 # Usage: make waves_stage_test BENCH=rv32ui-p-add
 .PHONY: waves_stage_test
 waves_stage_test:
-	@# Find the benchmark path to ensure we point to the right VCD filename
+	@# Find the path to ensure we point to the right VCD filename
 	$(eval UNIT_PATH := $(shell find $(BENCH_ROOT) -name "$(BENCH).x" | head -n 1))
 	@if [ -z "$(UNIT_PATH)" ]; then echo "ERROR: BENCH=$(BENCH) not found"; exit 1; fi
-	@# Run the waves target with the TEST and MEM_PATH overrides
-	$(MAKE) waves TEST=test_stage_en MEM_PATH=$(UNIT_PATH) VCD=1
+	@# Run the waves target with TEST, MEM_PATH, VCD, and MULTICYCLE overrides
+	$(MAKE) waves \
+		TEST=test_stage_en \
+		MEM_PATH=$(UNIT_PATH) \
+		VCD=1 \
+		MULTICYCLE=$(MULTICYCLE)
 
 # Help target
 .PHONY: help
@@ -273,35 +302,40 @@ help:
 	@echo "  make run_all_benchmarks_no_build - Same but skip rebuild (benchmarks already built)"
 	@echo "  make verify_all                  - Alias for run_all_benchmarks"
 	@echo "  make build_benchmarks            - Compile .s/.c sources into .elf + .x (no simulation)"
-	@echo "  JOBS=N make run_all_benchmarks - Override parallelism (Linux: nproc, macOS: sysctl -n hw.ncpu)"
+	@echo "  JOBS=N make run_all_benchmarks   - Override parallelism"
 	@echo ""
 	@echo "Build & Run Targets:"
-	@echo "  make all                    - Build simulation directory, compile, and run (default target)"
-	@echo "  make compile                - Compile the design"
-	@echo "  make run                    - Run simulation with specified benchmark"
+	@echo "  make all                    - Build simulation directory, compile, and run"
+	@echo "  make compile               - Compile the design"
+	@echo "  make run                   - Run simulation with specified benchmark"
 	@echo "                                Usage: make run MEM_PATH=<path/to/benchmark.x>"
 	@echo ""
 	@echo "Benchmark Targets:"
-	@echo "  make run_bench BENCH=<name> - Run a single benchmark by name (without .x extension)"
+	@echo "  make run_bench BENCH=<name> - Run a single benchmark by name"
 	@echo "                                Example: make run_bench BENCH=rv32ui-p-add"
 	@echo "  make list_benchmarks        - List all available benchmarks and their paths"
 	@echo ""
-	@echo "Spike-based Verification Targets (manual):"
-	@echo "  make gen_spike_trace BENCH=<name>  - Generate spike commit trace for one benchmark"
-	@echo "  make gen_all_spike_traces           - Generate spike commit traces for all benchmarks"
-	@echo "  make diff_spike MEM_PATH=<path>     - Compare processor [W] trace vs spike (one bench)"
-	@echo "  make run_and_verify MEM_PATH=<path> - Run simulation + compare vs spike (one bench)"
+	@echo "Spike-based Verification Targets:"
+	@echo "  make gen_spike_trace BENCH=<name>       - Generate spike commit trace for one benchmark"
+	@echo "  make gen_all_spike_traces               - Generate spike commit traces for all benchmarks"
+	@echo "  make diff_spike MEM_PATH=<path>         - Compare processor [W] trace vs spike"
+	@echo "  make run_and_verify MEM_PATH=<path>     - Run simulation + compare vs spike"
+	@echo ""
+	@echo "Stage Test Targets:"
+	@echo "  make run_stage_test BENCH=<name>        - Run stage enable test"
+	@echo "  make waves_stage_test BENCH=<name>      - Run stage test with VCD"
 	@echo ""
 	@echo "Utility Targets:"
 	@echo "  make clean                  - Clean simulation files"
-	@echo "  make help                   - Show this help message"
+	@echo "  make help                  - Show this help message"
 	@echo ""
 	@echo "=========================================="
 	@echo "Common Variables:"
 	@echo "=========================================="
 	@echo "  TEST=<test_name>            - Specify test name (default: test_pd)"
-	@echo "  MEM_PATH=<path>             - Path to benchmark file (default: verif/data/rv32ui-p-add.x)"
-	@echo "  BENCH=<name>                - Benchmark name for run_bench target"
+	@echo "  MEM_PATH=<path>             - Path to benchmark file"
+	@echo "  BENCH=<name>                - Benchmark name for run_bench"
+	@echo "  MULTICYCLE=<0|1>            - Multicycle multiplier configuration (default: 0)"
 	@echo "  GEN_TRACE=<0|1>             - Enable/disable trace generation (default: 1)"
 	@echo "  TIMEOUT=<cycles>            - Simulation timeout in cycles (default: 50000)"
 	@echo "  WARN=<0|1>                  - Enable/disable warning checks (default: 1)"
@@ -310,13 +344,16 @@ help:
 	@echo "Examples:"
 	@echo "=========================================="
 	@echo "  # Run a specific benchmark"
-	@echo "  make run MEM_PATH=../rv32-benchmarks/individual-instructions/rv32ui-p-add.x"
+	@echo "  make run MEM_PATH=../rv32-benchmarks/individual-instructions/rv32ui-p-add.x MULTICYCLE=0"
 	@echo ""
 	@echo "  # Run a benchmark by name"
-	@echo "  make run_bench BENCH=rv32ui-p-add"
+	@echo "  make run_bench BENCH=rv32ui-p-add MULTICYCLE=0"
 	@echo ""
-	@echo "  # Run all benchmarks and compare with golden files"
-	@echo "  make run_all_benchmarks"
+	@echo "  # Run all benchmarks with single-cycle multiplier"
+	@echo "  make run_all_benchmarks MULTICYCLE=0"
+	@echo ""
+	@echo "  # Run all benchmarks with multicycle multiplier"
+	@echo "  make run_all_benchmarks MULTICYCLE=1"
 	@echo ""
 	@echo "  # Compare simulation traces with golden files"
 	@echo "  make diff_all_benchmarks"
@@ -330,6 +367,7 @@ help:
 	@echo "  CL_ROOT:        $(CL_ROOT)"
 	@echo "  BENCH_ROOT:     $(BENCH_ROOT)"
 	@echo "  TEST:           $(TEST)"
+	@echo "  MULTICYCLE:     $(MULTICYCLE)"
 	@echo "  Benchmarks:     $(words $(ALL_BENCHMARKS)) found"
 	@echo "=========================================="
 

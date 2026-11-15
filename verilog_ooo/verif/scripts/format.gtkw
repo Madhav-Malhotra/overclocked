@@ -1,0 +1,51 @@
+[*] GTKWave save file for the OoO core (verilog_ooo). Load with: make waves BENCH=<name>
+[treeopen] TOP.
+[treeopen] TOP.top.
+[treeopen] TOP.top.dut.
+[treeopen] TOP.top.dut.core.
+@28
+TOP.top.dut.core.clock
+TOP.top.dut.core.reset
+@200
+-Fetch
+@22
+TOP.top.dut.core.f_pc[31:0]
+TOP.top.dut.core.f_instr_pc[31:0]
+TOP.top.dut.core.f_instr_out[31:0]
+@28
+TOP.top.dut.core.f_valid
+@200
+-Dispatch
+@22
+TOP.top.dut.core.d_pc[31:0]
+TOP.top.dut.core.d_instr[31:0]
+TOP.top.dut.core.d_fu_id[2:0]
+TOP.top.dut.core.ds_assigned_fu_id[2:0]
+TOP.top.dut.core.ds_rs1_tag[2:0]
+TOP.top.dut.core.ds_rs2_tag[2:0]
+@28
+TOP.top.dut.core.d_valid
+TOP.top.dut.core.ds_en
+TOP.top.dut.core.ds_stall
+TOP.top.dut.core.ds_instr_buffer_full
+TOP.top.dut.core.ds_WAW_status
+TOP.top.dut.core.br_busy
+@200
+-Issue
+@22
+TOP.top.dut.core.iss_pc[31:0]
+TOP.top.dut.core.iss_rs1[4:0]
+TOP.top.dut.core.iss_rs2[4:0]
+@28
+TOP.top.dut.core.iss_valid
+@200
+-Writeback
+@28
+TOP.top.dut.core.wb_en
+@22
+TOP.top.dut.core.wb_tag[2:0]
+TOP.top.dut.core.wb_pc[31:0]
+TOP.top.dut.core.wb_rd[4:0]
+TOP.top.dut.core.wb_data[31:0]
+@28
+TOP.top.dut.core.wb_writes_rd

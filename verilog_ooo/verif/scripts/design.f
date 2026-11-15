@@ -1,0 +1,11 @@
+pd.v
+alu.v
+branch_comp.v
+decoder.v
+dmemory.v
+func_unit_status.v
+imemory.v
+instr_status.v
+reg_status_table.v
+register_file.v
+writeback.v

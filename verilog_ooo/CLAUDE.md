@@ -12,8 +12,8 @@ The core is **not yet a working processor**:
 - The data-memory interface is present but its inputs are unconnected.
 - Writeback outputs are tied to constants; the writeback mux is not instantiated.
 - Branch resolution, redirect, and wrong-path handling are unfinished.
-- A build/verification flow exists (lint script, Verilator harness with an OoO event trace, spike compare, unit TBs — see `verif/README.md`), but `pd` does not compile yet, so nothing has passed simulation.
-- Several RTL interface/type inconsistencies listed below need resolution before relying on elaboration or simulation.
+- A build/verification flow exists (lint script, Verilator harness with an OoO event trace, spike compare, unit TBs — see `verif/README.md`), and the RTL now elaborates (plan.md Phase 1): lint is clean of errors and the table/decoder/ALU unit testbenches pass. No benchmark passes yet because nothing executes or writes back.
+- The issue/read-operand handshake is an interim form (plan.md Phase 2 redesigns it); see §6.
 
 The current producer-FU tags are scoreboard state, not physical-register names. Do not describe this as Tomasulo-style register renaming or claim reorder-buffer/precise-retirement guarantees; those structures are not established by the current RTL.
 
@@ -77,7 +77,9 @@ The smallest-PC writeback rule is part of the stated target, not current behavio
 `design/code/decoder.v` extracts RV32 instruction fields and constructs R/I/S/B/U/J immediates. It identifies register source use and destination writes, excluding x0 as a dependency or writable destination. Its FU classification is:
 
 - Conditional branches and JAL/JALR -> `BRANCH`
-- R-type with `funct7 == 7'h01` -> `MCM`
+- `MUL` (R-type, `funct7 == 7'h01`, `funct3 == 000`) -> `MCM` (the only multiply path)
+- `DIV`/`DIVU` (`funct7 == 7'h01`, `funct3 == 100/101`) -> `ALU`
+- `MULH`/`MULHSU`/`MULHU`/`REM`/`REMU` -> `NONE` (unsupported, plan.md D7/D7a)
 - Loads -> `LOAD`
 - Stores -> `STORE`
 - Integer ALU, immediate ALU, U-type, and recognized ECALL -> `ALU`
@@ -85,7 +87,7 @@ The smallest-PC writeback rule is part of the stated target, not current behavio
 
 This is decode/classification behavior, not a guarantee of implemented architectural semantics. For example, the actual execution support for multiply/divide variants, branches, loads/stores, and ECALL must be verified when the execution path is implemented.
 
-`design/code/alu.v` is a combinational ALU with selector values `0..13`: ADD, SUB, SLL, SRL, SRA, SLT, SLTU, XOR, OR, AND, pass-operand-2 (named `NOP`), MUL, signed DIV, and DIVU. It defines divide-by-zero and signed overflow results. However, the out-of-order tree has no `control_signals.v` mapping instruction fields to these selectors, and this ALU has no multicycle start/busy/done interface. Do not equate the presence of an ALU operation or an `MCM` FU ID with a connected, working instruction path.
+`design/code/alu.v` is a combinational ALU (no clock/reset) with selector values `0..10`, `12`, `13`: ADD, SUB, SLL, SRL, SRA, SLT, SLTU, XOR, OR, AND, pass-operand-2 (named `NOP`), signed DIV, and DIVU. Selector `11` (formerly MUL) returns 0: multiplication is only done by the MCM unit. It defines divide-by-zero and signed overflow results. However, the out-of-order tree has no `control_signals.v` mapping instruction fields to these selectors, and this ALU has no multicycle start/busy/done interface. Do not equate the presence of an ALU operation or an `MCM` FU ID with a connected, working instruction path.
 
 ### Register and memory model from the shared RTL
 
@@ -119,7 +121,7 @@ If dispatch is rejected for one of these reasons, `ds_stall` holds fetch/decode.
 
 ### Issue and operand readiness
 
-`functional_unit_status` stores one row per FU slot. A row is allocated at dispatch and is intended to remain allocated until its FU completes and writeback clears it. The issue scan walks rows from low to high index and picks the first row that is allocated, not yet issued, whose FU is not busy, and whose two source tags are clear.
+`functional_unit_status` stores one row per FU slot. A row is allocated at dispatch and is intended to remain allocated until its FU completes and writeback clears it. A combinational select picks the lowest-index row that is allocated, not yet issued, whose FU is not busy, and whose two source tags are clear; the selection is registered (`iss_row_index`, `iss_fu_id`, one-cycle `iss_instr_found` pulse).
 
 This is a fixed row-index priority, not an age/oldest-ready policy: the current code does not establish that the lowest row is the oldest instruction.
 
@@ -129,7 +131,7 @@ The register-status table maps each architectural register to one producer FU ID
 - A nonzero mapping on `rd` causes a WAW stall rather than allocating a new physical register.
 - A matching writeback tag clears waiting source tags and records the broadcast value in the FU row.
 
-When an instruction issues with no unresolved source tags, its source addresses drive the register file. The source attempts to capture the registered read values in the FU row on a later clock edge, preferring a value captured from writeback. Audit the selected-row/address alignment under back-to-back issue before relying on this timing.
+When a row issues, `iss_rs1`/`iss_rs2` (from `iss_row_index`) drive the register file during the following cycle; the RF registers the data at the next edge, and one edge later it is captured into that row (`cap_valid`/`cap_row_index`) unless the operand was already forwarded from a writeback. Back-to-back issue is covered by `func_unit_status_tb`. There is no register-file write→read bypass yet (plan.md task 2.4).
 
 The `instr_status` table stores up to six dispatched instructions, including PC, decoded fields, FU ID, valid bit, and a stage field (`DS`, `IS`, `EX`, `WB`). The current top updates `IS` on issue and clears an entry on writeback; it does not currently advance an entry to `EX`. It is keyed by PC; if multiple dynamic instances of the same PC can be in flight, matching by PC alone may be ambiguous and needs a deliberate solution.
 
@@ -181,14 +183,14 @@ When implementing these stages, keep producer tag, architectural `rd`, and instr
 
 Resolve these as part of the relevant implementation work; do not silently paper over them in documentation or assume they are already fixed:
 
-1. `instr_status.v` declares `fu_arr` using `FW`, which is not declared in the module, and its final instruction-count expression references `done` while the local flag is named `done_ds`.
-2. `func_unit_status.v` assigns/resets `iss_fu_id`, but its corresponding port declarations are commented out and no declaration is present. `pd.v` also attempts to connect `.iss_fu_id(...)`.
-3. `pd.v` declares `iss_rs1_data` and `iss_rs2_data` as one-bit wires, although the register-file data outputs are 32 bits.
-4. `pd.v` leaves the `functional_unit_status.busy` input unconnected. Its availability decisions cannot be meaningfully driven by real execution-unit occupancy until that interface is wired.
+1. (Fixed in Phase 1) `instr_status.v` undeclared `FW`/`done`, wrong field widths, count corrupted by unmatched writebacks.
+2. (Fixed in Phase 1) `func_unit_status.v` undeclared `iss_fu_id`, mixed blocking/non-blocking issue logic (`iss_instr_found` could never go high), mis-timed operand capture, stale forwarded-value flags.
+3. (Fixed in Phase 1) `pd.v` 1-bit `iss_rs*_data`, use-before-declaration, trailing port comma, unknown `NUM_REGS` parameter.
+4. `pd.v` ties the `functional_unit_status.busy` input to a zero placeholder (`fu_busy`). Its availability decisions cannot be meaningfully driven by real execution-unit occupancy until that interface is wired.
 5. `wb_en`, `wb_tag`, `wb_data`, `wb_rd`, `wb_writes_rd`, and `wb_pc` are constants, and the data-memory request ports are open.
-6. The OoO build/test harness exists (`make lint` / `make unit_tests` in `verif/scripts`, `run_scripts.py`, `design/simple_testbenches/`; see `verif/README.md`), but `pd`, `instr_status.v`, and `func_unit_status.v` do not compile yet, so do not claim the OOO design passes simulation.
+6. The OoO build/test harness exists (`make lint` / `make unit_tests` in `verif/scripts`, `run_scripts.py`, `design/simple_testbenches/`; see `verif/README.md`), and the RTL elaborates with all unit testbenches passing (Phase 1). No benchmark passes yet (no execution/writeback), so do not claim the OOO design passes simulation.
 7. `dmemory.v` decides whether a store precedes a load using `w_pc < r_pc`. Confirm whether this is an acceptable dynamic instruction-order rule, particularly for loops, before relying on it as the OOO memory-order model.
-8. `pd.v` derives `iss_valid` from `fu_issued`, while `iss_instr_found` is a separate registered signal. Define and verify the issue handshake, row selection, and synchronous register-file read alignment before using `iss_valid` to advance stage state or launch an FU.
+8. `iss_valid` is now the one-cycle `iss_instr_found` pulse. The issue packet to an FU, smallest-PC selection, and the RF write→read bypass are still to be defined (plan.md Phase 2).
 
 This list captures issues directly visible in the current sources; it is not an exhaustive lint report.
 

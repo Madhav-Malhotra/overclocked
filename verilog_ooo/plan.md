@@ -17,8 +17,8 @@ The OoO core (`verilog_ooo/`) is a **scoreboarding** design (not Tomasulo, no RO
 | Fetch (PC+4, no redirect) | `design/code/pd.v` | Written; no redirect |
 | Decode + FU classification | `design/code/decoder.v` | Done |
 | Dispatch (in-order, WAW stall, FU-slot check, branch drain placeholder) | `design/code/pd.v` | Written, not verified |
-| Instruction Status Table (6 rows) | `design/code/instr_status.v` | Written, **does not elaborate** |
-| Functional Unit Status Table (6 rows, one per FU) | `design/code/func_unit_status.v` | Written, **does not elaborate**, issue timing unclear |
+| Instruction Status Table (6 rows) | `design/code/instr_status.v` | Elaborates; unit-tested (Phase 1) |
+| Functional Unit Status Table (6 rows, one per FU) | `design/code/func_unit_status.v` | Elaborates; issue select + operand capture unit-tested (Phase 1); handshake redesign in Phase 2 |
 | Register Status Table (32 entries) | `design/code/reg_status_table.v` | Done |
 | Register file, ALU, branch_comp, imem, dmem, writeback mux | `design/code/*.v` | Present; EX/WB not connected |
 | Execution units / completion / writeback | — | **Missing** |
@@ -101,37 +101,47 @@ Every later phase needs a compile + sim check, so do this first.
 Fixes only; no new features.
 
 **`instr_status.v`**
-- [ ] 1.1 `reg [FW-1:0] fu_arr` → `FUW`.
-- [ ] 1.2 `num_instr <= … (done ? 1:0) …` → `done_ds`; delete the earlier `num_instr <= num_instr - 1` inside `if (wb_en)` (it is overridden by the later assignment anyway).
-- [ ] 1.3 `rs1_arr/rs2_arr/rd_arr` are `[DATAW-1:0]` → `[ADDRW-1:0]`.
-- [ ] 1.4 `num_instr` width `$clog2(6)=3` → `$clog2(NUM_BUFFER_ROWS+1)` so "full" is representable for any size.
-- [ ] 1.5 `initial` block uses `<=` → `=` (or drop it; reset covers it).
-- [ ] 1.6 `done_ds` is a module-level `reg` written with `=` in a clocked block → compute the free row combinationally (`ds_free_idx` priority encoder as a wire) and export it as `ds_ist_idx` (needed for D1).
+- [x] 1.1 `reg [FW-1:0] fu_arr` → `FUW`.
+- [x] 1.2 `num_instr <= … (done ? 1:0) …` → `done_ds`; delete the earlier `num_instr <= num_instr - 1` inside `if (wb_en)` (it is overridden by the later assignment anyway).
+- [x] 1.3 `rs1_arr/rs2_arr/rd_arr` are `[DATAW-1:0]` → `[ADDRW-1:0]`.
+- [x] 1.4 `num_instr` width `$clog2(6)=3` → `$clog2(NUM_BUFFER_ROWS+1)` so "full" is representable for any size.
+- [x] 1.5 `initial` block uses `<=` → `=` (or drop it; reset covers it).
+- [x] 1.6 `done_ds` is a module-level `reg` written with `=` in a clocked block → compute the free row combinationally (`ds_free_idx` priority encoder as a wire) and export it as `ds_ist_idx` (needed for D1).
 
 **`func_unit_status.v`**
-- [ ] 1.7 Declare `output reg [FUW-1:0] iss_fu_id` (assigned but undeclared).
-- [ ] 1.8 `iss_row_index`, `iss_fu_id`, `iss_instr_found`, `iss_tag_found`, `issued_arr[i]` mix `=` and `<=` in one clocked block → split into a **combinational issue-select block** (`always @(*)` → `sel_valid`, `sel_idx`) and a **clocked block** using only `<=`.
-- [ ] 1.9 `if (issued[iss_row_index])` indexes the 1-bit output `issued` → `issued_arr` (block is redesigned in Phase 2 anyway).
-- [ ] 1.9a **Confirmed by `func_unit_status_tb`:** `iss_instr_found <= 0` (non-blocking default, ~line 143) overrides the later blocking `iss_instr_found = 1` in the same block, so **`iss_instr_found` never goes high** (same for `iss_fu_id`, `iss_tag_found`). Task 1.8's restructure fixes this; re-run `make` in `design/simple_testbenches` to confirm.
-- [ ] 1.10 `ds_row_index = ds_fu_id - 1` underflows when `ds_fu_id==0`; guard writes with `ds_fu_id != NONE` explicitly.
+- [x] 1.7 Declare `output reg [FUW-1:0] iss_fu_id` (assigned but undeclared).
+- [x] 1.8 `iss_row_index`, `iss_fu_id`, `iss_instr_found`, `iss_tag_found`, `issued_arr[i]` mix `=` and `<=` in one clocked block → split into a **combinational issue-select block** (`always @(*)` → `sel_valid`, `sel_idx`) and a **clocked block** using only `<=`.
+- [x] 1.9 `if (issued[iss_row_index])` indexes the 1-bit output `issued` → `issued_arr` (block is redesigned in Phase 2 anyway).
+- [x] 1.9a **Confirmed by `func_unit_status_tb`:** `iss_instr_found <= 0` (non-blocking default, ~line 143) overrides the later blocking `iss_instr_found = 1` in the same block, so **`iss_instr_found` never goes high** (same for `iss_fu_id`, `iss_tag_found`). Task 1.8's restructure fixes this; re-run `make` in `design/simple_testbenches` to confirm.
+- [x] 1.10 `ds_row_index = ds_fu_id - 1` underflows when `ds_fu_id==0`; guard writes with `ds_fu_id != NONE` explicitly.
 
 **`pd.v`**
-- [ ] 1.11 `wire iss_rs1_data; wire iss_rs2_data;` are 1-bit and declared after use → `wire [DATAW-1:0]`, move to the Issue declarations.
-- [ ] 1.12 `iss_valid` is used (in the `instrStatus` port list) before it is declared → move the declaration up.
-- [ ] 1.13 Trailing comma after `.wb_data(wb_data),` in the `funcStatus` instance → remove; connect `.busy(fu_busy)` with a `wire [NUM_FU-1:0] fu_busy = 0;` placeholder until Phase 3.
-- [ ] 1.14 Connect `.iss_instr_found(...)` and `.iss_tag_found(...)` to declared wires.
-- [ ] 1.15 Fill in the `pd` header comment.
-- [ ] 1.15a `pd.v` passes `.NUM_REGS(NUM_REGS)` to `functional_unit_status`, which has no `NUM_REGS` parameter → remove it (elaboration error once the syntax error is fixed).
-- [ ] 1.16 Make `reg_status_table`'s default `NUM_LOAD_STORE` (2) consistent with the rest (1).
+- [x] 1.11 `wire iss_rs1_data; wire iss_rs2_data;` are 1-bit and declared after use → `wire [DATAW-1:0]`, move to the Issue declarations.
+- [x] 1.12 `iss_valid` is used (in the `instrStatus` port list) before it is declared → move the declaration up.
+- [x] 1.13 Trailing comma after `.wb_data(wb_data),` in the `funcStatus` instance → remove; connect `.busy(fu_busy)` with a `wire [NUM_FU-1:0] fu_busy = 0;` placeholder until Phase 3.
+- [x] 1.14 Connect `.iss_instr_found(...)` and `.iss_tag_found(...)` to declared wires.
+- [x] 1.15 Fill in the `pd` header comment.
+- [x] 1.15a `pd.v` passes `.NUM_REGS(NUM_REGS)` to `functional_unit_status`, which has no `NUM_REGS` parameter → remove it (elaboration error once the syntax error is fixed).
+- [x] 1.16 Make `reg_status_table`'s default `NUM_LOAD_STORE` (2) consistent with the rest (1).
 
 **`alu.v`** (D7, D7a)
-- [ ] 1.17 Remove the `MUL` localparam and the stale header text about `array_mult`, `multicyc_sel`, `mult_start_pulse`, `mult_hold`, `mult_busy`. Drop the unused `clock`/`reset` ports if nothing needs them. **Keep `DIV`/`DIVU`.**
-- [ ] 1.18 Update `alu.v`'s header comment op list to match (RV32I ops + `DIV`/`DIVU`; no multiply).
+- [x] 1.17 Remove the `MUL` localparam and the stale header text about `array_mult`, `multicyc_sel`, `mult_start_pulse`, `mult_hold`, `mult_busy`. Drop the unused `clock`/`reset` ports if nothing needs them. **Keep `DIV`/`DIVU`.**
+- [x] 1.18 Update `alu.v`'s header comment op list to match (RV32I ops + `DIV`/`DIVU`; no multiply).
 
 **`decoder.v`** (D7a)
-- [ ] 1.19 Narrow `is_mcm` to `MUL` only: `opcode == 0110011 && funct7 == 7'h01 && funct3 == 3'b000`. `DIV/DIVU` (`funct7 == 7'h01`, `funct3 = 100/101`) fall through to `ALU` (they already satisfy `is_alu`). `MULH/MULHSU/MULHU` (`funct3 = 001/010/011`) and `REM/REMU` (`funct3 = 110/111`) must be classified `NONE` (unsupported) — exclude them from `is_alu`'s ALU routing. Update the FU-classification list in CLAUDE.md §3.
+- [x] 1.19 Narrow `is_mcm` to `MUL` only: `opcode == 0110011 && funct7 == 7'h01 && funct3 == 3'b000`. `DIV/DIVU` (`funct7 == 7'h01`, `funct3 = 100/101`) fall through to `ALU` (they already satisfy `is_alu`). `MULH/MULHSU/MULHU` (`funct3 = 001/010/011`) and `REM/REMU` (`funct3 = 110/111`) must be classified `NONE` (unsupported) — exclude them from `is_alu`'s ALU routing. Update the FU-classification list in CLAUDE.md §3.
 
 **Done when:** `make lint` has no errors (warnings about unconnected EX/WB are fine); `make unit_tests` in `verif/scripts` passes all 3 TBs; `make all` in `verif/scripts` (default `ooo-smoke`) reaches TIMEOUT and the trace shows `[D]` lines until the FU slots fill (nothing completes yet — expected).
+
+**Phase 1 as built (2026-11-15):**
+- `make lint`: no errors (remaining warnings: unused fields/ports that Phases 2–3 consume, `dmemory`/`imemory` width/undriven from the shared modules, `initial`-value regs in `pd.v`).
+- `make unit_tests`: 5/5 pass — added `decoder_tb.v` (MUL→MCM, DIV/DIVU→ALU, MULH*/REM*→NONE, all RV32I classes, x0 rules) and `alu_tb.v` (all selectors, DIV edge cases, old MUL selector returns 0). `func_unit_status_tb` now models the register file's one-edge read latency and checks operand capture (incl. back-to-back issue).
+- `make all` (ooo-smoke): builds, runs to TIMEOUT; trace shows `[D] 0 …`, `[D] 1 …` (ist_idx now traced via `D_IST_IDX`), then `[S] fu_busy` because nothing writes back yet. `run_scripts.py --suite ooo`: lint PASS, unit PASS, benchmark FAIL (missing writes) — expected until Phase 4.
+- Extra fixes made while touching the same code (beyond the listed tasks):
+  - `instr_status`: a writeback whose PC matches no valid row no longer decrements the count; PC matching (issue/WB) ignores invalid rows.
+  - `func_unit_status`: register-file read data is captured one edge after the address is driven, into the row that was read (`cap_valid`/`cap_row_index`) — previously it was captured a cycle early into the wrong row. Dispatch clears the row's `rs*_fwd` flags (stale forwarded values were reused). WB broadcast ignores tag NONE. `iss_tag_found` now means "some otherwise-ready row waits on a tag".
+  - `pd`: `iss_valid` = `iss_instr_found` (one pulse per issue) instead of the sticky `issued` flag.
+- Still open for Phase 2 (unchanged by design): no RF write→read bypass (a WB in the same cycle as an RF read returns the old value), row-index issue priority (not smallest PC), PC-keyed `instr_status`.
 
 ---
 
@@ -308,3 +318,4 @@ None currently.
 | 2026-11-15 | Phase 0 done | Lint script, OoO harness + event trace, spike store capture, `cmp_ooo_spike.py`, `ooo-tests/` + smoke test, 3 unit TBs. `pd`/2 TBs blocked on Phase 1 compile errors (validated on a scratch-fixed copy). Added Phase 1 tasks 1.9a, 1.15a. |
 | 2026-11-15 | Layout aligned | Moved `scripts/{design.f,lint.sh}` → `verif/scripts/`, `design/unit_tb/` → `design/simple_testbenches/`; added `verif/data/rv32ui-p-add.x` to match `verilog/` and `verilog_ss/`. |
 | 2026-11-15 | Layout identical | Added root `README.md` + `run_scripts.py`, `verif/golden_sim/`, `verif/scripts/{check_fatal.sh,cmp_sim_trace.py,run_benchmarks_parallel.py,format.gtkw,waves.tcl,docker/}`, `rv32-benchmarks/{README.md,ISS_ARCHITECTURE.md}`; folded `lint.sh` into `make lint`; superscalar-tests added to all runners. |
+| 2026-11-15 | Phase 1 done | RTL elaborates (lint clean of errors), 5/5 unit TBs pass (new: decoder, alu), full sim runs to TIMEOUT with dispatch trace. Extra fixes: no-hit WB count, operand-capture alignment, stale fwd flags, `iss_valid` pulse. |

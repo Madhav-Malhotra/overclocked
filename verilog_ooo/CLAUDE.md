@@ -12,7 +12,7 @@ The core is **not yet a working processor**:
 - The data-memory interface is present but its inputs are unconnected.
 - Writeback outputs are tied to constants; the writeback mux is not instantiated.
 - Branch resolution, redirect, and wrong-path handling are unfinished.
-- There is no in-tree out-of-order wrapper, testbench, or build/verification recipe in the current source layout.
+- A build/verification flow exists (lint script, Verilator harness with an OoO event trace, spike compare, unit TBs — see `verif/README.md`), but `pd` does not compile yet, so nothing has passed simulation.
 - Several RTL interface/type inconsistencies listed below need resolution before relying on elaboration or simulation.
 
 The current producer-FU tags are scoreboard state, not physical-register names. Do not describe this as Tomasulo-style register renaming or claim reorder-buffer/precise-retirement guarantees; those structures are not established by the current RTL.
@@ -97,7 +97,7 @@ This is decode/classification behavior, not a guarantee of implemented architect
 
 ## 4. Current top-level organization
 
-The top module is `pd` in `design/code/pd.v`. The file list is `scripts/design.f`.
+The top module is `pd` in `design/code/pd.v`. The file list is `verif/scripts/design.f`.
 
 ### Fetch
 
@@ -170,7 +170,12 @@ When implementing these stages, keep producer tag, architectural `rd`, and instr
 | `design/code/imemory.v` | Registered instruction-memory read |
 | `design/code/dmemory.v` | Byte-addressable data-memory interface and memory behavior; not connected by the current top |
 | `design/code/writeback.v` | Result-source mux for memory, ALU, and PC+4; not connected by the current top |
-| `scripts/design.f` | Source list for the out-of-order design |
+| `verif/scripts/design.f` | Source list for the out-of-order design (single list: used by `make lint` and the Verilator build) |
+| `verif/scripts/Makefile` | `make lint` (Verilator lint + Icarus elaboration of `pd`), `make unit_tests`, simulation/spike-compare targets (`make help`) |
+| `run_scripts.py` | Top-level runner: lint → unit testbenches → parallel benchmarks vs spike |
+| `design/signals.h` | Maps OoO trace events (`[F] [D] [I] [X] [M] [W] [S]`) to `pd` signals; define a stage's `*_FIRE` macros when it is implemented |
+| `design/simple_testbenches/` | Self-checking Icarus unit testbenches for the scoreboard tables |
+| `verif/` | Verilator harness, spike trace generation, `cmp_ooo_spike.py` (order-insensitive compare); see `verif/README.md` |
 
 ## 6. Important gaps and source inconsistencies
 
@@ -181,7 +186,7 @@ Resolve these as part of the relevant implementation work; do not silently paper
 3. `pd.v` declares `iss_rs1_data` and `iss_rs2_data` as one-bit wires, although the register-file data outputs are 32 bits.
 4. `pd.v` leaves the `functional_unit_status.busy` input unconnected. Its availability decisions cannot be meaningfully driven by real execution-unit occupancy until that interface is wired.
 5. `wb_en`, `wb_tag`, `wb_data`, `wb_rd`, `wb_writes_rd`, and `wb_pc` are constants, and the data-memory request ports are open.
-6. There is no demonstrated in-tree OOO build/test harness, so do not claim the OOO design passes simulation. Add or locate a focused compile/simulation validation path when RTL implementation begins.
+6. The OoO build/test harness exists (`make lint` / `make unit_tests` in `verif/scripts`, `run_scripts.py`, `design/simple_testbenches/`; see `verif/README.md`), but `pd`, `instr_status.v`, and `func_unit_status.v` do not compile yet, so do not claim the OOO design passes simulation.
 7. `dmemory.v` decides whether a store precedes a load using `w_pc < r_pc`. Confirm whether this is an acceptable dynamic instruction-order rule, particularly for loops, before relying on it as the OOO memory-order model.
 8. `pd.v` derives `iss_valid` from `fu_issued`, while `iss_instr_found` is a separate registered signal. Define and verify the issue handshake, row selection, and synchronous register-file read alignment before using `iss_valid` to advance stage state or launch an FU.
 

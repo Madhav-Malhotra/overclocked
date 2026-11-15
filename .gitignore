@@ -1,5 +1,8 @@
 verilog/verif/sim/*
 verilog_ss/verif/sim/*
+verilog_ooo/verif/sim/
+verilog_ooo/verif/diffs/
+verilog_ooo/design/simple_testbenches/build/
 
 .claude/
 

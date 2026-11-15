@@ -23,7 +23,7 @@ The OoO core (`verilog_ooo/`) is a **scoreboarding** design (not Tomasulo, no RO
 | Register file, ALU, branch_comp, imem, dmem, writeback mux | `design/code/*.v` | Present; EX/WB not connected |
 | Execution units / completion / writeback | — | **Missing** |
 | Branching strategy + redirect | — | **Not decided, not implemented** |
-| Build, testbench, trace compare | — | **Missing** (`scripts/design.f` only, untracked) |
+| Build, testbench, trace compare | `verif/`, `design/simple_testbenches/`, `run_scripts.py` | **Done (Phase 0)** — see `verif/README.md` |
 
 **Goal, in order:**
 1. Build and connect the five stages — **Fetch, Decode/Dispatch, Issue, Execute, Writeback** — and prove them on straight-line (branch-free) programs, with independent instructions really executing/completing out of order.
@@ -39,7 +39,7 @@ The OoO core (`verilog_ooo/`) is a **scoreboarding** design (not Tomasulo, no RO
 
 ### Tools available locally
 - `iverilog` and `verilator` (both in `/opt/homebrew/bin`).
-- **No RISC-V GCC toolchain locally** — the only `.x` memory image is `verilog/verif/data/rv32ui-p-add.x`. Building more needs the docker flow in `verilog/verif/scripts/docker/` or a local toolchain install (Phase 0.4).
+- `riscv64-unknown-elf-gcc` (`~/riscv/bin`) and `spike` (`/opt/homebrew/bin`) are installed (found in Phase 0). Build images with `make build_benchmarks` in `verif/scripts`. Fallback: the docker flow in `verilog/verif/scripts/docker/`.
 
 ---
 
@@ -65,11 +65,11 @@ These are the decisions every phase assumes. **Team-confirmed** items are fixed;
 
 Every later phase needs a compile + sim check, so do this first.
 
-- [ ] **0.1 Lint/elaborate target.** Add `verilog_ooo/scripts/lint.sh` that runs from `verilog_ooo/design/code`:
-  `verilator --lint-only -Wall -Wno-fatal --top-module pd -DMEM_PATH='"dummy.x"' -DLINE_COUNT=1 -DMEM_DEPTH=1048576 -f ../../scripts/design.f`
-  and `iverilog -g2012 -s pd -o /dev/null …`. Commit `scripts/design.f` (currently untracked).
-- [ ] **0.2 Copy the scalar harness.** Copy `verilog/verif/{tests,scripts}` → `verilog_ooo/verif/`, and `verilog/design/{design_wrapper.v,signals.h}` → `verilog_ooo/design/`. Fix paths in `verif/scripts/Makefile`, `Makefile.verilator`, `design.f` to point at `verilog_ooo/design/code`.
-- [ ] **0.3 OoO trace format.** Replace the in-order FDXMW `trace_dump.h`/`fields.h` with event lines (printed only when the event fires):
+- [x] **0.1 Lint/elaborate target.** Add a lint step (now `make lint` in `verif/scripts`) that runs:
+  `verilator --lint-only -Wall -Wno-fatal --top-module pd -DMEM_PATH='"dummy.x"' -DLINE_COUNT=1 -DMEM_DEPTH=1048576 -f ../../verif/scripts/design.f`
+  and `iverilog -g2012 -s pd -o /dev/null …`. Commit `verif/scripts/design.f`.
+- [x] **0.2 Copy the scalar harness.** Copy `verilog/verif/{tests,scripts}` → `verilog_ooo/verif/`, and `verilog/design/{design_wrapper.v,signals.h}` → `verilog_ooo/design/`. Fix paths in `verif/scripts/Makefile`, `Makefile.verilator`, `design.f` to point at `verilog_ooo/design/code`.
+- [x] **0.3 OoO trace format.** Replace the in-order FDXMW `trace_dump.h`/`fields.h` with event lines (printed only when the event fires):
   - `[F] pc instr`
   - `[D] ist_idx pc fu_id rd rs1 rs2 rs1_tag rs2_tag` (dispatch)
   - `[I] ist_idx pc fu_id op1 op2` (operands read / FU launched)
@@ -78,11 +78,21 @@ Every later phase needs a compile + sim check, so do this first.
   - `[S] reason` optional stall reason (WAW / FU busy / buffer full / branch drain / WAR / mem order)
   
   (No seq field yet — seq numbers arrive in Phase 8, test-only.)
-- [ ] **0.4 Program images.** Get a RISC-V toolchain (docker in `verilog/verif/scripts/docker/`, or local) and build `.x` + `.elf` with `rv32-benchmarks/individual-instructions/Makefile.new` and `simple-programs/Makefile`. Copy `verilog/verif/scripts/spike_trace_gen.py` for spike commit traces. Without a toolchain, hand-assemble tiny `.x` files for the Phase 5 tests.
-- [ ] **0.5 OoO-aware compare** `verif/scripts/cmp_ooo_spike.py`: writebacks are out of program order, so compare **(a)** the per-register sequence of written values (must match spike exactly — the WAW stall keeps writes to one register ordered), **(b)** the final register file, **(c)** per-address store sequences. Exit 0/1.
-- [ ] **0.6 Unit testbenches** (iverilog, `verilog_ooo/design/unit_tb/`): `reg_status_table_tb.v`, `instr_status_tb.v`, `func_unit_status_tb.v`. Self-checking (`$fatal` on mismatch); a `make unit` target runs all of them.
+- [x] **0.4 Program images.** Get a RISC-V toolchain (docker in `verilog/verif/scripts/docker/`, or local) and build `.x` + `.elf` with `rv32-benchmarks/individual-instructions/Makefile.new` and `simple-programs/Makefile`. Copy `verilog/verif/scripts/spike_trace_gen.py` for spike commit traces. Without a toolchain, hand-assemble tiny `.x` files for the Phase 5 tests.
+- [x] **0.5 OoO-aware compare** `verif/scripts/cmp_ooo_spike.py`: writebacks are out of program order, so compare **(a)** the per-register sequence of written values (must match spike exactly — the WAW stall keeps writes to one register ordered), **(b)** the final register file, **(c)** per-address store sequences. Exit 0/1.
+- [x] **0.6 Unit testbenches** (iverilog, `verilog_ooo/design/simple_testbenches/`): `reg_status_table_tb.v`, `instr_status_tb.v`, `func_unit_status_tb.v`. Self-checking (`$fatal` on mismatch); `make` in that directory runs all of them.
 
-**Done when:** `lint.sh` runs (it will report the Phase 1 errors) and `make` in `verilog_ooo/verif/scripts` builds a Verilator sim of `pd`.
+**Done when:** `make lint` runs (it will report the Phase 1 errors) and `make` in `verilog_ooo/verif/scripts` builds a Verilator sim of `pd`.
+
+**Phase 0 as built (2026-11-15)** — full usage in `verif/README.md`:
+- `make lint` in `verif/scripts` (prints errors + per-category warning counts; `VERBOSE=1` for everything; also `lint_verilator`, `lint_iverilog`). `verif/scripts/design.f` is the **single** RTL list; `verif/scripts/Makefile.verilator` reads it too.
+- Trace: `[F] [D] [I] [X] [M] [W] [S]` event lines ending in `@cycle`. Each event is enabled by `*_FIRE` macros in `design/signals.h`; `[I] [X] [M]` and `SIM_DONE` are `TODO(Phase N)` templates there. `[S]` logs only on stall start/change plus `[S] resume`. Stores are a separate `[M]` event (not part of `[X]`).
+- `verif/scripts/spike_trace_gen.py` (copy) also emits store lines `S pc addr size data` and searches `ooo-tests/`. `cmp_ooo_spike.py` options: `--allow-truncated`, `--skip-stores`, `--out`.
+- `rv32-benchmarks/ooo-tests/`: `Makefile` (`make`, `make check_branch_free`) + `ooo-smoke.s` (branch-free smoke test). Toolchain + spike turned out to be installed locally (`~/riscv/bin`, `/opt/homebrew/bin/spike`); all 41 individual-instruction and 10 simple-program images build.
+- Unit TBs: `design/simple_testbenches/` (`make`; `make RTL=<dir>` to test another RTL copy). `reg_status_table` passes. `instr_status` and `func_unit_status` **fail to compile until Phase 1** — expected. Each TB was validated against a scratch RTL copy with the minimal Phase 1 fixes applied (all 3 then pass).
+- **Layout:** directory structure is identical to `verilog/` and `verilog_ss/` (`design/{code,simple_testbenches}`, `verif/{data,diffs,golden_sim,scripts/docker,spike_traces,tests}`, root `README.md` + `run_scripts.py`). Scalar-only files with no OoO meaning (`test_stage_en.*`, `fields.h`, `cmp_wb_spike.py`) are intentionally absent; OoO-only additions: `cmp_ooo_spike.py`, `ooo-tests/`, `simple_testbenches/Makefile`. `verif/data/rv32ui-p-add.x` matches the other CPUs, but the Makefile default `MEM_PATH` stays `ooo-tests/ooo-smoke.x` because rv32ui-p-add needs branches.
+- `make all` in `verif/scripts` **cannot build `pd` until Phase 1** (compile errors). Validated against the same scratch-fixed RTL: Verilator builds, sim runs to TIMEOUT, trace shows 2 dispatches then a permanent `fu_busy` stall (nothing writes back yet), and `cmp_ooo_spike.py` reports the missing writes. That is the expected Phase 0 baseline.
+- Note: `individual-instructions/template-test.s` writes 0 to `tohost` in `pass:`, which makes spike hang; OoO tests must write 1.
 
 ---
 
@@ -102,6 +112,7 @@ Fixes only; no new features.
 - [ ] 1.7 Declare `output reg [FUW-1:0] iss_fu_id` (assigned but undeclared).
 - [ ] 1.8 `iss_row_index`, `iss_fu_id`, `iss_instr_found`, `iss_tag_found`, `issued_arr[i]` mix `=` and `<=` in one clocked block → split into a **combinational issue-select block** (`always @(*)` → `sel_valid`, `sel_idx`) and a **clocked block** using only `<=`.
 - [ ] 1.9 `if (issued[iss_row_index])` indexes the 1-bit output `issued` → `issued_arr` (block is redesigned in Phase 2 anyway).
+- [ ] 1.9a **Confirmed by `func_unit_status_tb`:** `iss_instr_found <= 0` (non-blocking default, ~line 143) overrides the later blocking `iss_instr_found = 1` in the same block, so **`iss_instr_found` never goes high** (same for `iss_fu_id`, `iss_tag_found`). Task 1.8's restructure fixes this; re-run `make` in `design/simple_testbenches` to confirm.
 - [ ] 1.10 `ds_row_index = ds_fu_id - 1` underflows when `ds_fu_id==0`; guard writes with `ds_fu_id != NONE` explicitly.
 
 **`pd.v`**
@@ -110,6 +121,7 @@ Fixes only; no new features.
 - [ ] 1.13 Trailing comma after `.wb_data(wb_data),` in the `funcStatus` instance → remove; connect `.busy(fu_busy)` with a `wire [NUM_FU-1:0] fu_busy = 0;` placeholder until Phase 3.
 - [ ] 1.14 Connect `.iss_instr_found(...)` and `.iss_tag_found(...)` to declared wires.
 - [ ] 1.15 Fill in the `pd` header comment.
+- [ ] 1.15a `pd.v` passes `.NUM_REGS(NUM_REGS)` to `functional_unit_status`, which has no `NUM_REGS` parameter → remove it (elaboration error once the syntax error is fixed).
 - [ ] 1.16 Make `reg_status_table`'s default `NUM_LOAD_STORE` (2) consistent with the rest (1).
 
 **`alu.v`** (D7, D7a)
@@ -119,7 +131,7 @@ Fixes only; no new features.
 **`decoder.v`** (D7a)
 - [ ] 1.19 Narrow `is_mcm` to `MUL` only: `opcode == 0110011 && funct7 == 7'h01 && funct3 == 3'b000`. `DIV/DIVU` (`funct7 == 7'h01`, `funct3 = 100/101`) fall through to `ALU` (they already satisfy `is_alu`). `MULH/MULHSU/MULHU` (`funct3 = 001/010/011`) and `REM/REMU` (`funct3 = 110/111`) must be classified `NONE` (unsupported) — exclude them from `is_alu`'s ALU routing. Update the FU-classification list in CLAUDE.md §3.
 
-**Done when:** `lint.sh` has no errors (warnings about unconnected EX/WB are fine), and a Verilator run of a small straight-line `.x` reaches TIMEOUT without crashing; the trace shows `[D]` lines until the buffer/FU slots fill (nothing completes yet — expected).
+**Done when:** `make lint` has no errors (warnings about unconnected EX/WB are fine); `make unit_tests` in `verif/scripts` passes all 3 TBs; `make all` in `verif/scripts` (default `ooo-smoke`) reaches TIMEOUT and the trace shows `[D]` lines until the FU slots fill (nothing completes yet — expected).
 
 ---
 
@@ -201,7 +213,7 @@ All tests here are **branch-free** and end with `ecall` (D5, D8). Each `.s` has 
 - [ ] 5.8 `ooo-buffer-full.s`: >6 in flight → buffer-full stall.
 - [ ] 5.9 `ooo-mem.s`: sw/lw, sb/lbu, sh/lh, store then load same address, load then store same address, sb then lw (partial overlap) — checks D6 ordering and EX-stage store timing.
 - [ ] 5.10 `ooo-x0.s`: writes to x0 never change the RF or reg_status.
-- [ ] 5.11 Copy `verilog/run_scripts.py` → `verilog_ooo/run_scripts.py`, switch it to `cmp_ooo_spike.py`, point it at `ooo-tests/`.
+- [x] 5.11 `verilog_ooo/run_scripts.py` exists (lint → unit TBs → `verif/scripts/run_benchmarks_parallel.py` with `cmp_ooo_spike.py`; `--suite ooo` for `ooo-tests/`). Done early, during the layout alignment.
 
 **Done when:** all of 5.1–5.10 pass via `run_scripts.py`; the 5.2 trace shows out-of-order completion. Record cycles per test in the status log.
 
@@ -241,7 +253,7 @@ Seq numbers are **testing infrastructure only** (D1).
 
 - [ ] 8.1 Fetch `hw/ooo_spike` (not in this local clone yet — `git fetch` it) and read the scalar-CPU proof of concept: how seq is assigned, traced, and compared against spike.
 - [ ] 8.2 Port it to the OoO core behind a testbench/`ifdef` guard (e.g. `` `ifdef OOO_SEQ_TRACE``): assign seq at dispatch, carry it to FU rows/trace only, print it on `[D] [I] [X] [W]`.
-- [ ] 8.3 **Guard rule:** no hardware decision (issue select, WB select, WAR, memory order, clearing) may read a seq signal. Add a lint/grep check (e.g. in `lint.sh`) that seq signals appear only in trace/test code.
+- [ ] 8.3 **Guard rule:** no hardware decision (issue select, WB select, WAR, memory order, clearing) may read a seq signal. Add a lint/grep check (e.g. in the `make lint` target) that seq signals appear only in trace/test code.
 - [ ] 8.4 Upgrade `cmp_ooo_spike.py` (or the ported compare from `hw/ooo_spike`) to match each `[W]` to its exact spike commit by seq.
 
 **Done when:** all Phase 5–7 tests pass with seq tracing on, and identically with it off.
@@ -261,8 +273,8 @@ Seq numbers are **testing infrastructure only** (D1).
 
 | Phase | Command | Pass criterion |
 |---|---|---|
-| 0–1 | `verilog_ooo/scripts/lint.sh` | No errors |
-| 2–3 | `make unit` (iverilog TBs) | All TBs PASS |
+| 0–1 | `make lint` in `verif/scripts` | No errors |
+| 1–3 | `make` in `design/simple_testbenches` (iverilog TBs) | All TBs PASS |
 | 4–5 | `python3 verilog_ooo/run_scripts.py` on `ooo-tests/` | All PASS |
 | 6–7 | `run_scripts.py` on `ooo-tests/`, `individual-instructions/`, `simple-programs/` | All PASS |
 | 8 | Same, with `OOO_SEQ_TRACE` on and off | Identical PASS |
@@ -271,8 +283,8 @@ Seq numbers are **testing infrastructure only** (D1).
 
 ## Critical files
 
-- **Modify:** `design/code/pd.v`, `instr_status.v`, `func_unit_status.v`, `reg_status_table.v`, `alu.v` (remove multiply; keep divide), `dmemory.v` (assertion only), `decoder.v` (shared defines; multiply-only MCM routing), `scripts/design.f`, `CLAUDE.md`
-- **New:** `design/code/ooo_defs.vh`, `control_signals.v` (copy), `array_mult.v` (copy), `fu_alu.v`, `fu_mcm.v`, `fu_load.v`, `fu_store.v`, `min_pc_select.v`, `wb_select.v`, `fu_branch.v` (Phase 6), `design/unit_tb/*`, `verif/**` (copied + adapted), `verif/scripts/cmp_ooo_spike.py`, `scripts/lint.sh`, `run_scripts.py`, `rv32-benchmarks/ooo-tests/*.s`
+- **Modify:** `design/code/pd.v`, `instr_status.v`, `func_unit_status.v`, `reg_status_table.v`, `alu.v` (remove multiply; keep divide), `dmemory.v` (assertion only), `decoder.v` (shared defines; multiply-only MCM routing), `verif/scripts/design.f`, `CLAUDE.md`
+- **New:** `design/code/ooo_defs.vh`, `control_signals.v` (copy), `array_mult.v` (copy), `fu_alu.v`, `fu_mcm.v`, `fu_load.v`, `fu_store.v`, `min_pc_select.v`, `wb_select.v`, `fu_branch.v` (Phase 6), `design/simple_testbenches/*`, `verif/**` (copied + adapted), `verif/scripts/cmp_ooo_spike.py`, `run_scripts.py`, `rv32-benchmarks/ooo-tests/*.s`
 - **Reference only (do not edit):** `verilog/design/code/{array_mult,control_signals,pd}.v`, `verilog/verif/**`, `verilog/run_scripts.py`, branch `hw/ooo_spike`
 
 ---
@@ -293,3 +305,6 @@ None currently.
 | 2026-11-15 | Plan revised | REM/REMU dropped from scope (decoded as `NONE`); only DIV/DIVU on the ALU. |
 | 2026-11-15 | Plan revised | Only `MUL` implemented on the MCM; MULH/MULHSU/MULHU dropped from scope (decoded as `NONE`). |
 | 2026-11-15 | Plan revised | D2 confirmed: issue (and WB) pick the smallest PC via shared `min_pc_select` tree (task 2.4a). |
+| 2026-11-15 | Phase 0 done | Lint script, OoO harness + event trace, spike store capture, `cmp_ooo_spike.py`, `ooo-tests/` + smoke test, 3 unit TBs. `pd`/2 TBs blocked on Phase 1 compile errors (validated on a scratch-fixed copy). Added Phase 1 tasks 1.9a, 1.15a. |
+| 2026-11-15 | Layout aligned | Moved `scripts/{design.f,lint.sh}` → `verif/scripts/`, `design/unit_tb/` → `design/simple_testbenches/`; added `verif/data/rv32ui-p-add.x` to match `verilog/` and `verilog_ss/`. |
+| 2026-11-15 | Layout identical | Added root `README.md` + `run_scripts.py`, `verif/golden_sim/`, `verif/scripts/{check_fatal.sh,cmp_sim_trace.py,run_benchmarks_parallel.py,format.gtkw,waves.tcl,docker/}`, `rv32-benchmarks/{README.md,ISS_ARCHITECTURE.md}`; folded `lint.sh` into `make lint`; superscalar-tests added to all runners. |

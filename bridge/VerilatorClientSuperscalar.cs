@@ -75,6 +75,7 @@ public class VerilatorClientSuperscalar : IDisposable, ICPU
     {
         try
         {
+            clear_imem();
             string[] lines = File.ReadAllLines(path);
             uint currentAddr = 0x01000000; // Base addr of imem
             foreach (string line in lines)
@@ -286,6 +287,7 @@ public class VerilatorClientSuperscalar : IDisposable, ICPU
         init_design_wrapper();
         SelectMultiplier(multicyc_sel);
         writeIMem(path);
+        Reset();
     }
 
     /*

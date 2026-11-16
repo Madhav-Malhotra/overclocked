@@ -13,8 +13,14 @@ Makefile:
 # run verilator on the verilog source code
 make verilog
 
-# compile the shared library
+# compile the shared library (Linux/macOS) — builds both the basic
+# (libdesign_wrapper) and superscalar (libdesign_wrapper_ss) libs and
+# copies both into $(UNITY_PLUGINS_DIR)
 make bridge
+
+# cross-compile both DLLs for Windows (basic design_wrapper.dll and
+# superscalar design_wrapper_ss.dll) and copy both into $(UNITY_PLUGINS_DIR)
+make dll
 
 # do both steps above
 make

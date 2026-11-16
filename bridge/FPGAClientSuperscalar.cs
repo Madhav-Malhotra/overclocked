@@ -42,7 +42,7 @@ public class FPGAClientSuperscalar : IDisposable, ICPU
                 case "/controls/status":
                 case "/outputs/status":
                     req = new HttpRequestMessage(HttpMethod.Get, formattedEndpoint);
-                    res = client.Send(req);
+                    res = client.SendAsync(req).GetAwaiter().GetResult();
                     break;
                 // POST endpoints
                 case "/imem/update":
@@ -54,7 +54,7 @@ public class FPGAClientSuperscalar : IDisposable, ICPU
                 case "/controls/mwEn/update":
                     req = new HttpRequestMessage(HttpMethod.Post, formattedEndpoint);
                     req.Content = new StringContent(json, Encoding.UTF8, "application/json");
-                    res = client.Send(req);
+                    res = client.SendAsync(req).GetAwaiter().GetResult();
                     break;
                 default:
                     Console.WriteLine($"unsupported endpoint: {endpoint}");

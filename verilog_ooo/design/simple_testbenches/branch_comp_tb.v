@@ -2,7 +2,7 @@
 // branch_comp_tb - self-checking unit test for branch_comp.v (the branch
 // functional unit, with control_signals.v as connected in pd.v)
 //
-// Hands each branch/jump to the FU (ex_valid, the issue cycle) with the
+// Gives each branch/jump to the FU (ex_valid = EX cycle 1) with the
 // operands pd.v gives it (idata1/idata2 = rs1/rs2 values, target_in1/
 // target_in2 from the a_sel/b_sel mux) and checks the timing - EX cycle 1 (address): the target adder;
 // EX cycle 2 (compare): cmp_opcode/cmp_funct3 present the instruction to
@@ -86,11 +86,11 @@ module branch_comp_tb;
     begin
       `CHECK(fu_ready, 1'b1, "branch FU ready before issue")
       opcode = op; funct3 = f3; rs1_data = a; rs2_data = b; imm = offset; pc = at_pc;
-      ex_valid = 1; tick; ex_valid = 0;
-      opcode = 7'h33; rs1_data = 32'hDEAD_BEEF; rs2_data = 32'h0; pc = 32'h0;   // registered inputs must be used
+      ex_valid = 1; #1;
       `CHECK(result_valid, 1'b0, "EX cycle 1 (address): no outcome yet")
-      `CHECK(fu_ready, 1'b0, "branch FU not ready in its address cycle")
-      tick;
+      tick; ex_valid = 0;
+      opcode = 7'h33; rs1_data = 32'hDEAD_BEEF; rs2_data = 32'h0; pc = 32'h0;   // registered values must be used
+      `CHECK(fu_ready, 1'b0, "branch FU not ready in its compare cycle")
       `CHECK(cmp_opcode, op, "EX cycle 2 (compare): instruction presented to control_signals")
       `CHECK(cmp_funct3, f3, "EX cycle 2 (compare): funct3 presented to control_signals")
       `CHECK(result_valid, 1'b0, "EX cycle 2 (compare): no outcome yet")

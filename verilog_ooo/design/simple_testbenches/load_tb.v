@@ -2,9 +2,9 @@
 // load_tb - self-checking unit test for load.v (the load functional unit,
 // with dmemory.v)
 //
-// Preloads data memory bytes through the hierarchy, then hands loads to the
-// FU (ex_valid, the issue cycle) and checks the timing: nothing is read in the
-// issue cycle or in EX cycle 1 (address); in EX cycle 2 (memory) dmem_r_en is
+// Preloads data memory bytes through the hierarchy, then gives loads to the
+// FU (ex_valid = EX cycle 1) and checks the timing: nothing is read in EX
+// cycle 1 (address); in EX cycle 2 (memory) dmem_r_en is
 // high at the effective address (idata1 + idata2); in the next cycle the
 // size-selected, sign/zero-extended value is registered (result_valid) and
 // held (fu_ready low) until wb_ready; it does not change when memory changes
@@ -76,12 +76,9 @@ module load_tb;
       `CHECK(fu_ready, 1'b1, "load FU ready before issue")
       idata1 = base; idata2 = offset; pc = 32'h0100_0200; funct3 = f3;
       ex_valid = 1; #1;
-      `CHECK(dmem_r_en, 1'b0, "issue cycle: no memory read")
-      tick; ex_valid = 0;
-      idata1 = 32'hDEAD_BEEF; idata2 = 32'h0; funct3 = 3'b111;   // registered inputs must be used
       `CHECK(dmem_r_en, 1'b0, "EX cycle 1 (address): no memory read")
-      `CHECK(fu_ready, 1'b0, "load FU not ready in its address cycle")
-      tick;
+      tick; ex_valid = 0;
+      idata1 = 32'hDEAD_BEEF; idata2 = 32'h0; funct3 = 3'b111;   // registered address/type must be used
       `CHECK(dmem_r_en, 1'b1, "EX cycle 2 (memory): read enabled")
       `CHECK(dmem_r_address, base + offset, "EX cycle 2: effective address = idata1 + idata2")
       `CHECK(result_valid, 1'b0, "no result yet in the memory cycle")
@@ -120,7 +117,7 @@ module load_tb;
 
     // --- held value does not follow a later memory change
     idata1 = BASE + 32'h104; idata2 = 0; funct3 = LW;
-    ex_valid = 1; tick; ex_valid = 0; tick; tick;
+    ex_valid = 1; tick; ex_valid = 0; tick;
     `CHECK(result, 32'h1234_5678, "loaded before the change")
     dmem.mem[32'h104] = 8'h00;
     tick;

@@ -17,8 +17,8 @@
 //
 //              Latency: 33 clock cycles from ex_valid to busy deasserting
 //                (32 accumulate + 1 result-latch); result_valid rises with
-//                the result latch, i.e. 34 cycles from the issue cycle to the
-//                first cycle result_valid is high.
+//                the result latch, i.e. 34 cycles from the ex_valid cycle to
+//                the first cycle result_valid is high.
 //
 //              OoO functional-unit interface (ready/valid):
 //                ex_valid    One-cycle pulse when a MUL is issued to the MCM.

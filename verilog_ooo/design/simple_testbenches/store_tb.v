@@ -2,8 +2,8 @@
 // store_tb - self-checking unit test for store.v (the store functional unit,
 // with dmemory.v)
 //
-// Hands stores to the FU (ex_valid, the issue cycle) and checks the timing:
-// nothing is written in the issue cycle or in EX cycle 1 (address); in EX
+// Gives stores to the FU (ex_valid = EX cycle 1) and checks the timing:
+// nothing is written in EX cycle 1 (address); in EX
 // cycle 2 (memory) dmem_w_en is high at the effective address (idata1 +
 // idata2) with the store_data; the write lands at the end of that cycle, so
 // the data is in memory in the next cycle (plan.md D6), also through the
@@ -90,12 +90,9 @@ module store_tb;
       word_before = mem_word(check_addr);
       idata1 = base; idata2 = offset; store_data = data; pc = 32'h0100_0100; funct3 = f3;
       ex_valid = 1; #1;
-      `CHECK(dmem_w_en, 1'b0, "issue cycle: no memory write")
-      tick; ex_valid = 0;
-      idata1 = 32'hDEAD_BEEF; store_data = 32'hDEAD_BEEF; funct3 = 3'b111;   // registered inputs must be used
       `CHECK(dmem_w_en, 1'b0, "EX cycle 1 (address): no memory write")
-      `CHECK(fu_ready, 1'b0, "store FU not ready in its address cycle")
-      tick;
+      tick; ex_valid = 0;
+      idata1 = 32'hDEAD_BEEF; store_data = 32'hDEAD_BEEF; funct3 = 3'b111;   // registered address/data must be used
       `CHECK(dmem_w_en, 1'b1, "EX cycle 2 (memory): write enabled")
       `CHECK(dmem_w_address, base + offset, "EX cycle 2: effective address = idata1 + idata2")
       `CHECK(mem_word(check_addr), word_before, "write not landed during the memory cycle")

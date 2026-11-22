@@ -171,10 +171,10 @@ end
 // issue while an older (smaller-PC) store is reserved and has not issued
 // (memory RAW), and a store may not issue while an older load is reserved and
 // has not issued (memory WAR). `issued_arr` is the "executed" bit: the load and
-// store FUs have the same timing (issue cycle, then two EX cycles: address,
-// memory), so a row selected in cycle N accesses memory in N+3, while the
-// younger access (selected in N+1 at the earliest) reaches memory in N+4 -
-// after the older one.
+// store FUs have the same timing (two EX cycles: address, then memory), so a
+// row selected in cycle N accesses memory in N+2, while the younger access
+// (selected in N+1 at the earliest) reaches memory in N+3 - after the older
+// one.
 // Store -> store order is automatic (one store FU, reserved until writeback).
 reg [NUM_FU-1:0]       row_can_issue; // row i can issue this cycle
 wire [NUM_FU*DATAW-1:0] row_pc_flat; // pc_arr flattened for min_pc_select

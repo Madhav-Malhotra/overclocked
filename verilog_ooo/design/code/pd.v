@@ -410,9 +410,10 @@ register_file #(
 // iss_fu_id. Each FU computes, registers its result and holds it
 // (fu_result_valid) until writeback takes it (fu_wb_ready). FUs:
 //   alu x2 (ids 5, 6, 1 cycle), array_mult = MCM (id 2, MUL only, 34 cycles),
-//   load (id 3), store (id 4) and branch_comp (id 1): after the issue cycle, two EX
-//   cycles each - an address/target adder, then the dmemory access (the store
-//   writes memory in Execute, D6) or the branch compare.
+//   load (id 3), store (id 4) and branch_comp (id 1): two EX cycles each,
+//   starting in the cycle they receive the instruction - an address/target
+//   adder, then the dmemory access (the store writes memory in Execute, D6) or
+//   the branch compare.
 
 // Control signals: Execute controls for the issuing instruction, Writeback
 // controls for the instruction writing back

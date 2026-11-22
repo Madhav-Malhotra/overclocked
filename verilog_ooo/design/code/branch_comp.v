@@ -6,13 +6,13 @@
 //              conditional branches, JAL and JALR.
 //
 //              OoO differences from verilog/design/code/branch_comp.v:
-//              - The instruction is handed over at the end of its issue cycle
-//                (ex_valid) and then executes in two cycles:
+//              - Two EX cycles, starting in the cycle the issued instruction
+//                arrives (ex_valid):
 //                  EX cycle 1 (address): the FU's adder computes the target PC
 //                           target_in1 + target_in2 (pc + imm for branches
 //                           and JAL, rs1 + imm for JALR with bit 0 cleared;
 //                           selected by control_signals' a_sel/b_sel in pd.v),
-//                           registered.
+//                           registered with rs1/rs2.
 //                  EX cycle 2 (compare): the comparison below (br_eq/br_lt,
 //                           br_un from control_signals) on the registered
 //                           rs1/rs2 values; control_signals turns it into
@@ -25,10 +25,10 @@
 //              - Fetch redirect, flushing and stalling on the outcome are not
 //                implemented yet (plan.md Phase 6).
 // Inputs:      clock, reset
-//              ex_valid       - a branch/jump is handed to this FU this cycle (its issue cycle)
+//              ex_valid       - an issued branch/jump is in this FU's EX cycle 1
 //              idata1, idata2 - 32-bit operands to compare (rs1, rs2 values)
 //              target_in1, target_in2 - target adder operands (pc or rs1 value, immediate)
-//              opcode, funct3 - instruction fields (compare cycle -> control_signals)
+//              opcode, funct3 - instruction fields (registered for the compare cycle -> control_signals)
 //              br_un          - 1 selects unsigned comparison, 0 selects signed
 //                               (control_signals, compare cycle)
 //              br_taken       - branch/jump taken (control_signals, compare cycle)
@@ -85,16 +85,8 @@ localparam OP_JALR = 7'b1100111;
 // ====================
 // EX CYCLE 1: TARGET ADDRESS
 // ====================
-reg                     addr_valid;   // the branch is in its address cycle
-reg        [IDATAW-1:0] addr_in1;     // target operand 1 (pc, or rs1 value for JALR)
-reg        [IDATAW-1:0] addr_in2;     // target operand 2 (immediate)
-reg signed [IDATAW-1:0] addr_rs1;     // rs1 value (compared in the next cycle)
-reg signed [IDATAW-1:0] addr_rs2;     // rs2 value
-reg        [6:0]        addr_opcode;  // instruction fields
-reg        [2:0]        addr_funct3;
-
-wire [IDATAW-1:0] target_sum     = addr_in1 + addr_in2;  // target adder: pc + imm or rs1 + imm
-wire [IDATAW-1:0] target_address = (addr_opcode == OP_JALR) ? {target_sum[IDATAW-1:1], 1'b0} : target_sum;  // JALR clears bit 0
+wire [IDATAW-1:0] target_sum     = target_in1 + target_in2;  // target adder: pc + imm or rs1 + imm
+wire [IDATAW-1:0] target_address = (opcode == OP_JALR) ? {target_sum[IDATAW-1:1], 1'b0} : target_sum;  // JALR clears bit 0
 
 // ====================
 // EX CYCLE 2: COMPARE
@@ -114,7 +106,6 @@ assign br_lt = (br_un) ?
 // ====================
 always @(posedge clock) begin
     if (reset) begin
-        addr_valid   <= 1'b0;
         cmp_valid    <= 1'b0;
         cmp_opcode   <= 7'b0;
         cmp_funct3   <= 3'b0;
@@ -122,24 +113,14 @@ always @(posedge clock) begin
         taken        <= 1'b0;
         target       <= {IDATAW{1'b0}};
     end else begin
-        // issue -> address cycle
-        addr_valid <= ex_valid;
-        if (ex_valid) begin
-            addr_in1    <= target_in1;
-            addr_in2    <= target_in2;
-            addr_rs1    <= idata1;
-            addr_rs2    <= idata2;
-            addr_opcode <= opcode;
-            addr_funct3 <= funct3;
-        end
         // address cycle -> compare cycle
-        cmp_valid <= addr_valid;
-        if (addr_valid) begin
-            cmp_rs1    <= addr_rs1;
-            cmp_rs2    <= addr_rs2;
+        cmp_valid <= ex_valid;
+        if (ex_valid) begin
+            cmp_rs1    <= idata1;
+            cmp_rs2    <= idata2;
             cmp_target <= target_address;
-            cmp_opcode <= addr_opcode;
-            cmp_funct3 <= addr_funct3;
+            cmp_opcode <= opcode;
+            cmp_funct3 <= funct3;
         end
         // compare cycle -> outcome
         if (wb_ready) result_valid <= 1'b0;
@@ -151,6 +132,6 @@ always @(posedge clock) begin
     end
 end
 
-assign fu_ready = !addr_valid && !cmp_valid && !result_valid;
+assign fu_ready = !cmp_valid && !result_valid;
 
 endmodule

@@ -1,8 +1,7 @@
 // =============================================================================
 // Module:      load
-// Description: Load functional unit (FU id 3). The instruction is handed over
-//              at the end of its issue cycle (ex_valid) and then executes in
-//              two cycles:
+// Description: Load functional unit (FU id 3). Two EX cycles, starting in the
+//              cycle the issued instruction arrives (ex_valid):
 //                EX cycle 1 (address): adds the ALU input operands (rs1 + imm,
 //                         selected by control_signals' a_sel/b_sel in pd.v) to
 //                         get the effective address, registered.
@@ -14,7 +13,7 @@
 //              it (plan.md D3). Memory order against the store FU is enforced
 //              at issue (plan.md D6).
 // Inputs:      clock, reset
-//              ex_valid       - a load is handed to this FU this cycle (its issue cycle)
+//              ex_valid       - an issued load is in this FU's EX cycle 1
 //              idata1, idata2 - address operands (rs1 value, sign-extended offset)
 //              pc             - PC of the load
 //              funct3         - load type: [1:0] = size (0 byte, 1 half, 2 word),
@@ -65,13 +64,7 @@ localparam HALF_OP = 2'd1;
 // ====================
 // EX CYCLE 1: ADDRESS
 // ====================
-reg             addr_valid;   // the load is in its address cycle
-reg [DATAW-1:0] addr_in1;     // address operand 1 (rs1 value)
-reg [DATAW-1:0] addr_in2;     // address operand 2 (sign-extended offset)
-reg [DATAW-1:0] addr_pc;      // PC of the load
-reg [2:0]       addr_funct3;  // load type
-
-wire [DATAW-1:0] effective_address = addr_in1 + addr_in2;  // address adder: rs1 + imm
+wire [DATAW-1:0] effective_address = idata1 + idata2;  // address adder: rs1 + imm
 
 // ====================
 // EX CYCLE 2: MEMORY READ + EXTENSION
@@ -101,25 +94,16 @@ wire [DATAW-1:0] load_value =   // loaded value after size select and extension
 // ====================
 always @(posedge clock) begin
     if (reset) begin
-        addr_valid   <= 1'b0;
         mem_valid    <= 1'b0;
         result_valid <= 1'b0;
         result       <= {DATAW{1'b0}};
     end else begin
-        // issue -> address cycle
-        addr_valid <= ex_valid;
-        if (ex_valid) begin
-            addr_in1    <= idata1;
-            addr_in2    <= idata2;
-            addr_pc     <= pc;
-            addr_funct3 <= funct3;
-        end
         // address cycle -> memory cycle
-        mem_valid <= addr_valid;
-        if (addr_valid) begin
+        mem_valid <= ex_valid;
+        if (ex_valid) begin
             mem_address <= effective_address;
-            mem_pc      <= addr_pc;
-            mem_funct3  <= addr_funct3;
+            mem_pc      <= pc;
+            mem_funct3  <= funct3;
         end
         // memory cycle -> result
         if (wb_ready) result_valid <= 1'b0;
@@ -130,6 +114,6 @@ always @(posedge clock) begin
     end
 end
 
-assign fu_ready = !addr_valid && !mem_valid && !result_valid;
+assign fu_ready = !mem_valid && !result_valid;
 
 endmodule

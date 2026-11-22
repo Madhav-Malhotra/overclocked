@@ -1,10 +1,11 @@
 // =============================================================================
 // alu_tb - self-checking unit test for alu.v (the ALU functional unit)
 //
-// Each case issues one operation (alu_sel + operands) for one cycle
-// (ex_valid) and checks that result_valid rises with the right result, that
-// the result does not follow the operand inputs afterwards, that it is held
-// (fu_ready low) until wb_ready, and that result_valid clears after it.
+// Each case gives one operation (alu_sel + operands) to the FU for its EX
+// cycle (ex_valid) and checks that result_valid rises with the right result
+// after that cycle, that the result does not follow the operand inputs
+// afterwards, that it is held (fu_ready low) until wb_ready, and that
+// result_valid clears after it.
 // Covers: every selector (ADD..AND, NOP for LUI, DIV, DIVU) including DIV/DIVU
 // edge cases (divide by zero, INT_MIN / -1, negative operands); the old MUL
 // selector 11 returns 0 (multiply is only on array_mult, plan.md D7).
@@ -63,8 +64,10 @@ module alu_tb;
     begin
       `CHECK(fu_ready, 1'b1, "FU ready before issue")
       alu_sel = sel; idata1 = a; idata2 = b;
-      ex_valid = 1; tick; ex_valid = 0;
-      idata1 = 32'hDEAD_BEEF; idata2 = 32'hDEAD_BEEF;   // result must not follow the inputs afterwards
+      ex_valid = 1; #1;
+      `CHECK(result_valid, 1'b0, "EX cycle: result not registered yet")
+      tick; ex_valid = 0;
+      idata1 = 32'hDEAD_BEEF; idata2 = 32'hDEAD_BEEF; alu_sel = 4'd15;   // result must not follow the inputs afterwards
       `CHECK(result_valid, 1'b1, msg)
       `CHECK(result, expected, msg)
       `CHECK(fu_ready, 1'b0, "FU not ready while it holds a result")

@@ -47,7 +47,7 @@ The defaults in `design/code/pd.v` are:
 
 FU IDs are defined in `func_unit_status.v`: `NONE=0`, `BRANCH=1`, `MCM=2`, `LOAD=3`, `STORE=4`, `ALU=5`, and `ALU_2=6`. These IDs are also used as producer tags. The first free ALU slot is selected before the second.
 
-The execution units are connected as of plan.md Phase 3: `alu.v` (two ALU FUs, execute in the issue cycle), `array_mult.v` (MCM FU, MUL only, 34 cycles), and `load.v` / `store.v` / `branch_comp.v` (branch FU) (issue cycle, then two EX cycles: an address/target adder, then the `dmemory.v` access or the branch compare). Each holds its result (`result_valid`) until writeback takes it (`wb_ready`); writeback itself arrives in Phase 4. The branch FU decides taken/not taken (`control_signals.v` branch controls) but its outcome is not used yet: fetch redirect, flushing and stalling come in Phase 6.
+The execution units are connected as of plan.md Phase 3: `alu.v` (two ALU FUs, one EX cycle: the cycle they receive the instruction), `array_mult.v` (MCM FU, MUL only, 34 cycles), and `load.v` / `store.v` / `branch_comp.v` (branch FU) (issue cycle, then two EX cycles: an address/target adder, then the `dmemory.v` access or the branch compare). Each holds its result (`result_valid`) until writeback takes it (`wb_ready`); writeback itself arrives in Phase 4. The branch FU decides taken/not taken (`control_signals.v` branch controls) but its outcome is not used yet: fetch redirect, flushing and stalling come in Phase 6.
 
 ### Scoreboarding model: intended behavior and current RTL
 

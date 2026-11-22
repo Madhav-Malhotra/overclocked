@@ -129,7 +129,10 @@ reuse a module or script, **copy** it into `verilog_ooo/` and adapt the copy.
   use execute-stage names: `ex_valid` for the instruction handed over at the
   end of its issue cycle, operands such as `idata1`/`idata2`/`pc`/`funct3`,
   and per-EX-cycle register prefixes `addr_` (address cycle), `mem_` (memory
-  cycle), `cmp_` (branch compare cycle).
+  cycle), `cmp_` (branch compare cycle). Operands used directly keep their
+  plain names (`idata1`, not `exec_idata1`). The issue stage is the select
+  cycle (row chosen, register file read); the cycle an FU receives the
+  instruction (`ex_valid`) is its first EX cycle.
 - Use the **ready/valid** convention for handshakes: the producer drives
   `<name>_valid` and its data, the consumer drives `<name>_ready`, and a
   transfer happens when both are high (issue → FU: `iss_valid` + `iss_*`,

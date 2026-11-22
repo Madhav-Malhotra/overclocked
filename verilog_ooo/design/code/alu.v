@@ -11,11 +11,11 @@
 //              - No MUL: multiply always runs on the MCM functional unit,
 //                array_mult.v (plan.md D7), so there is no multicyc_sel /
 //                mult_* interface.
-//              - One cycle: odata is computed in the issue cycle and
-//                registered into result, held (result_valid) until writeback
-//                takes it (plan.md D3).
+//              - One EX cycle: in the cycle the issued instruction arrives
+//                (ex_valid) odata is computed and registered into result,
+//                held (result_valid) until writeback takes it (plan.md D3).
 // Inputs:      clock, reset
-//              ex_valid       - an instruction is issued to this FU this cycle
+//              ex_valid       - an issued instruction is in this FU's EX cycle
 //              idata1, idata2 - 32-bit operands (selected in pd.v by a_sel/b_sel)
 //              alu_sel        - 4-bit operation selector (control_signals.v)
 //              wb_ready       - writeback takes this FU's result this cycle
@@ -71,7 +71,7 @@ reg [ODATAW-1:0] mask;
 // ====================
 // COMBINATIONAL LOGIC
 // ====================
-reg signed [ODATAW-1:0] odata;   // result of the issuing instruction
+reg signed [ODATAW-1:0] odata;   // result of the instruction in its EX cycle
 
 always @(*) begin
     odata = 0;

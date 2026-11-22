@@ -189,7 +189,7 @@ def main() -> int:
             s = s_stores[idx] if idx < len(s_stores) else None
             failures.append(f"store #{idx} {why}: core={c} spike={s}  (pc, addr, size, data)")
             if not p_stores and s_stores:
-                failures.append("hint: core trace has no [M] lines; define M_FIRE in design/signals.h "
+                failures.append("hint: core trace has no [M] lines; define M_VALID in design/signals.h "
                                 "or pass --skip-stores")
 
     passed = not failures

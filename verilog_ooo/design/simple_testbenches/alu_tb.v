@@ -6,7 +6,31 @@
 // =============================================================================
 `timescale 1ns/1ps
 module alu_tb;
-  `include "tb_common.vh"
+  // ====================
+  // Self-checking helpers (each TB carries its own copy; no shared include files)
+  // Usage:  `CHECK(actual, expected, "message")   ...   `TB_FINISH
+  // ====================
+  integer tb_errors = 0;  // number of failed CHECKs
+  integer tb_checks = 0;  // number of CHECKs run
+
+`define CHECK(act, exp, msg) \
+  begin \
+    tb_checks = tb_checks + 1; \
+    if ((act) !== (exp)) begin \
+      tb_errors = tb_errors + 1; \
+      $display("  FAIL @%0t: %s: got %0h, expected %0h", $time, msg, (act), (exp)); \
+    end \
+  end
+
+`define TB_FINISH \
+  begin \
+    if (tb_errors == 0) $display("PASS: %m (%0d checks)", tb_checks); \
+    else begin \
+      $display("FAIL: %m (%0d of %0d checks failed)", tb_errors, tb_checks); \
+      $fatal(1); \
+    end \
+    $finish; \
+  end
 
   localparam ADD = 0, SUB = 1, SLL = 2, SRL = 3, SRA = 4, SLT = 5, SLTU = 6,
              XOR = 7, OR = 8, AND = 9, NOP = 10, DIV = 12, DIVU = 13;

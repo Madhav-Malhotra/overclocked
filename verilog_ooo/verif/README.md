@@ -32,7 +32,7 @@ make run_all_benchmarks SUITE=ooo  # parallel; reports in verif/diffs/spike/
 
 | Path | Purpose |
 |---|---|
-| `../design/signals.h` | Maps trace events to `pd` signals (`*_FIRE` macros) |
+| `../design/signals.h` | Maps trace events to `pd` signals (`*_VALID` macros) |
 | `../design/design_wrapper.v` | Instantiates `pd` as `dut.core` |
 | `../design/simple_testbenches/` | Self-checking Icarus unit TBs (`make`, `make <name>`, `make RTL=<dir>`) |
 | `tests/test_pd.{sv,cpp}`, `tests/clockgen.sv` | Top-level testbench (copied from the scalar flow) |
@@ -60,7 +60,7 @@ One line per **event** (not per cycle), each ending in `@<cycle>`:
 [F] pc instr                                   fetch -> decode
 [D] ist_idx pc fu rd rs1 rs2 rs1_tag rs2_tag   dispatch ("-" until ist_idx exists, Phase 2)
 [D] - pc 0 nop                                 NONE-class instr (FENCE/unknown) consumed
-[I] ist_idx pc fu op1 op2                      operands read, FU launched
+[I] ist_idx pc fu op1 op2                      operands read, issued to its FU
 [X] ist_idx pc fu result                       FU result valid
 [M] pc addr size_bytes data                    data-memory write (store, D6: in EX)
 [W] pc we rd data                              writeback (same fields as scalar [W])
@@ -71,7 +71,7 @@ One line per **event** (not per cycle), each ending in `@<cycle>`:
 Values are hex except `fu`, `rd/rs*`, tags, `ist_idx`, `size_bytes` and the cycle (decimal).
 
 **Adding events as stages land:** define the stage's macros in `design/signals.h`
-(templates are there as `TODO(Phase N)` comments). An event whose `*_FIRE` macro
+(templates are there as `TODO(Phase N)` comments). An event whose `*_VALID` macro
 is undefined is simply not printed — `trace_dump.h` does not need editing.
 Defining `SIM_DONE` makes the run stop shortly after the core halts instead of
 running to `TIMEOUT`.

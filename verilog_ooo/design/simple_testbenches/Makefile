@@ -12,7 +12,8 @@ DEFS  = -DMEM_PATH=\"unit_tb_dummy.x\" -DLINE_COUNT=1 -DMEM_DEPTH=1048576
 
 TB_SRCS_reg_status_table  = $(RTL)/reg_status_table.v
 TB_SRCS_instr_status      = $(RTL)/instr_status.v
-TB_SRCS_func_unit_status  = $(RTL)/func_unit_status.v
+TB_SRCS_func_unit_status  = $(RTL)/func_unit_status.v $(RTL)/min_pc_select.v
+TB_SRCS_min_pc_select     = $(RTL)/min_pc_select.v
 TB_SRCS_decoder           = $(RTL)/decoder.v
 TB_SRCS_alu               = $(RTL)/alu.v
 

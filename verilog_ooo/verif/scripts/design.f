@@ -6,6 +6,7 @@ dmemory.v
 func_unit_status.v
 imemory.v
 instr_status.v
+min_pc_select.v
 reg_status_table.v
 register_file.v
 writeback.v

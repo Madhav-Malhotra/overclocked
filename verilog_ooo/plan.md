@@ -17,8 +17,8 @@ The OoO core (`verilog_ooo/`) is a **scoreboarding** design (not Tomasulo, no RO
 | Fetch (PC+4, no redirect) | `design/code/pd.v` | Written; no redirect |
 | Decode + FU classification | `design/code/decoder.v` | Done |
 | Dispatch (in-order, WAW stall, FU-slot check, branch drain placeholder) | `design/code/pd.v` | Written, not verified |
-| Instruction Status Table (6 rows) | `design/code/instr_status.v` | Elaborates; unit-tested (Phase 1) |
-| Functional Unit Status Table (6 rows, one per FU) | `design/code/func_unit_status.v` | Elaborates; issue select + operand capture unit-tested (Phase 1); handshake redesign in Phase 2 |
+| Instruction Status Table (6 rows) | `design/code/instr_status.v` | Keyed by `ist_idx`, issue read port; unit-tested (Phase 2) |
+| Functional Unit Status Table (6 rows, one per FU) | `design/code/func_unit_status.v` | Smallest-PC issue select + `iss_valid`/`iss_*` issue signals; unit-tested (Phase 2) |
 | Register Status Table (32 entries) | `design/code/reg_status_table.v` | Done |
 | Register file, ALU, branch_comp, imem, dmem, writeback mux | `design/code/*.v` | Present; EX/WB not connected |
 | Execution units / completion / writeback | — | **Missing** |
@@ -37,6 +37,9 @@ The OoO core (`verilog_ooo/`) is a **scoreboarding** design (not Tomasulo, no RO
 - New assembly tests go in `rv32-benchmarks/ooo-tests/`.
 - Keep the directory structure identical to `verilog/` and `verilog_ss/`, and follow their conventions (module header blocks, naming, `pd` top, `design.f`, `signals.h`).
 - The multicycle multiplier (MCM) is mandatory: no `USE_MULTICYCLE_MULT`-style toggle, no ALU multiply (D7).
+- **No `.vh` include files** in `design/code/` or `design/simple_testbenches/` (only the existing harness headers `signals.h`/`trace_dump.h` are included, as in the other CPUs). Constants shared by several modules (e.g. FU ids) are a `localparam` copy in each module, with a comment saying which other modules must match. Unit TBs are self-contained `*_tb.v` files.
+- **Explicit names, with a comment.** Every new signal/register/parameter gets a descriptive name and a short comment at its declaration saying what it is for. Names must not use "packet"/`pkt`, "launch" or "fire".
+- **Ready/valid handshakes.** Stage-to-stage and stage-to-FU interfaces use the ready/valid convention: the producer drives `<name>_valid` plus its data signals, the consumer drives `<name>_ready`; a transfer happens in a cycle where both are high. Issue → FU: `iss_valid` + `iss_*` data, `fu_ready[id-1]`. FU → WB: `result_valid` + result, `wb_ready`. Trace-event macros in `signals.h` are `*_VALID`.
 - **Build tests and docs once, not iteratively.** New tests target the behaviour and interfaces of the *finished* scoreboarding CPU. A unit testbench is written/updated when its module's interface is final in this plan. `CLAUDE.md`, the READMEs and `verif/README.md` are **not** edited per phase — they are refreshed once in Phase 9. During Phases 2–8, record progress only in this file (checkboxes, "as built" notes, status log).
 
 ### Tools available locally
@@ -59,7 +62,7 @@ These are the decisions every phase assumes. **Team-confirmed** items are fixed;
 | D6 | **Stores write memory in Execute.** The store FU asserts `dmemory.w_en` during its EX cycle; the write is 1 cycle, so it completes at the EX→WB clock edge and **the written data is visible in memory by WB**. The store's WB only releases its scoreboard state (no `rd`). Because memory is modified at EX, memory ordering is enforced **at issue**: a load may not issue while a smaller-PC store is reserved and hasn't executed (memory RAW), and a store may not issue while a smaller-PC load is reserved and hasn't executed (memory WAR). Store→store order is automatic (one store FU, reserved until WB, in-order dispatch). | **Team-confirmed** (EX write); ordering rule is default |
 | D7 | **MCM is a core FU and the only multiply path.** **Only `MUL` is implemented** (low 32 bits of the product); it always dispatches to the MCM slot. `MULH/MULHSU/MULHU` are **out of scope** — programs never contain them, so the decoder has no special handling for them. **All multiply logic is removed from `alu.v`** (the unused `MUL` selector and the stale `array_mult`/`multicyc_sel`/`mult_*` header text) — the ALU is never used for multiply, not even as a fallback. MCM uses a copy of `verilog/design/code/array_mult.v` (multicycle, `start_pulse`/`busy`). | **Team-confirmed** |
 | D7a | **Divide executes in the ALU; remainder is not supported.** `DIV/DIVU` dispatch to an ALU slot (`ALU`/`ALU_2`) and execute in `alu.v`. MCM handles **multiplication only**. `REM/REMU` are **out of scope** — programs never contain them. Decoder: `is_mcm` matches `MUL` only (`funct7 == 0x01 && funct3 == 000`); `DIV/DIVU` reach `ALU` through the normal R-type path. | **Team-confirmed** |
-| D8 | **ECALL / FENCE / unknown.** ECALL → ALU slot, writes nothing, **and stops fetch** (`halt` flag) so tests end cleanly. FENCE/unknown → existing `NONE` no-op path. | Default |
+| D8 | **ECALL / FENCE / unknown.** **ECALL is a bubble that executes as an ADD of zeros:** it dispatches to an ALU slot (`ALU`/`ALU_2`), uses no source registers (rs1 field = x0, imm = 0, so the ALU computes 0 + 0) and writes no `rd` (`writes_rd = 0`). It goes through issue, execute and writeback like any ALU op and frees its rows at WB with no effect on state. There is **no halt**: fetch continues after an ECALL; no trap or environment call is performed. The decoder already implements this (`is_ecall` → `ALU`, `uses_rs1/2 = 0`, `writes_rd = 0`). FENCE/unknown → existing `NONE` no-op path (no table rows). | **Team-confirmed** |
 
 ---
 
@@ -71,10 +74,10 @@ Every later phase needs a compile + sim check, so do this first.
   `verilator --lint-only -Wall -Wno-fatal --top-module pd -DMEM_PATH='"dummy.x"' -DLINE_COUNT=1 -DMEM_DEPTH=1048576 -f ../../verif/scripts/design.f`
   and `iverilog -g2012 -s pd -o /dev/null …`. Commit `verif/scripts/design.f`.
 - [x] **0.2 Copy the scalar harness.** Copy `verilog/verif/{tests,scripts}` → `verilog_ooo/verif/`, and `verilog/design/{design_wrapper.v,signals.h}` → `verilog_ooo/design/`. Fix paths in `verif/scripts/Makefile`, `Makefile.verilator`, `design.f` to point at `verilog_ooo/design/code`.
-- [x] **0.3 OoO trace format.** Replace the in-order FDXMW `trace_dump.h`/`fields.h` with event lines (printed only when the event fires):
+- [x] **0.3 OoO trace format.** Replace the in-order FDXMW `trace_dump.h`/`fields.h` with event lines (printed only when the event happens):
   - `[F] pc instr`
   - `[D] ist_idx pc fu_id rd rs1 rs2 rs1_tag rs2_tag` (dispatch)
-  - `[I] ist_idx pc fu_id op1 op2` (operands read / FU launched)
+  - `[I] ist_idx pc fu_id op1 op2` (operands read / issued to the FU)
   - `[X] ist_idx pc fu_id result` (FU done; stores also print `addr size data`)
   - `[W] pc we rd data` — **same format as the scalar `[W]` line** so `cmp_wb_spike.py` parsing can be reused
   - `[S] reason` optional stall reason (WAW / FU busy / buffer full / branch drain / WAR / mem order)
@@ -88,7 +91,7 @@ Every later phase needs a compile + sim check, so do this first.
 
 **Phase 0 as built (2026-11-15)** — full usage in `verif/README.md`:
 - `make lint` in `verif/scripts` (prints errors + per-category warning counts; `VERBOSE=1` for everything; also `lint_verilator`, `lint_iverilog`). `verif/scripts/design.f` is the **single** RTL list; `verif/scripts/Makefile.verilator` reads it too.
-- Trace: `[F] [D] [I] [X] [M] [W] [S]` event lines ending in `@cycle`. Each event is enabled by `*_FIRE` macros in `design/signals.h`; `[I] [X] [M]` and `SIM_DONE` are `TODO(Phase N)` templates there. `[S]` logs only on stall start/change plus `[S] resume`. Stores are a separate `[M]` event (not part of `[X]`).
+- Trace: `[F] [D] [I] [X] [M] [W] [S]` event lines ending in `@cycle`. Each event is enabled by `*_VALID` macros in `design/signals.h` (named `*_FIRE` until 2026-11-22); `[I] [X] [M]` and `SIM_DONE` are `TODO(Phase N)` templates there. `[S]` logs only on stall start/change plus `[S] resume`. Stores are a separate `[M]` event (not part of `[X]`).
 - `verif/scripts/spike_trace_gen.py` (copy) also emits store lines `S pc addr size data` and searches `ooo-tests/`. `cmp_ooo_spike.py` options: `--allow-truncated`, `--skip-stores`, `--out`.
 - `rv32-benchmarks/ooo-tests/`: `Makefile` (`make`, `make check_branch_free`) + `ooo-smoke.s` (branch-free smoke test). Toolchain + spike turned out to be installed locally (`~/riscv/bin`, `/opt/homebrew/bin/spike`); all 41 individual-instruction and 10 simple-program images build.
 - Unit TBs: `design/simple_testbenches/` (`make`; `make RTL=<dir>` to test another RTL copy). `reg_status_table` passes. `instr_status` and `func_unit_status` **fail to compile until Phase 1** — expected. Each TB was validated against a scratch RTL copy with the minimal Phase 1 fixes applied (all 3 then pass).
@@ -148,20 +151,35 @@ Fixes only; no new features.
 
 ## Phase 2 — Instruction identity + a clean issue/read-operands handshake
 
-**Files:** `instr_status.v`, `func_unit_status.v`, `pd.v`, new `ooo_defs.vh`.
+**Files:** `instr_status.v`, `func_unit_status.v`, `pd.v`, new `min_pc_select.v`.
 
-- [ ] 2.1 **Shared defines.** Create `design/code/ooo_defs.vh` with the FU-ID localparams (`NONE, BRANCH, MCM, LOAD, STORE, ALU, ALU_2`) and include it in `decoder.v`, `func_unit_status.v`, `pd.v` instead of duplicating them.
-- [ ] 2.2 **Key instr_status by `ist_idx` (D1).** At dispatch, write `ds_ist_idx` into the FU row. Replace the PC-match loops (`iss_pc`, `wb_pc`) with direct `iss_ist_idx` / `wb_ist_idx` indexing. PC stays stored (used for D2 priority and tracing). Add a combinational read port: given `iss_ist_idx`, output `opcode, funct3, funct7, imm, shamt, rd, pc` (the commented-out `iss_*` ports in `pd.v`). Stage field: `IS` on select, `EX` when the FU launches; clear on WB.
-- [ ] 2.3 **FU row additions** (`func_unit_status.v`): store `uses_rs1`, `uses_rs2`, `rd`, `writes_rd`, `ist_idx`, `pc` (already), `ops_read` (operands captured). Keep `rs*_tag`, `rs*_data`, `rs*_fwd`.
-- [ ] 2.4 **Issue pipeline (fixes CLAUDE.md §6 item 8):**
-  - **Cycle N — select (comb):** among rows with `busy_arr && !issued && !fu_busy[i] && rs1_tag==0 && rs2_tag==0` (+ D6 memory-order gating, added in 3.6), pick the **smallest PC** (D2) via `min_pc_select` (2.4a). Drive `iss_rs1/iss_rs2` to the RF combinationally from that row.
-  - **Edge N→N+1:** RF registers its read data; FU status registers `rd_idx <= sel_idx`, `rd_valid <= sel_valid`, sets `issued_arr[sel_idx]`.
-  - **Cycle N+1 — read operands:** `op = rs_fwd ? rs_data_arr : (rf_bypass ? wb_data_q : rf_data)`. **RF bypass is required:** if a WB in cycle N wrote the register being read, the RF's registered output is stale, so register `wb_en && wb_writes_rd && wb_rd == src` and `wb_data` alongside the read. Emit an **issue packet** `{valid, fu_id, ist_idx, op1, op2, decoded fields}` to the FU; set `ops_read`.
+- [x] 2.1 **FU-ID constants.** ~~Shared `ooo_defs.vh` include~~ — dropped: `.vh` include files are not part of the repo convention. Each module that needs the FU ids (`NONE, BRANCH, MCM, LOAD, STORE, ALU, ALU_2`) declares its own `localparam` copy with the same values (as `verilog/` does for the ALU ops in `alu.v` and `control_signals.v`), with a comment naming the other modules that must match.
+- [x] 2.2 **Key instr_status by `ist_idx` (D1).** At dispatch, write `ds_ist_idx` into the FU row. Replace the PC-match loops (`iss_pc`, `wb_pc`) with direct `iss_ist_idx` / `wb_ist_idx` indexing. PC stays stored (used for D2 priority and tracing). Add a combinational read port: given `iss_ist_idx`, output `opcode, funct3, funct7, imm, shamt, rd, pc` (the commented-out `iss_*` ports in `pd.v`). Stage field: `DS` on dispatch, `IS` on select, `EX` when it is issued to its FU (`iss_valid`), `WB` at writeback (the row's valid bit is cleared at the same time). `WB` is a real stage value and stays in the final design; it is not debug-only.
+- [x] 2.3 **FU row additions** (`func_unit_status.v`): store `uses_rs1`, `uses_rs2`, `rd`, `writes_rd`, `ist_idx`, `pc` (already), `ops_read` (operands captured). Keep `rs*_tag`, `rs*_data`, `rs*_fwd`.
+- [x] 2.4 **Issue pipeline (fixes CLAUDE.md §6 item 8):**
+  - **Cycle N — select (comb):** among rows with `busy_arr && !issued && fu_ready[i] && rs1_tag==0 && rs2_tag==0` (+ D6 memory-order gating, added in 3.6), pick the **smallest PC** (D2) via `min_pc_select` (2.4a). Drive `iss_rs1/iss_rs2` to the RF combinationally from that row.
+  - **Edge N→N+1:** RF registers its read data; FU status registers `iss_row_idx <= issue_sel_row`, `iss_valid <= iss_sel_valid`, sets `issued_arr[issue_sel_row]`.
+  - **Cycle N+1 — read operands:** `op = rs_fwd ? rs_data_arr : (rf_bypass ? wb_data_q : rf_data)`. **RF bypass is required:** if a WB in cycle N wrote the register being read, the RF's registered output is stale, so register `wb_en && wb_writes_rd && wb_rd == src` and `wb_data` alongside the read. Drive the **issue signals** (`iss_valid` + `iss_*` data: fu_id, ist_idx, op1, op2, decoded fields) to the FU; set `ops_read`.
   - One issue per cycle; back-to-back issue must work (read stage of N+1 overlaps select of N+1).
-- [ ] 2.4a **`design/code/min_pc_select.v`** — reusable combinational selector: inputs `valid[N-1:0]` and `pc[N]` (flattened `N*DATAW` bus), outputs `sel_valid`, `sel_idx`, `sel_onehot`. Implement as a **balanced comparison tree** (6 rows → 3 → 2 → 1: 5 full-width 32-bit `<` comparators, 3 comparator levels deep), with invalid inputs losing every compare; ties are impossible under D2 but break toward the lower index. Parameterised on `N`, `DATAW`. Use full-width PCs — do **not** truncate to low bits: a 33-cycle `MUL` can stay in flight while many younger instructions dispatch and retire, so the PC distance between in-flight rows is not tightly bounded. Replaces the current first-found `for` loop / `done_is` flag in `func_unit_status.v`. Own unit TB `min_pc_select_tb.v` (random valid masks/PCs vs. a behavioural reference).
-- [ ] 2.5 Phase 2 fixes the table interfaces for the rest of the plan, so rewrite `instr_status_tb.v` / `func_unit_status_tb.v` against them **once** here (ist_idx keying, issue packet), plus new `min_pc_select_tb.v`. Unit-test in `func_unit_status_tb.v`: two independent rows issue on consecutive cycles with correct operands; a tagged row waits, then issues after a WB broadcast with the forwarded value; same-cycle WB + read of one register returns the new value; the smaller-PC ready row wins.
+- [x] 2.4a **`design/code/min_pc_select.v`** — reusable combinational selector: inputs `valid[N-1:0]` and `pc[N]` (flattened `N*DATAW` bus), outputs `min_pc_valid`, `min_pc_idx`, `min_pc_onehot`. Implement as a **balanced comparison tree** (6 rows → 3 → 2 → 1: 5 full-width 32-bit `<` comparators, 3 comparator levels deep), with invalid inputs losing every compare; ties are impossible under D2 but break toward the lower index. Parameterised on `N`, `DATAW`. Use full-width PCs — do **not** truncate to low bits: a 33-cycle `MUL` can stay in flight while many younger instructions dispatch and retire, so the PC distance between in-flight rows is not tightly bounded. Replaces the current first-found `for` loop / `done_is` flag in `func_unit_status.v`. Own unit TB `min_pc_select_tb.v` (random valid masks/PCs vs. a behavioural reference).
+- [x] 2.5 Phase 2 fixes the table interfaces for the rest of the plan, so rewrite `instr_status_tb.v` / `func_unit_status_tb.v` against them **once** here (ist_idx keying, issue signals), plus new `min_pc_select_tb.v`. Unit-test in `func_unit_status_tb.v`: two independent rows issue on consecutive cycles with correct operands; a tagged row waits, then issues after a WB broadcast with the forwarded value; same-cycle WB + read of one register returns the new value; the smaller-PC ready row wins.
 
 **Done when:** unit TBs pass; full sim shows `[I]` lines with correct operand values (still no writeback).
+
+**Phase 2 as built (2026-11-22):**
+- `make lint`: no errors. `make unit_tests`: 6/6 pass (`func_unit_status_tb` 120 checks, `instr_status_tb` 73, new `min_pc_select_tb` 11 900 incl. 2 000 random trials at N=6 and N=5). Both new TBs were confirmed to fail on mutated RTL (selector picking the larger PC; forwarding removed).
+- Full sim: `ooo-smoke` shows `[I] 0 …` and `[I] 1 …` and then stalls on `fu_busy` (no WB yet). A scratch program (`add x5,x2,x2; lw x6,4(x2); sw x2,8(x2); ecall`) showed the right operands (sp = `0x01100000`) on every `[I]` line, and ECALL dispatched to `ALU_2`.
+- FU ids: a `localparam` copy in `decoder.v`, `func_unit_status.v`, `pd.v` and `func_unit_status_tb.v` (no `.vh` file, see 2.1). The unit TBs' `CHECK`/`TB_FINISH` helper (`tb_common.vh` from Phase 0) was also inlined into each `*_tb.v` and the `.vh` deleted, so no `.vh` files remain.
+- **Interfaces (final for the rest of the plan):**
+  - `instr_status`: `iss_sel_valid/iss_sel_ist_idx` (stage IS), `iss_valid/iss_ist_idx` (stage EX + combinational read port `iss_{opcode,funct3,funct7,imm,shamt}`), `wb_en/wb_ist_idx` (clear). The read port does **not** return `rd`/`pc`: the issue signals take them from the FU row, which already has to store them for WAR/WB, so they only come from one place.
+  - `functional_unit_status`: dispatch adds `ds_ist_idx, ds_uses_rs1/2, ds_writes_rd`. Select drives `iss_sel_valid, iss_sel_ist_idx, iss_rf_rs1/2` (RF addresses, combinational). The issue outputs are `iss_valid` + `iss_{fu_id,ist_idx,pc,rd,writes_rd,op1,op2}`; the FU-occupancy input is `fu_ready` (ready/valid; was `busy`, inverted). `wb_tag_clear` was renamed `wb_tag`. Removed: `iss_en`, `issued`, `iss_tag_found`, `iss_instr_found`, `iss_pc`, the RF capture registers, and the redundant `!busy_arr` dispatch guard / `wb_tag != NONE` guard.
+  - `pd.v`: `wb_ist_idx` placeholder added to the `wb_*` bus. The `iss_*` issue signals are complete (FU row fields + instr_status fields) and unconsumed until Phase 3; `fu_ready` is an all-ones placeholder.
+- **Operands go straight to the issue outputs.** The FU row keeps only forwarded values (`rs*_fwd_data_arr`); the RF value is not stored in the row.
+- **`ops_read` = `issued_arr`.** The bit is set at the select edge, the same edge at which the RF latches the operands. Phase 4's WAR check (4.2) uses `!issued_arr[j]`.
+- **No RF write→read bypass (deviation from 2.4).** A writeback in cycle N cannot be the producer of a source of the row selected in N, because that row would still hold the producer's tag. A dispatch whose producer writes back that cycle gets tag 0 and is selected after the RF write. The only same-cycle writer left is a younger WAR writer, which D4 holds at WB until the reader has issued; a bypass would return the wrong (new) value in that case. `func_unit_status_tb` case C checks the masked-dispatch timing instead of a bypass.
+- **Notes for later phases:**
+  - 4.2: a source whose value was captured from a broadcast (`rs*_fwd_arr`) no longer reads the RF, so the WAR term can also require `!rs*_fwd_arr[j]`. That removes needless WB stalls; it is optional.
+  - 3.8: under D3 a row is reserved dispatch→WB and its FU only ever runs that row's instruction, so `fu_ready[i]` is always 1 for a row that has not issued. The `fu_ready[i]` issue term only matters if Phase 10.1 frees FUs before WB.
 
 ---
 
@@ -171,23 +189,25 @@ One wrapper per FU type in `design/code/fu_*.v`. **No branch FU in this phase (D
 
 ```verilog
 input             clock, reset,
-input             start,          // issue packet valid for this FU
-input  [..]       packet fields,  // op1, op2, imm, pc, funct3, funct7, opcode, ist_idx, rd, writes_rd
-input             wb_grant,       // WB selected this FU this cycle
-output            busy,           // start -> wb_grant (feeds func_unit_status.busy)
-output reg        done,           // result valid, waiting for WB
+// issue -> FU (ready/valid)
+input             iss_valid,      // an instruction is issued to this FU (iss_valid && iss_fu_id == this FU's id)
+input  [..]       iss_* data,     // op1, op2, imm, pc, funct3, funct7, opcode, ist_idx, rd, writes_rd
+output            fu_ready,       // FU can accept an instruction (feeds func_unit_status.fu_ready)
+// FU -> WB (ready/valid)
+output reg        result_valid,   // result computed, waiting for WB
 output reg [31:0] result,
-output reg [..]   meta            // ist_idx, rd, writes_rd, pc
+output reg [..]   result_*        // ist_idx, rd, writes_rd, pc of that result
+input             wb_ready        // WB takes this FU's result this cycle (WB grant)
 ```
 
-- [ ] 3.1 **Control decode.** Copy `verilog/design/code/control_signals.v` → `verilog_ooo/design/code/control_signals.v`; trim to what EX needs (ALU selector, op1 = pc/rs1, op2 = imm/rs2, mem size/sign). **Remove any multiply mapping** from it (D7); **keep the mapping for `DIV/DIVU`** to the ALU selectors (D7a). Add to `design.f`.
-- [ ] 3.2 `fu_alu.v` ×2 (FU IDs 5, 6): 1 cycle, wraps `alu.v`. Handles RV32I R/I-type, LUI (pass imm), AUIPC (pc + imm), ECALL (no write), and **`DIV/DIVU` (D7a)**. Never receives a multiply (the decoder sends `MUL` to MCM).
-- [ ] 3.3 `fu_mcm.v` (FU ID 2) — **the only multiply path (D7):** copy `verilog/design/code/array_mult.v` → `verilog_ooo/design/code/array_mult.v`. Handles **`MUL` only**: pulse `start_pulse`, `hold` high while in flight, `done` when `busy` falls (~33 cycles; low 32 bits — exactly what `array_mult` produces, so no changes to it are needed). **No divide logic in MCM (D7a).**
+- [ ] 3.1 **Control decode.** Copy `verilog/design/code/control_signals.v` → `verilog_ooo/design/code/control_signals.v`; trim to what EX needs (ALU selector, op1 = pc/rs1, op2 = imm/rs2, mem size/sign). Map **ECALL → ADD** (op1 = rs1 = x0, op2 = imm = 0; D8). **Remove any multiply mapping** from it (D7); **keep the mapping for `DIV/DIVU`** to the ALU selectors (D7a). Add to `design.f`.
+- [ ] 3.2 `fu_alu.v` ×2 (FU IDs 5, 6): 1 cycle, wraps `alu.v`. Handles RV32I R/I-type, LUI (pass imm), AUIPC (pc + imm), ECALL (ADD of zeros, result discarded: `writes_rd = 0`; D8), and **`DIV/DIVU` (D7a)**. Never receives a multiply (the decoder sends `MUL` to MCM).
+- [ ] 3.3 `fu_mcm.v` (FU ID 2) — **the only multiply path (D7):** copy `verilog/design/code/array_mult.v` → `verilog_ooo/design/code/array_mult.v`. Handles **`MUL` only**: pulse `start_pulse`, `hold` high while in flight, `result_valid` when `array_mult`'s `busy` falls (~33 cycles; low 32 bits — exactly what `array_mult` produces, so no changes to it are needed). **No divide logic in MCM (D7a).**
 - [ ] 3.4 `fu_load.v` (FU ID 3): address = `op1 + imm` (pass `op1` and `imm[11:0]` as `r_address`/`r_offset` to `dmemory`); 1 cycle; byte/half select + sign/zero extension by `funct3` (LB/LH/LW/LBU/LHU) — copy the extension logic from the scalar core.
-- [ ] 3.5 `fu_store.v` (FU ID 4) — **writes in EX (D6):** in its EX cycle drive `w_en=1`, `w_address = op1`, `w_offset = imm[11:0]`, `w_data_in = op2`, `w_access_size` from `funct3`. The write lands on the EX→WB edge, so the data is in memory by WB. Then `done=1` with `writes_rd=0`; WB only releases state.
-- [ ] 3.6 **Memory ordering at issue (D6):** in the issue select, block a LOAD row while the STORE row is reserved with a smaller PC and has not executed; block the STORE row while the LOAD row is reserved with a smaller PC and has not executed. Add a `executed` (or reuse `ops_read`/`done`) bit per row for this.
-- [ ] 3.7 **`dmemory.v` forwarding.** Its store→load forward uses `w_pc < r_pc`. Under 3.6 a load and an older store are never in EX together (one issue/cycle, older one executes first), so the forward path should never fire. Leave it as is, and record (here, under D6) that the PC compare is only valid under the D2 assumption; CLAUDE.md picks it up in Phase 9.
-- [ ] 3.8 **Wire up in `pd.v`:** route the issue packet to `start` of the FU whose ID matches; build `fu_busy[NUM_FU-1:0]` (bit `id-1`; BRANCH bit tied 0 for now) and connect it to `functional_unit_status.busy`; connect load/store FUs to `dmem`.
+- [ ] 3.5 `fu_store.v` (FU ID 4) — **writes in EX (D6):** in its EX cycle drive `w_en=1`, `w_address = op1`, `w_offset = imm[11:0]`, `w_data_in = op2`, `w_access_size` from `funct3`. The write lands on the EX→WB edge, so the data is in memory by WB. Then `result_valid=1` with `writes_rd=0`; WB only releases state.
+- [ ] 3.6 **Memory ordering at issue (D6):** in the issue select, block a LOAD row while the STORE row is reserved with a smaller PC and has not executed; block the STORE row while the LOAD row is reserved with a smaller PC and has not executed. Add an `executed` (or reuse `issued_arr`/`result_valid`) bit per row for this.
+- [ ] 3.7 **`dmemory.v` forwarding.** Its store→load forward uses `w_pc < r_pc`. Under 3.6 a load and an older store are never in EX together (one issue/cycle, older one executes first), so the forward path is never used. Leave it as is, and record (here, under D6) that the PC compare is only valid under the D2 assumption; CLAUDE.md picks it up in Phase 9.
+- [ ] 3.8 **Wire up in `pd.v`:** route `iss_valid` + `iss_*` to the FU whose ID matches (that FU's `iss_valid` = `iss_valid && iss_fu_id == id`); build `fu_ready[NUM_FU-1:0]` from the FUs (bit `id-1`; BRANCH bit tied 1 for now) and connect it to `functional_unit_status.fu_ready`; connect load/store FUs to `dmem`.
 - [ ] 3.9 Unit TBs: `fu_mcm` (latency + results incl. negative operands), `fu_alu` (incl. DIV/DIVU edge cases: divide by zero, `INT_MIN / -1`), `fu_load` (all 5 widths), `fu_store` (sb/sh/sw, data visible the cycle after EX).
 
 **Done when:** all FUs lint clean, unit TBs pass, and full sim shows correct `[X]` results (still no writeback).
@@ -198,11 +218,11 @@ output reg [..]   meta            // ist_idx, rd, writes_rd, pc
 
 New module `design/code/wb_select.v`, instantiated in `pd.v`.
 
-- [ ] 4.1 **Candidates:** `cand[i] = fu_done[i] && !war_block[i]`.
+- [ ] 4.1 **Candidates:** `wb_candidate[i] = result_valid[i] && !war_block[i]`.
 - [ ] 4.2 **WAR (D4)** computed in `func_unit_status` (it owns the source fields): for FU `i` with `writes_rd`, `war_block[i] = OR over rows j≠i of (busy_arr[j] && !ops_read[j] && ((uses_rs1[j] && rs1[j]==rd_i && rs1_tag[j]==0) || (uses_rs2[j] && rs2[j]==rd_i && rs2_tag[j]==0)))`. Export `war_block[NUM_FU-1:0]`.
-- [ ] 4.3 **Select** the candidate with the **smallest PC** (D2) using a second `min_pc_select` instance (2.4a); its `sel_onehot` is `wb_grant[NUM_FU-1:0]`.
-- [ ] 4.4 **Drive the `wb_*` bus** (replace the constant assigns in `pd.v`): `wb_en`, `wb_tag` (= granted FU ID), `wb_data` (FUs already produce final data, so `writeback.v` can be dropped from `design.f`), `wb_rd`, `wb_writes_rd`, `wb_ist_idx`, `wb_pc` (trace + D2 only).
-- [ ] 4.5 **Clear state on WB:** RF write (`wb_en && wb_writes_rd`; x0 excluded by decoder); `reg_status_table` clear of `wb_rd`; `instr_status` row by `wb_ist_idx`; FU row free + tag broadcast (existing `func_unit_status` logic); FU `done` cleared by `wb_grant`. Non-writing instructions (store, ecall) still release everything.
+- [ ] 4.3 **Select** the candidate with the **smallest PC** (D2) using a second `min_pc_select` instance (2.4a); its `min_pc_onehot` is `wb_ready[NUM_FU-1:0]` (one FU's result is taken per cycle).
+- [ ] 4.4 **Drive the `wb_*` bus** (replace the constant assigns in `pd.v`): `wb_en`, `wb_tag` (= ID of the FU whose `wb_ready` is high), `wb_data` (FUs already produce final data, so `writeback.v` can be dropped from `design.f`), `wb_rd`, `wb_writes_rd`, `wb_ist_idx`, `wb_pc` (trace + D2 only).
+- [ ] 4.5 **Clear state on WB:** RF write (`wb_en && wb_writes_rd`; x0 excluded by decoder); `reg_status_table` clear of `wb_rd`; `instr_status` row by `wb_ist_idx`; FU row free + tag broadcast (existing `func_unit_status` logic); FU `result_valid` cleared by its `wb_ready`. Non-writing instructions (store, ecall) still release everything.
 - [ ] 4.6 **Same-cycle dispatch vs WB:** keep the `ds_rs*_tag` masking in `pd.v` (a dispatching instruction whose producer writes back this cycle gets tag 0 and reads the RF later — verify in a TB that the RF already holds the value by its issue, and comment why). A WAW-stalled instruction must dispatch the cycle after its blocker's WB.
 - [ ] 4.7 **Deadlock check:** with WAR blocking, confirm the blocked reader can always issue (its own tags only depend on other producers that are not WAR-blocked by it). Add a sim watchdog: `$error` if no dispatch/issue/WB happens for N cycles while tables are non-empty.
 
@@ -239,7 +259,7 @@ Starts only after Phase 5 is green. The current `br_busy` drain is a placeholder
   - Whether dispatch continues past an unresolved branch (prediction) or drains (current placeholder).
   - If it continues: how wrong-path instructions are squashed and how their FU rows, instr_status rows, reg_status entries, and pending tags are released/restored; and how stores are prevented from writing memory in EX on the wrong path (D6 writes in EX!).
   - Whether smallest-PC priority (D2) and PC-based memory ordering (D6) still equal program order (they don't once instructions from two loop iterations can be in flight) — and what replaces them in hardware (**not** seq numbers, per D1).
-- [ ] 6.2 `fu_branch.v` (FU ID 1): `branch_comp.v` for B-type; target `pc+imm` (B/JAL) or `(rs1+imm) & ~1` (JALR); `taken`, `target`, `result = pc+4` with `writes_rd` for JAL/JALR. Hook into `fu_busy`, issue packet, WB.
+- [ ] 6.2 `fu_branch.v` (FU ID 1): `branch_comp.v` for B-type; target `pc+imm` (B/JAL) or `(rs1+imm) & ~1` (JALR); `taken`, `target`, `result = pc+4` with `writes_rd` for JAL/JALR. Hook into `fu_ready`, the issue signals (`iss_valid`/`iss_*`), WB (`result_valid`/`wb_ready`).
 - [ ] 6.3 Redirect: update `f_pc`, invalidate `f_valid`/`d_valid`, drop the stale imem read the cycle after redirect.
 - [ ] 6.4 Implement the squash/recovery logic from 6.1 (if any).
 - [ ] 6.5 Directed tests in `ooo-tests/`: taken/not-taken for each B-type, `jal`, `jalr`, a tight loop (same PC in flight repeatedly if the strategy allows it), a branch depending on a slow `mul`, a store just after a branch.
@@ -314,7 +334,7 @@ in line with the finished core here, in one pass (AGENTS.md "build once" rule).
 ## Critical files
 
 - **Modify:** `design/code/pd.v`, `instr_status.v`, `func_unit_status.v`, `reg_status_table.v`, `alu.v` (remove multiply; keep divide), `dmemory.v` (unchanged; see 3.7), `decoder.v` (shared defines; multiply-only MCM routing), `verif/scripts/design.f`, `CLAUDE.md`
-- **New:** `design/code/ooo_defs.vh`, `control_signals.v` (copy), `array_mult.v` (copy), `fu_alu.v`, `fu_mcm.v`, `fu_load.v`, `fu_store.v`, `min_pc_select.v`, `wb_select.v`, `fu_branch.v` (Phase 6), `design/simple_testbenches/*`, `verif/**` (copied + adapted), `verif/scripts/cmp_ooo_spike.py`, `run_scripts.py`, `rv32-benchmarks/ooo-tests/*.s`
+- **New:** `control_signals.v` (copy), `array_mult.v` (copy), `fu_alu.v`, `fu_mcm.v`, `fu_load.v`, `fu_store.v`, `min_pc_select.v`, `wb_select.v`, `fu_branch.v` (Phase 6), `design/simple_testbenches/*`, `verif/**` (copied + adapted), `verif/scripts/cmp_ooo_spike.py`, `run_scripts.py`, `rv32-benchmarks/ooo-tests/*.s`
 - **Reference only (do not edit):** `verilog/design/code/{array_mult,control_signals,pd}.v`, `verilog/verif/**`, `verilog/run_scripts.py`, branch `hw/ooo_spike`
 
 ---
@@ -341,3 +361,8 @@ None currently.
 | 2026-11-15 | Phase 1 done | RTL elaborates (lint clean of errors), 5/5 unit TBs pass (new: decoder, alu), full sim runs to TIMEOUT with dispatch trace. Extra fixes: no-hit WB count, operand-capture alignment, stale fwd flags, `iss_valid` pulse. |
 | 2026-11-15 | Plan revised | Added repo-root `AGENTS.md`. New rule: build tests/docs once — docs refreshed only in new Phase 9 (final documentation and test refresh); optional performance work renumbered to Phase 10. Ground rules updated (identical layout, conventions, mandatory MCM). |
 | 2026-11-15 | Cleanup | Explanatory names/comments for new RTL signals (`free_row_idx`, `ready_row_found/idx`, `row_waiting_on_tag`, `issue_now`, `rf_capture_valid/row`, `INSTR_ROW_W`, ...). Removed unnecessary checks: `is_m_unsupported` decode, no-hit WB guard, free-row-found guard, `ds_fu_id != NONE` guard, row-count size guards; dropped planned sim assertions (3.2, 3.3, 3.7) and the defensive reg_status check (4.5). |
+| 2026-11-22 | Plan revised | D8 team-confirmed: ECALL is a bubble executed as an ADD of zeros on an ALU slot, writes nothing, no halt (fetch continues). Already matches the decoder; tasks 3.1/3.2 updated. |
+| 2026-11-22 | Phase 2 done | `min_pc_select` (balanced tree), instr_status keyed by `ist_idx` with IS/EX stages + read port, FU rows store identity/uses/rd, 2-cycle issue (select → issue) with smallest-PC priority. No RF bypass (not needed under D4 + dispatch tag masking; see as-built). 6/6 TBs pass; full sim shows correct `[I]` operands. |
+| 2026-11-22 | Convention fixes | Removed `ooo_defs.vh` (FU ids are per-module localparams again) and `tb_common.vh` (helper inlined in each TB): no `.vh` files. Renamed `iss_pkt_*` → `iss_launch_*` (no "packet" naming), `min_pc_select` outputs `sel_valid/sel_idx/sel_onehot` → `min_pc_found/min_pc_idx/min_pc_onehot`, `sel_row` → `issue_sel_row`. Added per-declaration comments for the new signals. Ground rules updated. Lint clean, 6/6 TBs pass, `make all` trace unchanged. |
+| 2026-11-22 | Ready/valid naming | No "launch"/"fire" in names: `iss_launch_*` → `iss_valid` + `iss_*`, `launch_row` → `iss_row_idx`, FU `busy` → `fu_ready` (inverted), `row_ready` → `row_can_issue`, `min_pc_found` → `min_pc_valid`, trace macros `*_FIRE` → `*_VALID`. Phase 3/4 FU interface rewritten as ready/valid (`iss_valid`/`fu_ready`, `result_valid`/`wb_ready`). Lint clean, 6/6 TBs pass, trace unchanged. |
+| 2026-11-22 | instr_status stage | `WB` stage value is part of the design (set at writeback with the valid clear), not debug-only; comments and task 2.2 updated. |

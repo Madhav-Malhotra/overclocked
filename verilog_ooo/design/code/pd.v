@@ -7,9 +7,13 @@
 //                instr_status           - decoded instruction buffer
 //                functional_unit_status - one row per FU slot (operands, tags)
 //                reg_status_table       - architectural reg -> producer FU id
-//              Status (plan.md): fetch/dispatch/issue bookkeeping exist;
-//              execution units, writeback and branch redirect do not yet.
-//              The wb_* bus and FU busy vector are placeholders (constants).
+//              Issue selects the smallest-PC ready row (cycle N, RF read
+//              addresses driven), then issues it to its FU with its
+//              operands and decoded fields (cycle N+1). Instructions are
+//              identified by their instr_status row (ist_idx, plan.md D1).
+//              Status (plan.md): fetch/dispatch/issue exist; execution units,
+//              writeback and branch redirect do not yet. The wb_* bus and FU
+//              ready vector are placeholders (constants).
 // Inputs:      clock - processor clock
 //              reset - synchronous reset; returns PC to BASE_ADDR
 // Outputs:     (none - all state is internal; testbench probes internal signals)
@@ -38,8 +42,8 @@ module pd #(
 localparam NUM_FU = NUM_ALU + NUM_MULTICYCLE_MULT + 2*NUM_LOAD_STORE + 1; // + 1 for branch_comparator
 localparam INSTR_ROW_W = $clog2(NUM_BUFFER_ROWS);  // width of an instr_status row index
 
-// FU ids (must match func_unit_status.v)
-localparam NONE   = 0;
+// FU ids (same values in decoder.v and func_unit_status.v)
+localparam NONE   = 0;  // no FU: FENCE / unknown no-op; also "no pending producer"
 localparam BRANCH = 1;
 
 // Fetch
@@ -77,29 +81,28 @@ wire              ds_stall;
 wire              ds_instr_buffer_full;
 wire [INSTR_ROW_W-1:0] ds_ist_idx;       // instr_status row the dispatching instruction is written to
 
-// Issue
-reg               iss_en = 1;  // funcStatus found a row (iss_instr_found): iss_* below are valid      
-wire [FUW-1:0]    iss_fu_id;
-wire [DATAW-1:0]  iss_pc;
-wire [ADDRW-1:0]  iss_rs1;
-wire [ADDRW-1:0]  iss_rs2;
-// wire              iss_rs1_fwd;
-// wire              iss_rs2_fwd;
-// wire [DATAW-1:0]  iss_rs1_fwd_data;
-// wire [DATAW-1:0]  iss_rs2_fwd_data;
-// wire              iss_tag_found;
-wire              fu_issued;        // row at the issue index has issued
-wire              iss_instr_found;  // pulse: a row issued at the last edge; iss_pc/iss_rs1/iss_rs2 valid
-wire              iss_tag_found;    // some otherwise-ready row is waiting on a producer tag (RAW)
-wire              iss_valid;        // issue event this cycle (marks the instr_status row as IS)
-wire [DATAW-1:0]  iss_rs1_data;     // registered register-file read data
-wire [DATAW-1:0]  iss_rs2_data;
-// wire [6:0]        iss_opcode;
-// wire [2:0]        iss_funct3;
-// wire [6:0]        iss_funct7;
-// wire [DATAW-1:0]  iss_imm;
-// wire [4:0]        iss_shamt;
-// wire [ADDRW-1:0]  iss_rd;
+// Issue select (cycle N)
+wire                   iss_sel_valid;     // a row is selected for issue this cycle
+wire [INSTR_ROW_W-1:0] iss_sel_ist_idx;   // its instr_status row
+wire [ADDRW-1:0]       iss_rf_rs1;        // register-file read address: rs1 of the selected row
+wire [ADDRW-1:0]       iss_rf_rs2;        // register-file read address: rs2 of the selected row
+wire [DATAW-1:0]       iss_rf_rs1_data;   // registered RF read data for rs1 (used in cycle N+1)
+wire [DATAW-1:0]       iss_rf_rs2_data;   // registered RF read data for rs2 (used in cycle N+1)
+
+// Issue (cycle N+1): everything the FU needs to execute the instruction
+wire                   iss_valid;         // an instruction issues to FU iss_fu_id this cycle
+wire [FUW-1:0]         iss_fu_id;         // FU it executes on
+wire [INSTR_ROW_W-1:0] iss_ist_idx;       // its instr_status row (instruction identity, D1)
+wire [DATAW-1:0]       iss_pc;            // its PC
+wire [ADDRW-1:0]       iss_rd;            // its destination register number
+wire                   iss_writes_rd;     // it writes rd at writeback
+wire [DATAW-1:0]       iss_op1;           // rs1 value (forwarded or read from the RF)
+wire [DATAW-1:0]       iss_op2;           // rs2 value (forwarded or read from the RF)
+wire [6:0]             iss_opcode;        // decoded fields, from instr_status
+wire [2:0]             iss_funct3;
+wire [6:0]             iss_funct7;
+wire [DATAW-1:0]       iss_imm;
+wire [4:0]             iss_shamt;
 
 // Writeback broadcast (TODO: drive these from the WB stage)
 wire              wb_en        = 1'b0;
@@ -107,10 +110,11 @@ wire [FUW-1:0]    wb_tag       = 0;
 wire [DATAW-1:0]  wb_data      = 0;
 wire [ADDRW-1:0]  wb_rd        = 0;
 wire              wb_writes_rd = 1'b0;
-wire [DATAW-1:0]  wb_pc        = 0;
+wire [INSTR_ROW_W-1:0] wb_ist_idx = 0;  // instr_status row of the writing-back instruction
+wire [DATAW-1:0]  wb_pc        = 0;     // trace + D2 priority only
 
-// Execution-unit occupancy, one bit per FU row (TODO Phase 3: drive from the FUs)
-wire [NUM_FU-1:0] fu_busy      = {NUM_FU{1'b0}};
+// FU ready (ready/valid): bit id-1 = FU id can accept an instruction (TODO Phase 3: drive from the FUs)
+wire [NUM_FU-1:0] fu_ready     = {NUM_FU{1'b1}};
 
 
 /* FETCH STAGE: Imemory */
@@ -225,23 +229,23 @@ instr_status # (
   .ds_rd(d_addr_rd),
   .ds_fu_id(ds_assigned_fu_id),
 
-  // IS: mark the issuing instruction and look up its decoded fields
-  .iss_en(iss_valid), // pulse when a row issued (iss_instr_found)
-  .iss_pc(iss_pc),
+  .buffer_full(ds_instr_buffer_full),
+  .ds_ist_idx(ds_ist_idx),
 
-  // .iss_opcode(iss_opcode),
-  // .iss_funct3(iss_funct3),
-  // .iss_funct7(iss_funct7),
-  // .iss_imm(iss_imm),
-  // .iss_shamt(iss_shamt),
-  // .iss_rd(iss_rd),
+  // IS: mark the selected row IS, the issuing row EX; read the issuing row's fields
+  .iss_sel_valid(iss_sel_valid),
+  .iss_sel_ist_idx(iss_sel_ist_idx),
+  .iss_valid(iss_valid),
+  .iss_ist_idx(iss_ist_idx),
+  .iss_opcode(iss_opcode),
+  .iss_funct3(iss_funct3),
+  .iss_funct7(iss_funct7),
+  .iss_imm(iss_imm),
+  .iss_shamt(iss_shamt),
 
   // clear row in WB
   .wb_en(wb_en),
-  .wb_pc(wb_pc),
-
-  .buffer_full(ds_instr_buffer_full),
-  .ds_ist_idx(ds_ist_idx)
+  .wb_ist_idx(wb_ist_idx)
 );
 
 functional_unit_status # (
@@ -249,12 +253,12 @@ functional_unit_status # (
     .NUM_ALU(NUM_ALU),
     .NUM_MULTICYCLE_MULT(NUM_MULTICYCLE_MULT),
     .NUM_LOAD_STORE(NUM_LOAD_STORE),
-    .FUW(FUW)
-    
+    .FUW(FUW),
+    .IST_W(INSTR_ROW_W)
 ) funcStatus (
     .clock(clock),
     .reset(reset),
-    // Check for WAW in dispatch
+    // Slot assignment for the dispatching instruction's FU class
     .ds_fu_type(d_fu_id),
     .ds_assigned_fu_id(ds_assigned_fu_id), // output
 
@@ -262,28 +266,38 @@ functional_unit_status # (
     .ds_en(ds_en),
     .ds_fu_id(ds_assigned_fu_id), // actual functional unit id
     .ds_pc(d_pc),
+    .ds_ist_idx(ds_ist_idx),
     .ds_rs1(d_addr_rs1),
-    .ds_rs2(d_addr_rs2), 
-    .ds_rd(d_addr_rd), 
+    .ds_rs2(d_addr_rs2),
+    .ds_uses_rs1(d_uses_rs1),
+    .ds_uses_rs2(d_uses_rs2),
+    .ds_rd(d_addr_rd),
+    .ds_writes_rd(d_writes_rd),
     .ds_rs1_tag(ds_rs1_tag),
     .ds_rs2_tag(ds_rs2_tag),
 
-    .iss_en(iss_en),               // iss = issue
-    .iss_fu_id(iss_fu_id), // actual functional unit id
+    // Issue select (cycle N): RF read addresses
+    .fu_ready(fu_ready),             // FU can accept an instruction (placeholder until Phase 3)
+    .iss_sel_valid(iss_sel_valid),
+    .iss_sel_ist_idx(iss_sel_ist_idx),
+    .iss_rf_rs1(iss_rf_rs1),
+    .iss_rf_rs2(iss_rf_rs2),
+
+    // Issue (cycle N+1): instruction and operands to its FU
+    .iss_rf_rs1_data(iss_rf_rs1_data),
+    .iss_rf_rs2_data(iss_rf_rs2_data),
+    .iss_valid(iss_valid),
+    .iss_fu_id(iss_fu_id),
+    .iss_ist_idx(iss_ist_idx),
     .iss_pc(iss_pc),
-    .iss_rs1(iss_rs1),
-    .iss_rs2(iss_rs2),
-    .iss_rs1_data(iss_rs1_data), // inputs: read reg values from regfile
-    .iss_rs2_data(iss_rs2_data),
-    .issued(fu_issued),
+    .iss_rd(iss_rd),
+    .iss_writes_rd(iss_writes_rd),
+    .iss_op1(iss_op1),
+    .iss_op2(iss_op2),
 
     .wb_en(wb_en),
-    .wb_tag_clear(wb_tag),
-    .wb_data(wb_data),
-
-    .busy(fu_busy),                  // real-time FU occupancy (placeholder until Phase 3)
-    .iss_tag_found(iss_tag_found),
-    .iss_instr_found(iss_instr_found)
+    .wb_tag(wb_tag),
+    .wb_data(wb_data)
 );
 
 
@@ -316,22 +330,12 @@ reg_status_table  #(
 
 
 
-/* ISSUE STAGE: just look for RAW hazards? and copy values from reg file */
-// For all instructions in the instruction status table:
-  // - if they are in DS stage, move into IS stage, if in IS stage, leave them
-  // - check for RAW hazards (check the tags)
-  // - if no RAWs found, move into EX stage
-
-always @(posedge clock) begin 
-  if(reset) begin 
-    iss_en <= 0;
-  end else begin
-    iss_en <= 1;
-  end
-end 
-
-// One-cycle pulse per issued instruction (fu_issued alone stays high while the row waits)
-assign iss_valid = iss_instr_found;
+/* ISSUE STAGE */
+// Cycle N  : funcStatus selects the smallest-PC ready row (no pending tags, FU
+//            free) and drives its source registers to the RF read ports.
+// Cycle N+1: funcStatus drives the iss_* outputs (operands: forwarded WB
+//            value or RF data); instrStatus supplies the decoded fields of the
+//            same row.
 
 register_file #(
   .DATAW(DATAW),
@@ -340,12 +344,12 @@ register_file #(
 ) regfile (
   .clock(clock),
   .write_enable(wb_en && wb_writes_rd),
-  .addr_rs1(iss_rs1), // IS
-  .addr_rs2(iss_rs2), // IS
+  .addr_rs1(iss_rf_rs1), // IS select
+  .addr_rs2(iss_rf_rs2), // IS select
   .addr_rd(wb_rd), // WB
   .data_rd(wb_data), // WB
-  .data_rs1(iss_rs1_data), // IS
-  .data_rs2(iss_rs2_data) // IS
+  .data_rs1(iss_rf_rs1_data), // IS read data
+  .data_rs2(iss_rf_rs2_data) // IS read data
 );
 
 

@@ -3,28 +3,35 @@
 // Description: Instruction Status Table (instruction buffer) for the scoreboard.
 //              Holds up to NUM_BUFFER_ROWS dispatched instructions and their
 //              decoded fields from dispatch until writeback. Rows are allocated
-//              at the lowest free index (no FIFO order / age field).
-//              Rows are currently matched by PC for issue/writeback; plan.md
-//              Phase 2 (task 2.2) re-keys them by row index (ds_ist_idx).
-// Inputs:      ds_*   - dispatch: allocate a row with these decoded fields
-//              iss_*  - issue: mark the row holding iss_pc as IS
-//              wb_*   - writeback: clear the row holding wb_pc
-// Outputs:     buffer_full - no free row (dispatch must stall)
-//              ds_ist_idx  - row index the next dispatch will be written to
+//              at the lowest free index (no FIFO order / age field). A row's
+//              index (ist_idx) is the instruction's identity in hardware
+//              (plan.md D1): issue, execute and writeback address the row by it.
+//              Stage field per row: DS (dispatched) -> IS (selected for issue)
+//              -> EX (operands read, issued to its FU) -> WB (written back;
+//              the row's valid bit is cleared, so the row is free again).
+// Inputs:      ds_*          - dispatch: allocate row ds_ist_idx with these fields
+//              iss_sel_*     - issue select: mark row iss_sel_ist_idx as IS
+//              iss_*         - issue: mark row iss_ist_idx as EX and
+//                              read its decoded fields (combinational read port)
+//              wb_en, wb_ist_idx - writeback: clear that row
+// Outputs:     buffer_full   - no free row (dispatch must stall)
+//              ds_ist_idx    - row the next dispatch is written to
+//              iss_opcode/funct3/funct7/imm/shamt - fields of row iss_ist_idx
 // =============================================================================
 module instr_status #(
     parameter DATAW  =  32,
     parameter ADDRW  =  $clog2(DATAW),
     parameter NUM_BUFFER_ROWS = 6,
-    parameter N_BITS =  $clog2(NUM_BUFFER_ROWS), // width of a row index
+    parameter N_BITS =  $clog2(NUM_BUFFER_ROWS), // width of a row index (ist_idx)
     parameter NUM_FU = 6,
-    parameter FUW = $clog2(NUM_FU)
-
+    parameter FUW = $clog2(NUM_FU + 1)
 )(
-    input wire  clock, 
+    input wire  clock,
     input wire  reset,
-    
-    // input status in DS (can remove some of these values if they are unused)
+
+    // ====================
+    // Dispatch: write a new row
+    // ====================
     input ds_en,
     input [DATAW-1:0] ds_pc,
     input [6:0] ds_opcode,
@@ -33,26 +40,36 @@ module instr_status #(
     input [DATAW-1:0] ds_imm,
     input [4:0] ds_shamt,
     input [ADDRW-1:0] ds_rs1,
-    input [ADDRW-1:0] ds_rs2, 
-    input [ADDRW-1:0] ds_rd, 
+    input [ADDRW-1:0] ds_rs2,
+    input [ADDRW-1:0] ds_rd,
     input [FUW-1:0] ds_fu_id,
-
-    // update status: change stage to IS
-    input iss_en,
-    input [DATAW-1:0] iss_pc,
-
-    // clear row in WB
-    input wb_en,
-    input [DATAW-1:0] wb_pc,
-
     output buffer_full,
-    output [N_BITS-1:0] ds_ist_idx   // row the next dispatch is written to (valid when !buffer_full)
+    output [N_BITS-1:0] ds_ist_idx,     // row the next dispatch is written to (valid when !buffer_full)
+
+    // ====================
+    // Issue: select (cycle N) and issue (cycle N+1)
+    // ====================
+    input iss_sel_valid,                    // a row was selected for issue this cycle
+    input [N_BITS-1:0] iss_sel_ist_idx,     // the selected row (stage -> IS)
+    input iss_valid,                        // a row reads its operands / issues to its FU this cycle
+    input [N_BITS-1:0] iss_ist_idx,         // the issuing row (stage -> EX; drives the read port)
+    output [6:0] iss_opcode,                // opcode of row iss_ist_idx
+    output [2:0] iss_funct3,                // funct3 of that row
+    output [6:0] iss_funct7,                // funct7 of that row
+    output [DATAW-1:0] iss_imm,             // immediate of that row
+    output [4:0] iss_shamt,                 // shift amount of that row
+
+    // ====================
+    // Writeback: clear the row
+    // ====================
+    input wb_en,                            // an instruction writes back this cycle
+    input [N_BITS-1:0] wb_ist_idx           // its row (cleared)
 );
 
-localparam DS = 'h0;
-localparam IS = 'h1;
-localparam EX = 'h2;
-localparam WB = 'h3;
+localparam DS = 2'h0;
+localparam IS = 2'h1;
+localparam EX = 2'h2;
+localparam WB = 2'h3;
 
 localparam INSTR_COUNT_W = $clog2(NUM_BUFFER_ROWS + 1); // width of num_instr: counts 0..NUM_BUFFER_ROWS inclusive
 
@@ -76,7 +93,7 @@ reg [ADDRW-1:0] rs1_arr [NUM_BUFFER_ROWS-1:0];
 reg [ADDRW-1:0] rs2_arr [NUM_BUFFER_ROWS-1:0];
 reg [ADDRW-1:0] rd_arr [NUM_BUFFER_ROWS-1:0];
 
-// Stage count
+// Stage of the row's instruction: DS / IS / EX / WB (WB = written back, row freed)
 reg [1:0] stage_arr [NUM_BUFFER_ROWS-1:0];
 
 // Assigned functional unit
@@ -116,8 +133,11 @@ wire [INSTR_COUNT_W-1:0] writeback_count_dec = {{(INSTR_COUNT_W-1){1'b0}}, wb_en
 // ====================
 // TABLE UPDATES
 // ====================
+// Select, issue, writeback and dispatch in one cycle always address different
+// rows: a row is selected once, issues the cycle after, writes back only after
+// executing, and dispatch only writes a row that is not valid.
 always @(posedge clock) begin
-    if(reset) begin 
+    if(reset) begin
         // Mark everything as empty/invalid
         for(i = 0; i < NUM_BUFFER_ROWS; i = i + 1) begin
             valid_arr[i] <= 0;
@@ -125,29 +145,21 @@ always @(posedge clock) begin
 
         num_instr <= 0;
     end else begin
-        
-        // Clear rows in WB (set valid to 0)
-        if(wb_en) begin
-            for(i = 0; i < NUM_BUFFER_ROWS; i = i + 1) begin
-                if(pc_arr[i] == wb_pc) begin
-                    valid_arr[i] <= 0;
-                    stage_arr[i] <= WB; // for debugging purposes
-                end
-            end  
-        end        
 
-        // Update instruction status to IS in issue stage (instruction has been issued, reg values have been copied, no more RAWs)
-        if(iss_en) begin
-            for(i = 0; i < NUM_BUFFER_ROWS; i = i + 1) begin
-                if(pc_arr[i] == iss_pc) begin 
-                    stage_arr[i] <= IS;
-                end
-
-            end
+        // Clear the row in WB
+        if (wb_en) begin
+            valid_arr[wb_ist_idx] <= 0;
+            stage_arr[wb_ist_idx] <= WB; // instruction written back
         end
 
+        // Issue select: the row's operands are read next cycle
+        if (iss_sel_valid) stage_arr[iss_sel_ist_idx] <= IS;
+
+        // Issue: operands read, instruction sent to its FU
+        if (iss_valid) stage_arr[iss_ist_idx] <= EX;
+
         // populate the lowest free row (a row being cleared this cycle is not free yet)
-        if (ds_en) begin 
+        if (ds_en) begin
             valid_arr[free_row_idx] <= 1;
             pc_arr[free_row_idx] <= ds_pc;
             opcode_arr[free_row_idx] <= ds_opcode;
@@ -167,14 +179,17 @@ always @(posedge clock) begin
     end
 end
 
+// ====================
+// OUTPUTS
+// ====================
 assign buffer_full = (num_instr == NUM_BUFFER_ROWS);
 assign ds_ist_idx  = free_row_idx;
 
+// Read port: decoded fields of the row issuing to its FU this cycle
+assign iss_opcode = opcode_arr[iss_ist_idx];
+assign iss_funct3 = func3_arr[iss_ist_idx];
+assign iss_funct7 = func7_arr[iss_ist_idx];
+assign iss_imm    = imm_arr[iss_ist_idx];
+assign iss_shamt  = shamt_arr[iss_ist_idx];
+
 endmodule
-
-
-
-
-
-
-

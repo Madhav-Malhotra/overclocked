@@ -106,13 +106,13 @@ assign uses_rs1  = (is_r_type | is_alu_imm | is_load | is_jalr | is_s_type | is_
 assign uses_rs2  = (is_r_type | is_s_type | is_b_type) && (_rs2 != 0);
 assign writes_rd = (is_r_type | is_alu_imm | is_load | is_jalr | is_u_type | is_j_type) && (_rd != 0);
 
-// Functional Unit Type
-localparam NONE = 0;
+// Functional Unit Type (same FU ids as func_unit_status.v and pd.v)
+localparam NONE = 0;    // no FU: FENCE / unknown (no-op)
 localparam BRANCH = 1;
-localparam MCM = 2;
+localparam MCM = 2;     // multicycle multiplier: MUL only
 localparam LOAD = 3;
 localparam STORE = 4;
-localparam ALU = 5;
+localparam ALU = 5;     // ALU class; dispatch picks ALU or ALU_2 (id 6)
 
 // ====================
 // OUTPUT ASSIGNMENTS

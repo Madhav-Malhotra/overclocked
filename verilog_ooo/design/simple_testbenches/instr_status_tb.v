@@ -7,8 +7,9 @@
 // Covers: reset; ds_ist_idx names the lowest free row and dispatch writes the
 // decoded fields there; buffer_full after NUM_BUFFER_ROWS dispatches; issue
 // select marks a row IS; issue marks a row EX and the read port returns that
-// row's fields; select and issue of different rows in one cycle; writeback
-// by ist_idx clears only that row; same-cycle dispatch + writeback keeps the
+// row's fields; select and issue of different rows in one cycle; the
+// writeback read port returns a row's opcode; writeback by ist_idx clears
+// only that row; same-cycle dispatch + writeback keeps the
 // count right; freed rows are reused; two rows with the same PC are told
 // apart by ist_idx.
 // =============================================================================
@@ -66,6 +67,7 @@ module instr_status_tb;
   wire [4:0]  iss_shamt;
   reg wb_en = 0;
   reg [2:0] wb_ist_idx = 0;
+  wire [6:0] wb_opcode;    // writeback read port
 
   instr_status #(.NUM_BUFFER_ROWS(ROWS), .NUM_FU(6), .FUW(FUW)) dut (
     .clock(clock), .reset(reset),
@@ -77,7 +79,7 @@ module instr_status_tb;
     .iss_valid(iss_valid), .iss_ist_idx(iss_ist_idx),
     .iss_opcode(iss_opcode), .iss_funct3(iss_funct3),
     .iss_funct7(iss_funct7), .iss_imm(iss_imm), .iss_shamt(iss_shamt),
-    .wb_en(wb_en), .wb_ist_idx(wb_ist_idx)
+    .wb_en(wb_en), .wb_ist_idx(wb_ist_idx), .wb_opcode(wb_opcode)
   );
 
   always #5 clock = ~clock;
@@ -159,6 +161,14 @@ module instr_status_tb;
     iss_ist_idx = 5; #1;
     set_ds(32'h0100_0014, 8'h15);
     `CHECK(iss_imm, ds_imm, "read port imm of row 5")
+
+    // --- writeback read port returns the opcode of row wb_ist_idx
+    wb_ist_idx = 5; #1;
+    set_ds(32'h0100_0014, 8'h15);
+    `CHECK(wb_opcode, ds_opcode, "writeback read port opcode of row 5")
+    wb_ist_idx = 2; #1;
+    set_ds(32'h0100_0008, 8'h12);
+    `CHECK(wb_opcode, ds_opcode, "writeback read port opcode of row 2")
 
     // --- writeback clears only that row
     wb_en = 1; wb_ist_idx = 2; tick; wb_en = 0;

@@ -46,21 +46,24 @@
 `define I_OP2       `CORE.iss_op2
 
 // ----- [X] execute complete: an FU result became valid ----------------------
-// TODO(Phase 3): one FU completes per line. If several FUs can finish in the
-// same cycle, expose a "completing FU" mux in pd.v or add more X macros.
-// `define X_VALID    <some FU done rising>
-// `define X_IST_IDX ...
-// `define X_PC      ...
-// `define X_FU      ...
-// `define X_RESULT  ...
+// Indexed by FU row i (FU id = i + 1): several FUs can complete in one cycle
+// (e.g. the MCM and an ALU), so trace_dump.h loops over the rows and prints a
+// line for each FU whose result_valid is high now and was low one cycle ago
+// (the first cycle its result is valid).
+`define X_NUM_FU      6
+`define X_VALID(i)    `CORE.fu_result_valid[i]
+`define X_IST_IDX(i)  `CORE.funcStatus.ist_idx_arr[i]
+`define X_PC(i)       `CORE.funcStatus.pc_arr[i]
+`define X_RESULT(i)   `CORE.fu_result[(i)*32 +: 32]
 
 // ----- [M] memory write: store FU writes dmemory (D6: in Execute) -----------
-// TODO(Phase 3, task 3.5): drive from the dmemory write port.
-// `define M_VALID      `CORE.<dmem w_en>
-// `define M_PC        `CORE.<store pc>
-// `define M_ADDR      `CORE.<effective byte address = w_address + sext(w_offset)>
-// `define M_SIZE_ENC  `CORE.<w_access_size: 0=byte 1=half 2=word>
-// `define M_DATA      `CORE.<w_data_in>
+// The store FU drives the dmemory write port in its memory cycle (the cycle
+// after its issue cycle); the write lands at the next rising edge.
+`define M_VALID     `CORE.dmem_w_en
+`define M_PC        `CORE.dmem_w_pc
+`define M_ADDR      `CORE.dmem_w_address
+`define M_SIZE_ENC  `CORE.dmem_w_access_size
+`define M_DATA      `CORE.dmem_w_data
 
 // ----- [W] writeback ---------------------------------------------------------
 // The wb_* bus exists in pd.v (tied to constants until Phase 4).

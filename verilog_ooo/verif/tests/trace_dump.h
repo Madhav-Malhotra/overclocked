@@ -21,10 +21,13 @@
 integer __trace_fd;
 integer __cycle;
 reg [4:0] __stall_now, __stall_prev;   // {stalled, buf_full, fu_busy, waw, br_drain}
+integer   __x_row;                     // [X]: FU row being checked (FU id = row + 1)
+reg [31:0] __x_valid_prev;             // [X]: each FU's result_valid one cycle ago
 initial begin
   __trace_fd = $fopen(`TRACE_FILE, "w");
   __cycle = 0;
   __stall_prev = 5'b0;
+  __x_valid_prev = 32'b0;
 end
 
 always @(posedge clock) begin
@@ -62,10 +65,14 @@ always @(negedge clock) begin
         `I_IST_IDX, `I_PC, `I_FU, `I_OP1, `I_OP2, __cycle);
 `endif
 
-`ifdef X_VALID
-    if (`X_VALID)
-      $fwrite(__trace_fd, "[X] %0d %x %0d %x @%0d\n",
-        `X_IST_IDX, `X_PC, `X_FU, `X_RESULT, __cycle);
+`ifdef X_NUM_FU
+    // One line per FU whose result became valid this cycle (FU id = row + 1)
+    for (__x_row = 0; __x_row < `X_NUM_FU; __x_row = __x_row + 1) begin
+      if (`X_VALID(__x_row) && !__x_valid_prev[__x_row])
+        $fwrite(__trace_fd, "[X] %0d %x %0d %x @%0d\n",
+          `X_IST_IDX(__x_row), `X_PC(__x_row), __x_row + 1, `X_RESULT(__x_row), __cycle);
+      __x_valid_prev[__x_row] = `X_VALID(__x_row);
+    end
 `endif
 
 `ifdef M_VALID

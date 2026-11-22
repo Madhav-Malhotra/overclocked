@@ -13,10 +13,11 @@
 //              iss_sel_*     - issue select: mark row iss_sel_ist_idx as IS
 //              iss_*         - issue: mark row iss_ist_idx as EX and
 //                              read its decoded fields (combinational read port)
-//              wb_en, wb_ist_idx - writeback: clear that row
+//              wb_en, wb_ist_idx - writeback: clear that row; read its opcode
 // Outputs:     buffer_full   - no free row (dispatch must stall)
 //              ds_ist_idx    - row the next dispatch is written to
 //              iss_opcode/funct3/funct7/imm/shamt - fields of row iss_ist_idx
+//              wb_opcode     - opcode of row wb_ist_idx
 // =============================================================================
 module instr_status #(
     parameter DATAW  =  32,
@@ -63,7 +64,8 @@ module instr_status #(
     // Writeback: clear the row
     // ====================
     input wb_en,                            // an instruction writes back this cycle
-    input [N_BITS-1:0] wb_ist_idx           // its row (cleared)
+    input [N_BITS-1:0] wb_ist_idx,          // its row (cleared; drives the writeback read port)
+    output [6:0] wb_opcode                  // opcode of row wb_ist_idx (writeback control decode)
 );
 
 localparam DS = 2'h0;
@@ -191,5 +193,8 @@ assign iss_funct3 = func3_arr[iss_ist_idx];
 assign iss_funct7 = func7_arr[iss_ist_idx];
 assign iss_imm    = imm_arr[iss_ist_idx];
 assign iss_shamt  = shamt_arr[iss_ist_idx];
+
+// Read port: opcode of the row writing back this cycle (control_signals.v)
+assign wb_opcode = opcode_arr[wb_ist_idx];
 
 endmodule

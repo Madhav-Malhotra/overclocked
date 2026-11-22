@@ -63,7 +63,26 @@ verilog_*/
 ```
 
 New files go into the matching existing folder. Do not create new top-level
-folders inside a CPU directory. OoO-only additions (for example
+folders inside a CPU directory.
+
+**File names inside `design/code/` follow `verilog/` and `verilog_ss/` too,
+and each functional unit has its own file.** Where `verilog/` already has a
+file for the unit, the FU logic goes into it rather than a duplicate wrapper:
+the ALU FU *is* `alu.v`, the MCM FU *is* `array_mult.v`, the branch FU *is*
+`branch_comp.v` (one file per FU: comparator + target adder). FUs without a
+counterpart get their own file named after the unit, with **no `fu_` prefix**:
+`load.v`, `store.v`. Shared helpers keep their `verilog/` names and roles
+(`dmemory.v` is the data memory, `writeback.v`). Other new files only for OoO-only structures
+(`instr_status.v`, `func_unit_status.v`, `reg_status_table.v`,
+`min_pc_select.v`).
+**Keep shared code the same as in `verilog/` and `verilog_ss/`.** When a
+file contains logic that the other CPUs also have, keep that code identical
+(same names, structure, comments) and change only what the OoO core needs,
+documented in the module header. Do not duplicate logic another module
+already holds — for example the control decode lives only in
+`control_signals.v` (organised like the scalar file: per-stage `a_sel`,
+`b_sel`, `alu_sel`, `reg_wen`, `wb_sel`, with the same encodings), and `alu.v`
+executes on `alu_sel` like the scalar ALU; `pd.v` holds no decode of its own. OoO-only additions (for example
 `rv32-benchmarks/ooo-tests/`, `verif/scripts/cmp_ooo_spike.py`) sit inside the
 standard folders.
 
@@ -106,6 +125,11 @@ reuse a module or script, **copy** it into `verilog_ooo/` and adapt the copy.
   example `free_row_idx`, `iss_row_idx`, `iss_ist_idx`) **and** put a short
   comment beside each declaration saying what it is for.
 - Names must not use "packet"/`pkt`, "launch" or "fire".
+- The `iss_` prefix is only for issue-stage signals. Inside a functional unit
+  use execute-stage names: `ex_valid` for the instruction handed over at the
+  end of its issue cycle, operands such as `idata1`/`idata2`/`pc`/`funct3`,
+  and per-EX-cycle register prefixes `addr_` (address cycle), `mem_` (memory
+  cycle), `cmp_` (branch compare cycle).
 - Use the **ready/valid** convention for handshakes: the producer drives
   `<name>_valid` and its data, the consumer drives `<name>_ready`, and a
   transfer happens when both are high (issue → FU: `iss_valid` + `iss_*`,

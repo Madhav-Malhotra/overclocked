@@ -74,6 +74,8 @@ wire [IMM_UJ_SIZE-1:0] _imm_j = {instr[31], instr[19:12], instr[20], instr[30:21
 // ====================
 // INSTRUCTION DECODE
 // ====================
+
+// opcode-level identification
 wire is_alu = (_opcode == 7'b0110011);
 wire is_alu_imm = (_opcode == 7'b0010011);
 wire is_load = (_opcode == 7'b0000011);

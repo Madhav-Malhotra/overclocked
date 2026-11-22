@@ -11,9 +11,17 @@
 //              addresses driven), then issues it to its FU with its
 //              operands and decoded fields (cycle N+1). Instructions are
 //              identified by their instr_status row (ist_idx, plan.md D1).
-//              Status (plan.md): fetch/dispatch/issue exist; execution units,
-//              writeback and branch redirect do not yet. The wb_* bus and FU
-//              ready vector are placeholders (constants).
+//              Execute: one FU per FU id - alu x2, array_mult (MCM), load,
+//              store (both on dmemory), branch_comp (branch) - each
+//              holding its result (result_valid) until writeback takes it
+//              (fu_wb_ready). control_signals.v decodes the issuing
+//              instruction (ALU op and input selects), the branch FU's
+//              compare-cycle instruction (taken) and the instruction writing
+//              back (register write enable, writeback source); load.v/store.v
+//              take the size and sign from funct3.
+//              Status (plan.md): fetch/dispatch/issue/execute exist; writeback
+//              and branch redirect do not yet. The wb_* bus and fu_wb_ready
+//              are placeholders (constants).
 // Inputs:      clock - processor clock
 //              reset - synchronous reset; returns PC to BASE_ADDR
 // Outputs:     (none - all state is internal; testbench probes internal signals)
@@ -45,6 +53,11 @@ localparam INSTR_ROW_W = $clog2(NUM_BUFFER_ROWS);  // width of an instr_status r
 // FU ids (same values in decoder.v and func_unit_status.v)
 localparam NONE   = 0;  // no FU: FENCE / unknown no-op; also "no pending producer"
 localparam BRANCH = 1;
+localparam MCM    = 2;
+localparam LOAD   = 3;
+localparam STORE  = 4;
+localparam ALU    = 5;
+localparam ALU_2  = 6;
 
 // Fetch
 reg [DATAW-1:0]   f_pc = BASE_ADDR;
@@ -113,8 +126,45 @@ wire              wb_writes_rd = 1'b0;
 wire [INSTR_ROW_W-1:0] wb_ist_idx = 0;  // instr_status row of the writing-back instruction
 wire [DATAW-1:0]  wb_pc        = 0;     // trace + D2 priority only
 
-// FU ready (ready/valid): bit id-1 = FU id can accept an instruction (TODO Phase 3: drive from the FUs)
-wire [NUM_FU-1:0] fu_ready     = {NUM_FU{1'b1}};
+// Execute: per-FU handshake vectors, bit id-1 = FU id
+wire [NUM_FU-1:0]       fu_iss_valid;     // ready/valid: the issuing instruction goes to this FU this cycle
+wire [NUM_FU-1:0]       fu_ready;         // ready/valid: FU can accept an instruction
+wire [NUM_FU-1:0]       fu_result_valid;  // ready/valid: FU holds a result waiting for writeback
+wire [NUM_FU*DATAW-1:0] fu_result;        // FU results: FU id i+1 at [i*DATAW +: DATAW]
+wire [NUM_FU-1:0]       fu_wb_ready = {NUM_FU{1'b0}};  // ready/valid: writeback takes this FU's result (TODO Phase 4: wb_select)
+
+// Control signals (control_signals.v)
+wire [1:0]        a_sel;                // ALU input 1 select: REG (rs1) or PC
+wire [1:0]        b_sel;                // ALU input 2 select: REG (rs2) or IMM
+wire [3:0]        alu_sel;              // ALU operation (encoding as in alu.v)
+wire              reg_wen;              // writeback: register file write enable (TODO Phase 4: drive the RF)
+wire [1:0]        wb_sel;               // writeback: source select for writeback.v (TODO Phase 4)
+wire [DATAW-1:0]  alu_in1;              // ALU input 1 of the issuing instruction (rs1 value or PC)
+wire [DATAW-1:0]  alu_in2;              // ALU input 2 of the issuing instruction (rs2 value or immediate)
+wire [6:0]        wb_opcode;            // opcode of the instruction writing back (instr_status read port)
+wire              br_un;                // branch FU compare cycle: unsigned compare (BLTU/BGEU)
+wire              br_eq;                // branch FU compare cycle: rs1 == rs2
+wire              br_lt;                // branch FU compare cycle: rs1 < rs2
+wire              br_taken;             // branch FU compare cycle: branch/jump taken
+wire              pc_sel;               // fetch takes the branch target (TODO Phase 6: redirect)
+wire [6:0]        br_cmp_opcode;        // opcode of the instruction in the branch FU's compare cycle
+wire [2:0]        br_cmp_funct3;        // its funct3
+wire              branch_outcome_taken; // registered outcome of the branch FU (held until writeback; TODO Phase 6)
+
+// A sel / B sel definitions (as in control_signals.v)
+localparam REG = 2'b00;
+
+// Execute: dmemory ports (read = load FU, write = store FU; both in the FU's memory cycle)
+wire              dmem_r_en;            // load FU reads this cycle
+wire [DATAW-1:0]  dmem_r_pc;            // PC of that load
+wire [1:0]        dmem_r_access_size;   // its size
+wire [DATAW-1:0]  dmem_r_address;       // its effective address
+wire [DATAW-1:0]  dmem_r_data;          // read data (combinational)
+wire              dmem_w_en;            // store FU writes at the end of this cycle (D6: in Execute)
+wire [DATAW-1:0]  dmem_w_pc;            // PC of that store
+wire [1:0]        dmem_w_access_size;   // its size
+wire [DATAW-1:0]  dmem_w_address;       // its effective address
+wire [DATAW-1:0]  dmem_w_data;          // data to write (rs2 value)
 
 
 /* FETCH STAGE: Imemory */
@@ -245,7 +295,8 @@ instr_status # (
 
   // clear row in WB
   .wb_en(wb_en),
-  .wb_ist_idx(wb_ist_idx)
+  .wb_ist_idx(wb_ist_idx),
+  .wb_opcode(wb_opcode)
 );
 
 functional_unit_status # (
@@ -354,32 +405,172 @@ register_file #(
 
 
 
-/* 
-EXECUTE STAGE: all the FUs
-- 2 ALUs
-- 1 Multi-Cycle multiplier
-- 1 Load
-- 1 Store
-- 1 Branch Comparator
-- 1 DMemory
-*/
+/* EXECUTE STAGE */
+// The issuing instruction (iss_valid + iss_*) goes to the FU named by
+// iss_fu_id. Each FU computes, registers its result and holds it
+// (fu_result_valid) until writeback takes it (fu_wb_ready). FUs:
+//   alu x2 (ids 5, 6, 1 cycle), array_mult = MCM (id 2, MUL only, 34 cycles),
+//   load (id 3), store (id 4) and branch_comp (id 1): after the issue cycle, two EX
+//   cycles each - an address/target adder, then the dmemory access (the store
+//   writes memory in Execute, D6) or the branch compare.
 
+// Control signals: Execute controls for the issuing instruction, Writeback
+// controls for the instruction writing back
+control_signals #(
+  .DATAW(DATAW),
+  .ADDRW(ADDRW)
+) ctrl (
+  .reset(reset),
+  .iss_opcode(iss_opcode),      // input
+  .iss_funct3(iss_funct3),      // input
+  .iss_funct7(iss_funct7),      // input
+  .cmp_opcode(br_cmp_opcode),   // input
+  .cmp_funct3(br_cmp_funct3),   // input
+  .br_eq(br_eq),                // input
+  .br_lt(br_lt),                // input
+  .wb_opcode(wb_opcode),        // input
+  .wb_rd(wb_rd),                // input
+  .br_taken(br_taken),          // output
+  .pc_sel(pc_sel),              // output
+  .br_un(br_un),                // output
+  .a_sel(a_sel),                // output
+  .b_sel(b_sel),                // output
+  .alu_sel(alu_sel),            // output
+  .reg_wen(reg_wen),            // output
+  .wb_sel(wb_sel)               // output
+);
+
+// ALU inputs (A sel / B sel encodings as in control_signals.v)
+assign alu_in1 = (a_sel == REG) ? iss_op1 : iss_pc;
+assign alu_in2 = (b_sel == REG) ? iss_op2 : iss_imm;
+
+// Route the issuing instruction to its FU
+genvar g;
+generate
+  for (g = 0; g < NUM_FU; g = g + 1) begin : route_issue
+    assign fu_iss_valid[g] = iss_valid && (iss_fu_id == g + 1);
+  end
+endgenerate
+
+// Branch FU: target adder, then compare (taken). The outcome is not used to
+// redirect fetch yet (plan.md Phase 6). Its fu_result slot carries the target
+// PC (shown in the [X] trace); JAL/JALR write pc+4 through writeback.v (WB_PC4).
+branch_comp #(.IDATAW(DATAW)) branch_unit (
+  .clock(clock),
+  .reset(reset),
+  .ex_valid(fu_iss_valid[BRANCH-1]),
+  .idata1(iss_op1),
+  .idata2(iss_op2),
+  .target_in1(alu_in1),
+  .target_in2(alu_in2),
+  .opcode(iss_opcode),
+  .funct3(iss_funct3),
+  .fu_ready(fu_ready[BRANCH-1]),
+  .cmp_opcode(br_cmp_opcode),
+  .cmp_funct3(br_cmp_funct3),
+  .br_un(br_un),
+  .br_eq(br_eq),
+  .br_lt(br_lt),
+  .br_taken(br_taken),
+  .result_valid(fu_result_valid[BRANCH-1]),
+  .taken(branch_outcome_taken),
+  .target(fu_result[(BRANCH-1)*DATAW +: DATAW]),
+  .wb_ready(fu_wb_ready[BRANCH-1])
+);
+
+alu #(.IDATAW(DATAW), .ODATAW(DATAW)) alu1 (
+  .clock(clock),
+  .reset(reset),
+  .ex_valid(fu_iss_valid[ALU-1]),
+  .idata1(alu_in1),
+  .idata2(alu_in2),
+  .alu_sel(alu_sel),
+  .fu_ready(fu_ready[ALU-1]),
+  .result_valid(fu_result_valid[ALU-1]),
+  .result(fu_result[(ALU-1)*DATAW +: DATAW]),
+  .wb_ready(fu_wb_ready[ALU-1])
+);
+
+alu #(.IDATAW(DATAW), .ODATAW(DATAW)) alu2 (
+  .clock(clock),
+  .reset(reset),
+  .ex_valid(fu_iss_valid[ALU_2-1]),
+  .idata1(alu_in1),
+  .idata2(alu_in2),
+  .alu_sel(alu_sel),
+  .fu_ready(fu_ready[ALU_2-1]),
+  .result_valid(fu_result_valid[ALU_2-1]),
+  .result(fu_result[(ALU_2-1)*DATAW +: DATAW]),
+  .wb_ready(fu_wb_ready[ALU_2-1])
+);
+
+array_mult #(.DATAW(DATAW)) mcm (
+  .clock(clock),
+  .reset(reset),
+  .ex_valid(fu_iss_valid[MCM-1]),
+  .op_a(iss_op1),
+  .op_b(iss_op2),
+  .fu_ready(fu_ready[MCM-1]),
+  .result_valid(fu_result_valid[MCM-1]),
+  .result(fu_result[(MCM-1)*DATAW +: DATAW]),
+  .wb_ready(fu_wb_ready[MCM-1])
+);
+
+load #(.DATAW(DATAW)) load_unit (
+  .clock(clock),
+  .reset(reset),
+  .ex_valid(fu_iss_valid[LOAD-1]),
+  .idata1(alu_in1),
+  .idata2(alu_in2),
+  .pc(iss_pc),
+  .funct3(iss_funct3),
+  .fu_ready(fu_ready[LOAD-1]),
+  .dmem_r_en(dmem_r_en),
+  .dmem_r_pc(dmem_r_pc),
+  .dmem_r_access_size(dmem_r_access_size),
+  .dmem_r_address(dmem_r_address),
+  .dmem_r_data(dmem_r_data),
+  .result_valid(fu_result_valid[LOAD-1]),
+  .result(fu_result[(LOAD-1)*DATAW +: DATAW]),
+  .wb_ready(fu_wb_ready[LOAD-1])
+);
+
+store #(.DATAW(DATAW)) store_unit (
+  .clock(clock),
+  .reset(reset),
+  .ex_valid(fu_iss_valid[STORE-1]),
+  .idata1(alu_in1),
+  .idata2(alu_in2),
+  .store_data(iss_op2),
+  .pc(iss_pc),
+  .funct3(iss_funct3),
+  .fu_ready(fu_ready[STORE-1]),
+  .dmem_w_en(dmem_w_en),
+  .dmem_w_pc(dmem_w_pc),
+  .dmem_w_access_size(dmem_w_access_size),
+  .dmem_w_address(dmem_w_address),
+  .dmem_w_data(dmem_w_data),
+  .result_valid(fu_result_valid[STORE-1]),
+  .result(fu_result[(STORE-1)*DATAW +: DATAW]),
+  .wb_ready(fu_wb_ready[STORE-1])
+);
+
+// Data memory: read port = load FU, write port = store FU (both in their
+// memory cycle). Its store->load forward is never used (D6).
 dmemory dmem (
-  .clock(clock), 
-  .r_en(),
-  .r_pc(),
-  .r_access_size(),
-  .r_address(),
-  .r_offset(),
+  .clock(clock),
+  .r_en(dmem_r_en),
+  .r_pc(dmem_r_pc),
+  .r_access_size(dmem_r_access_size),
+  .r_address(dmem_r_address),
 
-  .w_en(),
-  .w_pc(),
-  .w_access_size(),
-  .w_address(),
-  .w_offset(),
-  .w_data_in(),
+  .w_en(dmem_w_en),
+  .w_pc(dmem_w_pc),
+  .w_access_size(dmem_w_access_size),
+  .w_address(dmem_w_address),
+  .w_data_in(dmem_w_data),
 
-  .r_data_out()
+  .r_data_out(dmem_r_data)
 );
 
 /* WRITEBACK STAGE: writeback unit*/

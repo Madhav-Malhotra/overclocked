@@ -16,6 +16,11 @@ TB_SRCS_func_unit_status  = $(RTL)/func_unit_status.v $(RTL)/min_pc_select.v
 TB_SRCS_min_pc_select     = $(RTL)/min_pc_select.v
 TB_SRCS_decoder           = $(RTL)/decoder.v
 TB_SRCS_alu               = $(RTL)/alu.v
+TB_SRCS_branch_comp       = $(RTL)/branch_comp.v $(RTL)/control_signals.v
+TB_SRCS_control_signals   = $(RTL)/control_signals.v
+TB_SRCS_array_mult        = $(RTL)/array_mult.v
+TB_SRCS_load              = $(RTL)/load.v $(RTL)/dmemory.v
+TB_SRCS_store             = $(RTL)/store.v $(RTL)/dmemory.v
 
 TBS = $(patsubst %_tb.v,%,$(wildcard *_tb.v))
 

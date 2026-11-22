@@ -9,8 +9,9 @@
 //
 //              Issue pipeline (plan.md task 2.4), one issue per cycle:
 //                cycle N   : select (comb) - the smallest-PC row that is
-//                            reserved, not issued, its FU ready and has no
-//                            pending tags (min_pc_select, D2). Its rs1/rs2
+//                            reserved, not issued, its FU ready, has no
+//                            pending tags and is not held back by memory
+//                            order (D6, below) (min_pc_select, D2). Its rs1/rs2
 //                            numbers drive the register-file read addresses.
 //                edge  N   : RF latches the read data; the row is marked
 //                            issued; iss_valid/iss_row_idx registered.
@@ -162,17 +163,34 @@ end
 // ====================
 // ISSUE SELECT (combinational)
 // ====================
-// A row can issue when it is reserved, not yet issued, its FU is ready and
-// neither source waits on a producer tag. Among those, the smallest PC wins.
+// A row can issue when it is reserved, not yet issued, its FU is ready,
+// neither source waits on a producer tag, and memory order allows it (D6).
+// Among those, the smallest PC wins.
+//
+// Memory order (plan.md D6): stores write memory in Execute, so a load may not
+// issue while an older (smaller-PC) store is reserved and has not issued
+// (memory RAW), and a store may not issue while an older load is reserved and
+// has not issued (memory WAR). `issued_arr` is the "executed" bit: the load and
+// store FUs have the same timing (issue cycle, then two EX cycles: address,
+// memory), so a row selected in cycle N accesses memory in N+3, while the
+// younger access (selected in N+1 at the earliest) reaches memory in N+4 -
+// after the older one.
+// Store -> store order is automatic (one store FU, reserved until writeback).
 reg [NUM_FU-1:0]       row_can_issue; // row i can issue this cycle
 wire [NUM_FU*DATAW-1:0] row_pc_flat; // pc_arr flattened for min_pc_select
 wire [FUW-1:0]          issue_sel_row; // row selected for issue this cycle (valid with iss_sel_valid)
 
+wire store_older_than_load = pc_arr[STORE-1] < pc_arr[LOAD-1];  // the reserved store precedes the reserved load (D2: PC order)
+wire load_waits_for_store  = busy_arr[STORE-1] && !issued_arr[STORE-1] && store_older_than_load;   // memory RAW
+wire store_waits_for_load  = busy_arr[LOAD-1]  && !issued_arr[LOAD-1]  && !store_older_than_load;  // memory WAR
+
 always @(*) begin
     for (i = 0; i < NUM_FU; i = i + 1) begin
         row_can_issue[i] = busy_arr[i] && !issued_arr[i] && fu_ready[i] &&
-                       rs1_tag_arr[i] == NONE && rs2_tag_arr[i] == NONE;
+                           rs1_tag_arr[i] == NONE && rs2_tag_arr[i] == NONE;
     end
+    if (load_waits_for_store) row_can_issue[LOAD-1]  = 1'b0;
+    if (store_waits_for_load) row_can_issue[STORE-1] = 1'b0;
 end
 
 genvar g;

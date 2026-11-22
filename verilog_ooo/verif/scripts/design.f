@@ -1,12 +1,16 @@
 pd.v
 alu.v
+array_mult.v
 branch_comp.v
+control_signals.v
 decoder.v
 dmemory.v
 func_unit_status.v
 imemory.v
 instr_status.v
+load.v
 min_pc_select.v
 reg_status_table.v
 register_file.v
+store.v
 writeback.v

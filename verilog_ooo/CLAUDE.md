@@ -47,7 +47,7 @@ The defaults in `design/code/pd.v` are:
 
 FU IDs are defined in `func_unit_status.v`: `NONE=0`, `BRANCH=1`, `MCM=2`, `LOAD=3`, `STORE=4`, `ALU=5`, and `ALU_2=6`. These IDs are also used as producer tags. The first free ALU slot is selected before the second.
 
-The resource parameters describe intended capacity, not proof of working execution hardware. In particular, the out-of-order directory has no `array_mult.v`; the top-level does not connect the `busy` vector to execution units.
+The execution units are connected as of plan.md Phase 3: `alu.v` (two ALU FUs, execute in the issue cycle), `array_mult.v` (MCM FU, MUL only, 34 cycles), and `load.v` / `store.v` / `branch_comp.v` (branch FU) (issue cycle, then two EX cycles: an address/target adder, then the `dmemory.v` access or the branch compare). Each holds its result (`result_valid`) until writeback takes it (`wb_ready`); writeback itself arrives in Phase 4. The branch FU decides taken/not taken (`control_signals.v` branch controls) but its outcome is not used yet: fetch redirect, flushing and stalling come in Phase 6.
 
 ### Scoreboarding model: intended behavior and current RTL
 
@@ -88,7 +88,7 @@ The smallest-PC writeback rule is part of the stated target, not current behavio
 
 This is decode/classification behavior, not a guarantee of implemented architectural semantics. For example, the actual execution support for multiply/divide variants, branches, and loads/stores must be verified when the execution path is implemented.
 
-`design/code/alu.v` is a combinational ALU (no clock/reset) with selector values `0..10`, `12`, `13`: ADD, SUB, SLL, SRL, SRA, SLT, SLTU, XOR, OR, AND, pass-operand-2 (named `NOP`), signed DIV, and DIVU. Selector `11` (formerly MUL) returns 0: multiplication is only done by the MCM unit. It defines divide-by-zero and signed overflow results. However, the out-of-order tree has no `control_signals.v` mapping instruction fields to these selectors, and this ALU has no multicycle start/busy/done interface. Do not equate the presence of an ALU operation or an `MCM` FU ID with a connected, working instruction path.
+`design/code/alu.v` is the ALU functional unit (clocked; ready/valid `iss_valid`/`fu_ready` in, `result_valid`/`wb_ready` out) with selector values `0..10`, `12`, `13`: ADD, SUB, SLL, SRL, SRA, SLT, SLTU, XOR, OR, AND, pass-operand-2 (named `NOP`), signed DIV, and DIVU. There is no MUL selector: multiplication is only done by the MCM unit (`array_mult.v`). It defines divide-by-zero and signed overflow results. `alu_sel` and the ALU input selects (`a_sel`/`b_sel`) come from `control_signals.v`, which also provides the writeback controls (`reg_wen`, `wb_sel`), organised like `verilog/design/code/control_signals.v`. Apart from the removed MUL path and the FU handshake, `alu.v` is the same code as `verilog/design/code/alu.v`. File names follow `verilog/`; each FU has its own file, without an `fu_` prefix.
 
 ### Register and memory model from the shared RTL
 
@@ -168,10 +168,14 @@ When implementing these stages, keep producer tag, architectural `rd`, and instr
 | `design/code/func_unit_status.v` | FU-slot allocation, pending source tags/values, issue-row selection, and writeback-tag wakeup/slot release |
 | `design/code/reg_status_table.v` | Architectural-register-to-producer-FU mapping; dispatch WAW/source-tag queries and writeback clear |
 | `design/code/register_file.v` | 32x32 register storage with registered reads and a single write port |
-| `design/code/alu.v` | Combinational integer arithmetic/logic operations. It does not expose a multicycle handshake interface |
-| `design/code/branch_comp.v` | Branch comparison helper; not connected by the current top |
+| `design/code/alu.v` | ALU functional unit (FU ids 5, 6): one-cycle ALU ops incl. DIV/DIVU, result held until writeback |
+| `design/code/array_mult.v` | MCM functional unit (FU id 2): multicycle MUL (34 cycles), result held until writeback |
 | `design/code/imemory.v` | Registered instruction-memory read |
-| `design/code/dmemory.v` | Byte-addressable data-memory interface and memory behavior; not connected by the current top |
+| `design/code/load.v` | Load functional unit (FU id 3): address adder, then dmemory read + extension; result held until writeback |
+| `design/code/store.v` | Store functional unit (FU id 4): address adder, then dmemory write (in Execute); done flag held until writeback |
+| `design/code/branch_comp.v` | Branch functional unit (FU id 1): target adder, then the branch compare; taken/target held until writeback (not used for redirect yet) |
+| `design/code/control_signals.v` | Execute (alu_sel, a_sel, b_sel), branch (br_un, br_taken, pc_sel) and writeback (reg_wen, wb_sel) controls, organised like the scalar file |
+| `design/code/dmemory.v` | Byte-addressable data memory (read port for load.v, write port for store.v) |
 | `design/code/writeback.v` | Result-source mux for memory, ALU, and PC+4; not connected by the current top |
 | `verif/scripts/design.f` | Source list for the out-of-order design (single list: used by `make lint` and the Verilator build) |
 | `verif/scripts/Makefile` | `make lint` (Verilator lint + Icarus elaboration of `pd`), `make unit_tests`, simulation/spike-compare targets (`make help`) |

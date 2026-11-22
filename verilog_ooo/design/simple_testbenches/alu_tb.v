@@ -1,8 +1,15 @@
 // =============================================================================
-// alu_tb - self-checking unit test for alu.v
+// alu_tb - self-checking unit test for alu.v (the ALU functional unit)
 //
-// Covers every selector, including DIV/DIVU edge cases (divide by zero,
-// INT_MIN / -1). Multiplication is not an ALU operation (plan.md D7).
+// Each case issues one operation (alu_sel + operands) for one cycle
+// (ex_valid) and checks that result_valid rises with the right result, that
+// the result does not follow the operand inputs afterwards, that it is held
+// (fu_ready low) until wb_ready, and that result_valid clears after it.
+// Covers: every selector (ADD..AND, NOP for LUI, DIV, DIVU) including DIV/DIVU
+// edge cases (divide by zero, INT_MIN / -1, negative operands); the old MUL
+// selector 11 returns 0 (multiply is only on array_mult, plan.md D7).
+// The opcode -> alu_sel / operand-select decode is tested in
+// control_signals_tb.
 // =============================================================================
 `timescale 1ns/1ps
 module alu_tb;
@@ -33,39 +40,64 @@ module alu_tb;
   end
 
   localparam ADD = 0, SUB = 1, SLL = 2, SRL = 3, SRA = 4, SLT = 5, SLTU = 6,
-             XOR = 7, OR = 8, AND = 9, NOP = 10, DIV = 12, DIVU = 13;
+             XOR = 7, OR = 8, AND = 9, NOP = 10, OLD_MUL = 11, DIV = 12, DIVU = 13;  // alu_sel (as in alu.v)
 
-  reg  signed [31:0] a = 0, b = 0;   // ALU operands (idata1, idata2)
-  reg  [3:0] sel = 0;                // ALU operation selector
-  wire signed [31:0] y;              // ALU result
+  reg clock = 0, reset = 1;
+  reg        ex_valid = 0;
+  reg [31:0] idata1 = 0, idata2 = 0;
+  reg [3:0]  alu_sel = 0;
+  reg        wb_ready = 0;
+  wire       fu_ready, result_valid;
+  wire [31:0] result;
 
-  alu dut (.idata1(a), .idata2(b), .alu_sel(sel), .odata(y));
+  alu dut (
+    .clock(clock), .reset(reset),
+    .ex_valid(ex_valid), .idata1(idata1), .idata2(idata2), .alu_sel(alu_sel),
+    .fu_ready(fu_ready), .result_valid(result_valid), .result(result), .wb_ready(wb_ready));
 
-  // Apply one operation and check the result: op(selector, operand1, operand2, expected, label)
-  task op(input [3:0] s, input [31:0] x1, input [31:0] x2, input [31:0] exp, input [255:0] name);
+  always #5 clock = ~clock;
+  task tick; begin @(posedge clock); #1; end endtask
+
+  // Issue one operation, check its result, then let writeback take it
+  task run(input [3:0] sel, input [31:0] a, input [31:0] b, input [31:0] expected, input [255:0] msg);
     begin
-      sel = s; a = x1; b = x2; #1;
-      `CHECK(y, exp, name)
+      `CHECK(fu_ready, 1'b1, "FU ready before issue")
+      alu_sel = sel; idata1 = a; idata2 = b;
+      ex_valid = 1; tick; ex_valid = 0;
+      idata1 = 32'hDEAD_BEEF; idata2 = 32'hDEAD_BEEF;   // result must not follow the inputs afterwards
+      `CHECK(result_valid, 1'b1, msg)
+      `CHECK(result, expected, msg)
+      `CHECK(fu_ready, 1'b0, "FU not ready while it holds a result")
+      tick;
+      `CHECK(result_valid, 1'b1, "result held until writeback")
+      `CHECK(result, expected, "result value held until writeback")
+      wb_ready = 1; tick; wb_ready = 0;
+      `CHECK(result_valid, 1'b0, "result_valid cleared by wb_ready")
     end
   endtask
 
   initial begin
-    op(ADD,  32'd5,        32'd7,        32'd12,       "ADD");
-    op(SUB,  32'd5,        32'd7,        32'hfffffffe, "SUB");
-    op(SLL,  32'h1,        32'd31,       32'h80000000, "SLL");
-    op(SRL,  32'h80000000, 32'd4,        32'h08000000, "SRL");
-    op(SRA,  32'h80000000, 32'd4,        32'hf8000000, "SRA");
-    op(SLT,  32'hffffffff, 32'd1,        32'd1,        "SLT signed");
-    op(SLTU, 32'hffffffff, 32'd1,        32'd0,        "SLTU unsigned");
-    op(XOR,  32'hf0f0f0f0, 32'hff00ff00, 32'h0ff00ff0, "XOR");
-    op(OR,   32'hf0f0f0f0, 32'h0f0f0f0f, 32'hffffffff, "OR");
-    op(AND,  32'hf0f0f0f0, 32'hff00ff00, 32'hf000f000, "AND");
-    op(NOP,  32'hdead,     32'h12345000, 32'h12345000, "NOP passes idata2 (LUI)");
-    op(DIV,  32'hfffffff9, 32'd2,        32'hfffffffd, "DIV -7/2 = -3 (truncates)");
-    op(DIV,  32'd7,        32'd0,        32'hffffffff, "DIV by zero = -1");
-    op(DIV,  32'h80000000, 32'hffffffff, 32'h80000000, "DIV INT_MIN/-1 = INT_MIN");
-    op(DIVU, 32'hfffffffe, 32'd2,        32'h7fffffff, "DIVU unsigned");
-    op(DIVU, 32'd7,        32'd0,        32'hffffffff, "DIVU by zero = all ones");
+    tick; tick; reset = 0; tick;
+    `CHECK(result_valid, 1'b0, "no result after reset")
+
+    run(ADD,     32'd5,         32'd7,         32'd12,        "ADD");
+    run(SUB,     32'd5,         32'd7,         32'hFFFF_FFFE, "SUB");
+    run(SLL,     32'h1,         32'd31,        32'h8000_0000, "SLL");
+    run(SRL,     32'h8000_0000, 32'd4,         32'h0800_0000, "SRL");
+    run(SRA,     32'h8000_0000, 32'd4,         32'hF800_0000, "SRA");
+    run(SLT,     32'hFFFF_FFFF, 32'd1,         32'd1,         "SLT signed");
+    run(SLTU,    32'hFFFF_FFFF, 32'd1,         32'd0,         "SLTU unsigned");
+    run(XOR,     32'hF0F0_F0F0, 32'hFF00_FF00, 32'h0FF0_0FF0, "XOR");
+    run(OR,      32'hF0F0_F0F0, 32'h0F0F_0F0F, 32'hFFFF_FFFF, "OR");
+    run(AND,     32'hF0F0_F0F0, 32'hFF00_FF00, 32'hF000_F000, "AND");
+    run(NOP,     32'hDEAD,      32'h1234_5000, 32'h1234_5000, "NOP passes idata2 (LUI)");
+    run(DIV,     32'hFFFF_FFF9, 32'd2,         32'hFFFF_FFFD, "DIV -7/2 = -3 (truncates)");
+    run(DIV,     32'd7,         32'd0,         32'hFFFF_FFFF, "DIV by zero = -1");
+    run(DIV,     32'h8000_0000, 32'hFFFF_FFFF, 32'h8000_0000, "DIV INT_MIN/-1 = INT_MIN");
+    run(DIVU,    32'hFFFF_FFFE, 32'd2,         32'h7FFF_FFFF, "DIVU unsigned");
+    run(DIVU,    32'd7,         32'd0,         32'hFFFF_FFFF, "DIVU by zero = all ones");
+    run(OLD_MUL, 32'd6,         32'd7,         32'd0,         "old MUL selector returns 0 (no ALU multiply)");
+
     `TB_FINISH
   end
 endmodule

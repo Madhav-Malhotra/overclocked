@@ -14,7 +14,10 @@
 // row waits, then issues after the writeback broadcast with the forwarded
 // value (not the RF value); a row dispatched in the same cycle its source is
 // written to the RF reads the new value; writeback frees the slot;
-// re-dispatching a row clears its stale forwarded-value flags.
+// re-dispatching a row clears its stale forwarded-value flags; memory order
+// (plan.md D6): an older store that has not issued holds back a younger load,
+// an older load holds back a younger store, a younger store does not hold
+// back an older load.
 // =============================================================================
 `timescale 1ns/1ps
 module func_unit_status_tb;
@@ -266,6 +269,53 @@ module func_unit_status_tb;
     check_issue(MCM,  3'd0, 32'h0100_0530, 5'd14, 32'h1003, 32'h1004, "F: issue 3 = MCM");
     tick;
     `CHECK(iss_valid, 1'b0, "F: one issue per ready row")
+
+    // --- G1: older store (waiting on MCM) holds back a younger ready load
+    wb(LOAD, 32'h6); wb(ALU, 32'h7);
+    fu_ready = {NUM_FU{1'b0}};
+    dispatch(STORE, 32'h0100_0600, 3'd3, 5'd1, 5'd2, 5'd0, NONE, MCM, got);
+    dispatch(LOAD,  32'h0100_0604, 3'd4, 5'd3, 5'd0, 5'd17, NONE, NONE, got);
+    fu_ready = {NUM_FU{1'b1}};
+    for (k = 0; k < 4; k = k + 1) begin
+      `CHECK(iss_sel_valid, 1'b0, "G1: younger load waits for the older store")
+      tick;
+    end
+    wb(MCM, 32'h0000_0ABC);                // store's data operand arrives
+    `CHECK(iss_sel_ist_idx, 3'd3, "G1: store selected first")
+    tick;
+    check_issue(STORE, 3'd3, 32'h0100_0600, 5'd0, 32'h1001, 32'h0000_0ABC, "G1: store issues");
+    `CHECK(iss_sel_valid, 1'b1, "G1: load selected the cycle after the store")
+    `CHECK(iss_sel_ist_idx, 3'd4, "G1: then the load")
+    tick;
+    check_issue(LOAD, 3'd4, 32'h0100_0604, 5'd17, 32'h1003, 32'h1000, "G1: load issues after the store");
+
+    // --- G2: older load (waiting on ALU_2) holds back a younger ready store
+    wb(LOAD, 32'h8); wb(STORE, 32'h9);
+    fu_ready = {NUM_FU{1'b0}};
+    dispatch(LOAD,  32'h0100_0700, 3'd0, 5'd4, 5'd0, 5'd18, ALU_2, NONE, got);
+    dispatch(STORE, 32'h0100_0704, 3'd1, 5'd5, 5'd6, 5'd0, NONE, NONE, got);
+    fu_ready = {NUM_FU{1'b1}};
+    for (k = 0; k < 4; k = k + 1) begin
+      `CHECK(iss_sel_valid, 1'b0, "G2: younger store waits for the older load")
+      tick;
+    end
+    wb(ALU_2, 32'h0100_0F00);              // load's base address arrives
+    `CHECK(iss_sel_ist_idx, 3'd0, "G2: load selected first")
+    tick;
+    check_issue(LOAD, 3'd0, 32'h0100_0700, 5'd18, 32'h0100_0F00, 32'h1000, "G2: load issues");
+    `CHECK(iss_sel_ist_idx, 3'd1, "G2: store selected the cycle after the load")
+    tick;
+    check_issue(STORE, 3'd1, 32'h0100_0704, 5'd0, 32'h1005, 32'h1006, "G2: store issues after the load");
+
+    // --- G3: a younger store (waiting on MCM) does not hold back an older load
+    wb(LOAD, 32'hA); wb(STORE, 32'hB);
+    dispatch(LOAD,  32'h0100_0800, 3'd2, 5'd7, 5'd0, 5'd19, NONE, NONE, got);
+    `CHECK(iss_sel_valid, 1'b1, "G3: load can issue")
+    `CHECK(iss_sel_ist_idx, 3'd2, "G3: load selected")
+    set_ds(STORE, 32'h0100_0804, 3'd5, 5'd1, 5'd2, 5'd0, NONE, MCM, got);  // dispatch while the load issues
+    tick; ds_en = 0;
+    check_issue(LOAD, 3'd2, 32'h0100_0800, 5'd19, 32'h1007, 32'h1000, "G3: older load issues");
+    `CHECK(iss_sel_valid, 1'b0, "G3: younger store still waits on its tag")
 
     `TB_FINISH
   end
